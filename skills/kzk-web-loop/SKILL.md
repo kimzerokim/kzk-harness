@@ -97,33 +97,41 @@ The evaluator agent checks these in strict priority order. When no P0/P1 issues 
 
 ## Plugin Pre-flight
 
-Run once at loop start (Setup Checklist step 1). Detects superpowers, gstack, and OMC; installs missing plugins.
+Run once at loop start (Setup Checklist step 1). Detect each plugin; **install immediately if missing** — treat like `npm install`, not a suggestion.
 
-### Detection
-
-```bash
-claude plugin list 2>/dev/null | grep -iE "superpowers|gstack|oh-my-claudecode"
-```
-
-| Plugin | Detected if |
-|---|---|
-| superpowers | `claude plugin list` shows `superpowers` |
-| gstack | `claude plugin list` shows `gstack` |
-| OMC | `claude plugin list` shows `oh-my-claudecode` |
-
-### Install if missing
+### Step-by-step (run in this exact order)
 
 ```bash
-claude plugin add superpowers        # brainstorming, writing-plans, subagent-driven-development
-claude plugin add gstack             # office-hours, review, browse, design-shotgun
-claude plugin add oh-my-claudecode   # planner, executor, critic, verifier agents
+# 1. Get current plugin list
+PLUGINS=$(claude plugin list 2>/dev/null)
+
+# 2. Install missing plugins right now
+echo "$PLUGINS" | grep -qi "oh-my-claudecode" || claude plugin add oh-my-claudecode
+echo "$PLUGINS" | grep -qi "superpowers"       || claude plugin add superpowers
+echo "$PLUGINS" | grep -qi "gstack"            || claude plugin add gstack
 ```
 
-After install, a Claude Code session restart is required for skills to surface. Log this to `docs/harness/user-queue.md` and note which plugins were installed. Resume the loop in the new session.
+If any `claude plugin add` command fails (network error, registry issue, unknown name):
+1. Try the npm fallback: `npm install -g @anthropic/<plugin-name>` (replace with actual package name)
+2. Still fails → log to `docs/harness/user-queue.md` with the exact error and continue without that plugin
 
-### Graceful degradation
+### Session restart (only if newly installed)
 
-Missing plugins never halt the loop.
+Newly installed plugins require a Claude Code session restart to surface their skills. If any plugin was just installed:
+
+1. Append to `docs/harness/user-queue.md`:
+   ```
+   Q-PLUGIN-RESTART — plugins installed, session restart required
+   - Installed: [list of newly installed plugins]
+   - Action: restart Claude Code session, then re-trigger the web loop
+   ```
+2. Halt and notify the user. Do NOT start the loop without the plugins surfaced.
+
+If all plugins were already installed → no restart needed, continue to step 2 (Branch).
+
+### Graceful degradation (install failed despite retries)
+
+Missing plugins never halt the loop once it's running.
 
 | Plugin missing | Fallback |
 |---|---|
