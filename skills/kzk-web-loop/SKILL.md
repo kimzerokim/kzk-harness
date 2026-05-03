@@ -32,7 +32,7 @@ Each cycle executes these steps in order:
 
 **1b. EVALUATOR AGENT** (`oh-my-claudecode:critic`, `model=opus`) — fresh subagent with zero memory of previous cycles. Reads `.web-loop/cycle-N-report.md` + the built-in checklist (see §Evaluation Criteria). Outputs a prioritized issue list: P0 / P1 / P2.
 
-**2. Pick top-priority issue** — take the highest-severity issue from the list that is NOT already recorded in `harness-flow-progress.md` as "Cycle N: completed" or "Cycle N: skipped" for the **current cycle number**. Each cycle is independent — an issue fixed in Cycle 3 may recur and be picked again in Cycle 9.
+**2. Pick top-priority issue** — take the highest-severity issue for which `harness-flow-progress.md` has NO line starting with `Cycle N (` that contains this issue's text (N = current cycle number). Each cycle is independent — an issue fixed in Cycle 3 may recur and be picked again in Cycle 9.
 
 **3. Ambiguous?** — If any decision is unclear, append an entry to `docs/harness/user-queue.md` (per `kzk-user-queue` skill) with a tentative default and continue immediately. Never stop to ask the user.
 
@@ -43,7 +43,9 @@ Each cycle executes these steps in order:
   2. CRITIC (`oh-my-claudecode:critic`, `model=opus`) reviews the frozen plan. FAIL → planner revises once. Second consecutive FAIL → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
   3. EXECUTOR (`oh-my-claudecode:executor`, `model=sonnet`) receives the evaluator's issue description verbatim + frozen plan path + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), commits.
 
-**5. Update `harness-flow-progress.md`** — one-line entry: `Cycle N: completed — [P-level] [issue one-liner]` or `Cycle N: skipped — [reason]`.
+**5. Update `harness-flow-progress.md`** — append one line using the canonical format (see §State Persistence):
+- Completed: `Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue one-liner] — queue: N remaining — PW: ok|degraded`
+- Skipped: `Cycle N (YYYY-MM-DD HH:MM) — skipped — [issue one-liner] — [reason] — queue: N remaining — PW: ok|degraded`
 
 **6. Back to step 1a.**
 

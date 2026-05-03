@@ -45,6 +45,6 @@ Skill("oh-my-claudecode:deepinit")
 
 - [x] CLAUDE.md updated to match current state
 - [x] deepinit ran
-- [x] kzk-pre-commit-gate 4-step PASS on final commit
+- [x] kzk-pre-commit-gate 5-gate PASS (Gates 0–4) on final commit
 - [x] (only if user has approved end-of-experiment merge to main) experiment complete + user merge approval received
 ```
