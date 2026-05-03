@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-merge-sync
-version: 1.0.4
+version: 1.0.5
 description: "Pre-merge checklist — sync CLAUDE.md to current code state and run `/oh-my-claudecode:deepinit` before any feature-branch merge. Required triggers: 'merge 전', 'PR 직전', 'deepinit', 'Pre-Merge', 'CLAUDE.md update', 'manifest 재생성'."
 ---
 
@@ -8,7 +8,7 @@ description: "Pre-merge checklist — sync CLAUDE.md to current code state and r
 
 # kzk-pre-merge-sync
 
-Two checks every PR must complete before merge to its target branch (usually `feature/<topic>` in adopting projects; `harness-test` is the kzk-harness repo's own convention).
+Two checks every PR must complete before merge to its target branch (use `feature/<topic>` in all adopting projects; `harness-test` is the kzk-harness repo's own convention only).
 
 ## 1. CLAUDE.md sync (mandatory)
 

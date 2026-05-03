@@ -843,7 +843,7 @@ Run a self-directed improvement cycle on a web project until the user explicitly
 1a. Tool runner (`oh-my-claudecode:executor`, sonnet) runs tests + Playwright screenshots → saves raw output to `.web-loop/cycle-N-report.md`.
 1b. Evaluator (`oh-my-claudecode:critic`, opus) reads report + built-in checklist → outputs P0 / P1 / P2 issue list.
 2. Main picks top issue NOT recorded as "Cycle N: completed/skipped" for the current cycle (cycle-scoped, not session-scoped); ambiguous decisions → `docs/harness/user-queue.md` entry with tentative default, never stop.
-3a. P0: executor (sonnet) implements directly via TDD → kzk-pre-commit-gate (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise) → commit.
+3a. P0: executor (sonnet) implements directly via TDD → kzk-pre-commit-gate (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise) → commit.
 3b. P1/P2: kzk-codebase-survey (EXPLORER) → survey report → writing-plans/planner (opus) → critic (opus) reviews → executor (sonnet) implements → commit.
 4. Update `harness-flow-progress.md` one-liner → back to step 1a.
 

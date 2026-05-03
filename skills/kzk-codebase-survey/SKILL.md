@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.2.3
+version: 1.2.4
 description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning'."
 ---
 
@@ -16,7 +16,7 @@ Mandatory pre-brainstorming and pre-planning deep read. Solves the root cause of
 
 **Agent dispatch:** `oh-my-claudecode:explore` (`model=sonnet`) for file discovery + parallel `Read` in main context for full reads.
 
-Run all 8 steps in order. Save report before returning.
+Run all steps in order (Step 0.5 + Step 1–8). Save report before returning.
 
 ### Step 0.5 — Tool Availability Self-Heal
 
@@ -176,7 +176,7 @@ Report save path: .web-loop/surveys/cycle-<N>-survey.md
 
 Required reading before starting: CLAUDE.md, harness-share.md §26.
 
-Run all 8 steps from kzk-codebase-survey SKILL.md in order.
+Run all steps from kzk-codebase-survey SKILL.md in order (Step 0.5 + Step 1–8).
 Save the completed report to the path above.
 Return: the absolute path to the saved report file.
 If any step is blocked, note the reason in the report and continue.`,

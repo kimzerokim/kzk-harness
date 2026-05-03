@@ -1,6 +1,6 @@
 ---
 name: kzk-codex-cross-verification
-version: 1.0.5
+version: 1.0.6
 description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
 ---
 
@@ -38,6 +38,7 @@ Every meaningful design artifact gets a second opinion from a different model be
 - `docs/plans/<plan-name>-critic-review-2.md` for cycle 2 (if a cycle 2 is needed)
 - The cycle counter source-of-truth = the file artifact. Reproducibility across sessions.
 - Cycle 2 prompt must reference the cycle 1 file verdict.
+- If CLI fails and fallback critic runs in the same cycle, the fallback verdict OVERWRITES the CLI error stub in the same file. Only retain the CLI error stub when no fallback was attempted (e.g. user explicitly disabled critic too).
 
 ## Codex prompt skeleton
 
@@ -75,7 +76,7 @@ codex exec "$PROMPT" -C <repo-root> -s read-only \
 
 - `timeout: 300000` (5 min). Background-monitor per `kzk-background-monitoring`.
 - 30 sec to first token. 5 min 0 byte = stuck — kill + retry with smaller prompt or stdin closed (`< /dev/null`).
-- If stdout produces no parseable JSON lines: immediately `cat /tmp/codex-err.txt` and check `${PIPESTATUS[0]}`. Save an error stub to the verdict file (`docs/plans/<plan-name>-critic-review.md`: "codex exit <N>, stderr: <first 200 chars>") then fall back to `Agent(subagent_type="oh-my-claudecode:critic", model="opus")`.
+- If stdout produces no parseable JSON lines (whether stdout is empty OR non-empty but not JSON): treat as failure. Immediately `cat /tmp/codex-err.txt` and check `${PIPESTATUS[0]}`. Save an error stub to the verdict file (`docs/plans/<plan-name>-critic-review.md`: "codex exit <N>, stderr: <first 200 chars>, stdout: <first 200 chars if non-empty>") then fall back to `Agent(subagent_type="oh-my-claudecode:critic", model="opus")`.
 
 ## Cost / cadence
 

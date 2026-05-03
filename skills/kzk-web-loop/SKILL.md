@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.3.4
+version: 1.3.5
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
@@ -43,14 +43,14 @@ Each cycle executes these steps in order:
 
 **2. Pick top-priority issue** — take the highest-severity issue for which `harness-flow-progress.md` has NO line starting with `Cycle N (` that contains this issue's text (N = current cycle number). Each cycle is independent — an issue fixed in Cycle 3 may recur and be picked again in Cycle 9.
 
-**3. Ambiguous?** — If any decision is unclear, append an entry to `docs/harness/user-queue.md` (per `kzk-user-queue` skill) with a tentative default and continue immediately. Never stop to ask the user.
+**3. Ambiguous?** — If any decision is unclear, append an entry to `docs/harness/user-queue.md` (per `kzk-user-queue` skill) with a tentative default and continue immediately. Never stop to ask the user. Use `Q-WEBLOOP-<N>-<TOPIC>` prefix for web-loop–originated entries (e.g., `Q-WEBLOOP-3-PLAYWRIGHT-DROP`).
 
 **4a. P0 fast path** — If the issue is P0, dispatch `oh-my-claudecode:executor` (`model=sonnet`) directly with the evaluator's issue description verbatim (passed as a quoted string, not re-interpreted) + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise), commits.
 
 **4b. P1/P2 plan gate** (per `kzk-large-task-delegation` plan-critic loop requirement) — If the issue is P1 or P2:
 
   **superpowers available:**
-  1. `Skill("kzk-codebase-survey")` — EXPLORER runs all 8 steps, saves report to `.web-loop/surveys/cycle-N-survey.md`. Report path passed to writing-plans as required reading.
+  1. `Skill("kzk-codebase-survey")` — EXPLORER runs all steps (Step 0.5 + Step 1–8), saves report to `.web-loop/surveys/cycle-N-survey.md`. Report path passed to writing-plans as required reading.
   2. `Skill("superpowers:writing-plans")` — creates a frozen plan (default path: `docs/plans/YYYY-MM-DD-<topic>.md`). After the skill returns, main controller copies the plan to `.web-loop/plans/cycle-N-plan.md` so the loop's state dir stays consistent (canonical plan remains in `docs/plans/` for git tracking; in-cycle reads use `.web-loop/plans/`). Prompt includes survey report path.
   3. `Skill("superpowers:subagent-driven-development")` — reads frozen plan, dispatches implementer subagent, 2-stage spec + quality review. gstack available → append `Skill("gstack:review")` as the final code review pass.
   4. Second consecutive FAIL from the same reviewer (or 3+ FAILs total across all reviewers in the same cycle) → skip issue, append to `docs/harness/user-queue.md`, pick next issue.

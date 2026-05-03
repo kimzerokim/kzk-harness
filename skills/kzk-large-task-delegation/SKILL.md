@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.0.4
+version: 1.0.5
 description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체'."
 ---
 
@@ -37,7 +37,7 @@ Subagent dispatches are split by phase, not by topic. Reasoning-heavy phases get
 | Critic / review | `oh-my-claudecode:critic` / `oh-my-claudecode:code-reviewer` | **opus** | Codex CLI review parallel pass (see `kzk-codex-cross-verification`) |
 | Verify | `oh-my-claudecode:verifier` | **opus** | Codex CLI consult on uncertain assertions (see `kzk-codex-cross-verification`) |
 | Implementation | `oh-my-claudecode:executor` | **sonnet** | none — plan must already be detailed enough |
-| Quick research / file search | `Explore` / `oh-my-claudecode:explore` | **haiku** or default | none |
+| Quick research / file search | `oh-my-claudecode:explore` | **haiku** or default | none |
 
 Reason: heavy reasoning where it changes the outcome, cheap execution where the plan already determined every move. Override: if sonnet returns BLOCKED or main reviews the diff and finds plan-vs-code drift, re-dispatch the same task with `model="opus"` and root-cause whether the plan was insufficient (fix the plan policy) or the model failed (record once, do not generalize from a single failure).
 
@@ -75,7 +75,7 @@ Agent({
 
 // ✅ Quick lookup — haiku or default
 Agent({
-  subagent_type: 'Explore',
+  subagent_type: 'oh-my-claudecode:explore',
   prompt: 'Locate every reference to <symbol> ...',
 });
 ```
@@ -86,7 +86,7 @@ Agent({
 
 Before dispatching the sonnet executor, the plan must clear this gate exactly once per Plan or per discrete task:
 
-0. **`kzk-codebase-survey`** — EXPLORER agent runs all 8 steps, saves report to `docs/harness/surveys/YYYY-MM-DD-<topic>-survey.md`. Report path passed to planner and critic as required reading. Survey failure → note in report, continue.
+0. **`kzk-codebase-survey`** — EXPLORER agent runs all steps (Step 0.5 + Step 1–8), saves report to `docs/harness/surveys/YYYY-MM-DD-<topic>-survey.md`. Report path passed to planner and critic as required reading. Survey failure → note in report, continue.
 1. main authors the plan or dispatches `planner` (opus) — **prompt must include survey report path as required reading**
 2. Codex CLI consult on the plan draft (`codex exec` per `kzk-codex-cross-verification`) → returns concerns; CLI unavailable → `oh-my-claudecode:critic` opus
 3. main edits plan (or dispatches `oh-my-claudecode:critic` opus) to address concerns — **critic prompt must include:** "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL."

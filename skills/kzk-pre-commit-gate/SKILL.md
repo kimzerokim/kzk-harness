@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.0.5
+version: 1.0.6
 description: "6-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / secrets-scan / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/1.5/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'secrets scan', 'Gate 1.5', 'autonomous commit', 'doc-only exception'."
 ---
 
@@ -79,7 +79,7 @@ Note: skill files (`skills/**/*.md`) count as doc-only ONLY when modifying an ex
 
 User explicitly entered autonomous mode ("ralph로 돌려", "자는 동안 진행", "끝까지 끝내줘"):
 
-- 4 gates pass → commit without user confirmation
+- All applicable gates pass (6 if AGENTS.md hierarchy present; 5 otherwise) → commit without user confirmation
 - Push to feature branch only. **Never push to / auto-merge to `main`.**
 - PR creation is allowed; final merge waits for explicit user approval
 
@@ -97,5 +97,5 @@ Non-autonomous (default): every commit waits for user OK after gates pass. No au
 
 - 1st failure: fix root cause, re-stage, new commit
 - 3 build/test failures consecutively → halt, append user-queue entry (this is the autonomous-loop halt condition; see `kzk-autonomous-boundary`)
-- Reviewer/critic 2 consecutive FAIL on the same change (Gate 1 ai-slop-cleaner, Gate 4 Playwright visual review) → halt + user-queue entry. See `kzk-autonomous-boundary` for the full halt condition list.
+- Reviewer/critic 2 consecutive FAIL on the same change (Gate 1 ai-slop-cleaner, Gate 4 Playwright visual review) → halt + user-queue entry. See `kzk-autonomous-boundary` for the full halt condition list. Exception: `kzk-web-loop` overrides consecutive-FAIL halts with skip+next-issue (see `kzk-web-loop` §Failure Handling).
 - Never `git commit --amend` after a hook failure (the commit didn't happen — amending hits the previous commit)

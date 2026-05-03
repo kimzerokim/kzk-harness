@@ -1,6 +1,6 @@
 ---
 name: kzk-test-coverage
-version: 1.0.3
+version: 1.0.4
 description: "Autonomous-mode test coverage goal: 100% line + branch on changed files. Touched legacy raised too. Best-effort excuses forbidden. Required triggers: 'test coverage', 'test:cov', '100% coverage', '변경 파일 cov', 'coverage exemption'."
 ---
 
@@ -30,6 +30,7 @@ These count as "no logic — coverage non-goal". Anything with a branch or expre
 - Coverage-pad tests (calling a function with no assertion) — counted as 0
 - Skipping coverage for files outside the changed area — only allowed when truly untouched
 - Coverage script (`test:cov`) not found → silently declaring 100%. Forbidden. Add a coverage script (e.g. `vitest run --coverage`) or queue `Q-COV-SETUP — missing coverage script`; do not declare 100% by omission.
+- Coverage report generated but exit code non-zero (e.g. coverage threshold guard): counts as FAIL. Must be exit 0 AND every touched file present in the report.
 
 ## Interaction with other kzk-*
 
