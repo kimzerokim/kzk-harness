@@ -1,10 +1,10 @@
 ---
 name: kzk-background-monitoring
-version: 1.0.1
+version: 1.0.2
 description: "Background process active monitoring mandate — agent owns every long-running task it spawns and never lets the user have to ask 'is it done?'. Applies to Bash run_in_background, Monitor, codex exec, npm install, docker build, subagent dispatch, anything ≥ 5s. Required triggers: 'background', 'monitor', 'long-running', 'stuck', 'codex consult', 'is it done', 'background task hung'."
 ---
 
-> Authoritative source: `harness-share.md` §23. On conflict, that wins. Originated from `gridless` repo §2.5; portable to all projects.
+> Authoritative source: `harness-share.md` §23. On conflict, that wins.
 
 # kzk-background-monitoring
 
@@ -26,7 +26,7 @@ Once you spawn a background task, you own it until it terminates (success, failu
    - longer / uncertain: `Monitor` with stdout filter that catches success AND every failure signature (`grep -E "Error|FAIL|Traceback|tokens used|exit code"`)
    - manual loop: `until <terminal-condition>; do sleep N; done` — `terminal-condition` covers both success and failure
 3. **Stuck detection** — declare stuck on any of:
-   - Output file size has not grown for X minutes (codex / streaming tools must produce a token within 30-60s)
+   - Output file size has not grown (thresholds: subagent ≥ 5 min; Bash background ≥ 3 min; codex / streaming tools: no first token within 60s, or no new output within 5 min total)
    - Process CPU usage 0
    - stderr shows hang signals like `Reading additional input from stdin...`
    - Wall time exceeds 2× the expected duration
@@ -58,7 +58,7 @@ cat <stderr-file>                         # error / hang signal
 
 ## Codex consult special case
 
-For Codex specifically, see `kzk-codex-cross-verification` §Codex execution shape (30s-to-first-token rule, 5 min 0-byte = stuck threshold, mitigation steps).
+For Codex specifically, see `kzk-codex-cross-verification` §Codex execution shape (60s-to-first-token rule, 5 min total stuck threshold, mitigation steps).
 
 ## Narration mandate (cross-link with kzk-playwright-verification)
 

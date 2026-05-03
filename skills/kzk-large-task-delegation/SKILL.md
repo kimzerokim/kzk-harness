@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.0.5
+version: 1.0.6
 description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체'."
 ---
 
@@ -154,6 +154,6 @@ Re-prevention:
 
 1. Detect "large" → immediately invoke `/superpowers:subagent-driven-development`
 2. Skill demands `docs/plans/<name>.md` first (2-5 task TDD format)
-3. Fresh subagent dispatch = `Agent` tool + `subagent_type="oh-my-claudecode:executor"` + `model="sonnet"` (default for implementation; see Model routing table) + frozen plan path + context7 mandate + Pre-commit Gate 0-4 all in prompt
+3. Fresh subagent dispatch = `Agent` tool + `subagent_type="oh-my-claudecode:executor"` + `model="sonnet"` (default for implementation; see Model routing table) + frozen plan path + context7 mandate + Pre-commit Gates 0, 1, 1.5, 2, 3, 4 all in prompt
 4. Main reviews subagent return → gate check → commit+push, OR re-dispatch fresh subagent on failure
 5. 2 consecutive subagent failures → halt + user-queue entry. Main does NOT take over.

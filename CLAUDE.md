@@ -59,7 +59,7 @@ No-halt policy applies (same as `kzk-web-loop`). Ambiguous decisions → `docs/h
 
 ## External Tools
 
-`code-review-graph` — installed globally via the kzk-harness install command. Builds a Tree-sitter + SQLite knowledge graph of the codebase for blast radius analysis and scope expansion. Used by `kzk-codebase-survey` Steps 1–2 when available (grep fallback if not). Install: `pip install code-review-graph && code-review-graph install && code-review-graph build`.
+`code-review-graph` — installed globally via the kzk-harness install command. Builds a Tree-sitter + SQLite knowledge graph of the codebase for blast radius analysis and scope expansion. Used by `kzk-codebase-survey` Steps 1–2 when available (grep fallback if not). Install: `python3 -m pip install --user code-review-graph && code-review-graph install && code-review-graph build`. PEP 668 fallback: `pipx install code-review-graph`.
 
 ## Skill Development Rules
 

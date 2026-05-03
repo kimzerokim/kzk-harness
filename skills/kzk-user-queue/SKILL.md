@@ -1,6 +1,6 @@
 ---
 name: kzk-user-queue
-version: 1.0.1
+version: 1.0.2
 description: "user-queue protocol — append entries with tentative defaults during autonomous runs, parametrize so user can override cheaply, then run interactive 1-by-1 review (Stage 1/2/3) when user returns. Required triggers: 'user-queue', 'Q-PLAN', 'Pending', 'Resolved', 'DECISION', 'Interactive Queue Review', 'Stage 3', '모호 결정'."
 ---
 
@@ -8,7 +8,7 @@ description: "user-queue protocol — append entries with tentative defaults dur
 
 # kzk-user-queue
 
-Path: `docs/harness/user-queue.md`. Two sections: `## Pending` and `## Resolved`. Git-tracked.
+Path: `docs/harness/user-queue.md`. Three sections: `## Pending`, `## Resolved`, and `## Escalated`. Git-tracked.
 
 ## Append-during-autonomous protocol
 

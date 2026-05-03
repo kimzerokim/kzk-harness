@@ -201,6 +201,10 @@ source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `doc
 
 코드 변경 1줄이라도 섞이면 full 6-gate 수행 (AGENTS.md hierarchy 가 없는 레포는 5-gate).
 
+**AGENTS.md / README.md 분류 기준**: 이 파일들은 `*.md` glob 에 해당하지만 상황에 따라 다름.
+- 단독 수정 (파일 구조 변경 없는 routine 갱신) → doc-only 적용 O. Gate 0 트리거 안 됨 (source file add/delete 없음).
+- Gate 0 트리거 commit 에 동승 (source 파일 추가/삭제와 같은 commit) → doc-only 적용 X. source 변경이 예외 자동 해제.
+
 ### Token migration — shadcn + Tailwind v4 bridge requirement
 
 Official shadcn new-york blocks use prefix-less tokens (`--background`, `--primary`, `--sidebar`). When the host project uses Tailwind v4 `@theme { --color-* }`, a bridge is required:
@@ -338,7 +342,7 @@ After Stage 1 + 2 finish and the user appends DECISIONs:
 - Apply Resolved decisions to affected artifacts (PRD / plan / code)
 - Max **3 iterations** (infinite-loop guard)
 - Same entry processed twice OR DECISIONs conflict → move to `## Escalated` section + separate user session
-- Detail (state machine + iteration counter): `docs/harness/ralph-items.md` "Stage 3"
+- Full Stage 3 state machine: three phases (classify → GROUP A interactive review → resolution apply), max 3 iterations, conflict moves to `## Escalated`
 
 ### Halt when crossing un-applied policy areas
 
@@ -724,7 +728,7 @@ Russian Judge Verdict:
   - plan file 전체 경로
   - spec file 경로 (있으면)
   - "Identify: (a) acceptance criteria gaps, (b) scope drift risk, (c) optimal alternative approach, (d) reviewable evidence requirements per phase"
-  - "Assume autonomous ralph mode, harness-test branch only"
+  - "Assume autonomous ralph mode, feature/<topic> branch only (or your repo's autonomous branch convention)"
 - **REJECTED 또는 critical issues 반환 시**: plan 정정 후 재 review. 2 cycle 후에도 reject 시 halt + user-queue entry. brainstorming 단계 후퇴는 사용자가 결정 — 자율 후퇴 금지.
 - **APPROVED 또는 minor only**: ralph 진입.
 

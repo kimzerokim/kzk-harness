@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.0.6
+version: 1.0.7
 description: "Autonomous-mode boundary — what the agent may and may NOT do without per-step user confirmation. Covers main-branch ban, halt conditions, and when autonomous mode is even allowed. Required triggers: 'autonomous', 'ralph로 돌려', '자는 동안 진행', 'feature branch boundary', 'main 직접 접근', 'reviewer FAIL'."
 ---
 
@@ -54,3 +54,9 @@ If the autonomous loop committed code that is later found to be wrong (reviewer 
 - Default feature branch: `feature/<topic>`. (`harness-test` is the kzk-harness repo's own convention — use `feature/<topic>` in all other projects.)
 - One Plan = one PR (no batch). First plan-direction error → others stay protected
 - PR description must include "CLAUDE.md updated to match current state" + "deepinit ran" lines (see `kzk-pre-merge-sync`)
+
+## Interaction with other kzk-*
+
+- **kzk-tool-retry**: When any Edit/Write/Bash fails during autonomous execution, apply 1-retry before halting or queuing. This skill defines halt conditions; kzk-tool-retry defines the single-call retry discipline that runs before those conditions are evaluated.
+- **kzk-autonomous-loop**: polite-stop ban and multi-Plan continuation rules. This skill defines what STOPS the loop; that one defines how the loop CONTINUES.
+- **kzk-user-queue**: halt conditions that require a user decision append entries here and await a DECISION line before resuming.

@@ -16,7 +16,7 @@ Then:
 2. For each skill in /tmp/kzk-harness/skills/: copy to .claude/skills/<name>/SKILL.md. Version check: read the `version:` field in the frontmatter of both the source and any existing target. Only overwrite if source version is higher (or target does not exist).
 3. Copy /tmp/kzk-harness/harness-share.md to the project root (overwrite).
 4. If CLAUDE.md does not exist, create it. Read CLAUDE.md and add or update an "## Active Skills (kzk-harness)" section listing all 14 kzk-* skills with their trigger keywords (read from each SKILL.md frontmatter description field). Do not modify any other section.
-5. Install code-review-graph globally: run `pip install code-review-graph && code-review-graph install` in the user's home directory. Then run `code-review-graph build` in the project root to build the knowledge graph. If pip is unavailable, skip and note it.
+5. Install code-review-graph globally: run `python3 -m pip install --user code-review-graph && code-review-graph install` in the user's home directory. Then run `code-review-graph build` in the project root to build the knowledge graph. If pip is unavailable or PEP 668 blocks it, try `pipx install code-review-graph` as fallback; if both fail, skip and note it.
 6. rm -rf /tmp/kzk-harness
 ```
 
