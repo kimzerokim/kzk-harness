@@ -4,7 +4,7 @@ version: 1.0.0
 description: "Background process active monitoring mandate — agent owns every long-running task it spawns and never lets the user have to ask 'is it done?'. Applies to Bash run_in_background, Monitor, codex exec, npm install, docker build, subagent dispatch, anything ≥ 5s. Required triggers: 'background', 'monitor', 'long-running', 'stuck', 'codex consult', 'is it done', 'background task hung'."
 ---
 
-> Authoritative source: this skill body. Originated from `gridless` repo `harness-share.md` §2.5; portable to all projects.
+> Authoritative source: `harness-share.md` §23. On conflict, that wins. Originated from `gridless` repo §2.5; portable to all projects.
 
 # kzk-background-monitoring
 

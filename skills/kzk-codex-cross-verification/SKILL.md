@@ -4,7 +4,7 @@ version: 1.0.1
 description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
 ---
 
-> Authoritative source: this skill body. Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable. Originated from `gridless` repo `harness-share.md` §1.5; portable to all projects.
+> Authoritative source: `harness-share.md` §22. On conflict, that wins. Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable.
 
 # kzk-codex-cross-verification
 

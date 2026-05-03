@@ -20,7 +20,7 @@ Autonomous mode = explicit user permission only. Triggers: "ralph로 돌려", "�
 
 ## Forbidden actions
 
-- **`main` branch is off-limits.** All harness-experiment work happens on `harness-test` (or `feature/<topic>`). PR target = same. `main` merge requires explicit user "merge it" after experiment ends.
+- **`main` branch is off-limits.** All work happens on `feature/<topic>`. PR target = same. `main` merge requires explicit user "merge it" after experiment ends. (`harness-test` is the kzk-harness repo's own convention — use `feature/<topic>` in all other projects.)
 - Auto-overriding user PRD / design docs (must follow Documentation Storage Rules in repo CLAUDE.md)
 - Force-commit when a Pre-commit Gate fails
 - Adding files outside the declared source root (see CLAUDE.md for your repo's rootDir constraints)
@@ -41,6 +41,6 @@ Anything else → keep going (see `kzk-autonomous-loop` for polite-stop ban).
 
 ## Branch policy
 
-- Default feature branch for harness experiments: `harness-test`
+- Default feature branch: `feature/<topic>`. (`harness-test` is the kzk-harness repo's own convention — use `feature/<topic>` in all other projects.)
 - One Plan = one PR (no batch). First plan-direction error → others stay protected
 - PR description must include "CLAUDE.md updated to match current state" + "deepinit ran" lines (see `kzk-pre-merge-sync`)

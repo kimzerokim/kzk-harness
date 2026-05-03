@@ -4,7 +4,7 @@ version: 1.0.0
 description: "Tool failure auto-retry mandate — every Edit/Write/Bash failure gets exactly one automatic retry before any user prompt. 'File has not been read yet' is always solved by re-reading the same path then retrying — never by asking the user. Polite-stop after 1 failure is a rule violation in autonomous mode. Required triggers: 'tool retry', 'auto retry', 'File has not been read yet', 'String to replace not found', 'Edit failed', 'Write failed', 'polite-stop'."
 ---
 
-> Authoritative source: this skill body. Originated from `gridless` repo `harness-share.md` §2.6; portable to all projects.
+> Authoritative source: this skill body (no dedicated `harness-share.md` section). Originated from `gridless` repo §2.6; portable to all projects.
 
 # kzk-tool-retry
 
