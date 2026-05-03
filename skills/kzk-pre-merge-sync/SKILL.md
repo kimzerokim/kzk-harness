@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-merge-sync
-version: 1.0.0
+version: 1.0.1
 description: "Pre-merge checklist — sync CLAUDE.md to current code state and run `/oh-my-claudecode:deepinit` before any feature-branch merge. Required triggers: 'merge 전', 'PR 직전', 'deepinit', 'Pre-Merge', 'CLAUDE.md update', 'manifest 재생성'."
 ---
 
@@ -8,7 +8,7 @@ description: "Pre-merge checklist — sync CLAUDE.md to current code state and r
 
 # kzk-pre-merge-sync
 
-Two checks every PR must complete before merge to its target branch (usually `harness-test` during experiments, `main` post-experiment).
+Two checks every PR must complete before merge to its target branch (usually `feature/<topic>` in adopting projects; `harness-test` is the kzk-harness repo's own convention).
 
 ## 1. CLAUDE.md sync (mandatory)
 
@@ -35,7 +35,7 @@ Skill("oh-my-claudecode:deepinit")
 
 - Target: every feature branch → `main` merge, exactly once locally before merge
 - Why: PRD / plan / skill md changes that aren't reflected in OMC memory cause the next session's agent to start with stale context
-- Failure → check log, fix, do not skip. Skip = block merge *(synthesized: failure also halts the autonomous loop — see `kzk-autonomous-boundary`)*
+- Failure → check log, fix, do not skip. Skip = block merge (failure also halts the autonomous loop — see `kzk-autonomous-boundary`)
 - Checkpoint: PR description includes the literal line `deepinit ran`
 
 ## Combined PR description footer

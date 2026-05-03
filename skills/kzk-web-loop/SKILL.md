@@ -1,7 +1,7 @@
 ---
 name: kzk-web-loop
-version: 1.2.0
-description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
+version: 1.3.0
+description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
 > Authoritative source: repo `docs/superpowers/specs/2026-05-03-kzk-web-loop-design.md` + `harness-share.md §25`. On conflict, those win.
@@ -114,8 +114,7 @@ echo "$PLUGINS" | grep -qi "gstack"            || claude plugin add gstack
 ```
 
 If any `claude plugin add` command fails (network error, registry issue, unknown name):
-1. Try the npm fallback: `npm install -g @anthropic/<plugin-name>` (replace with actual package name)
-2. Still fails → log to `docs/harness/user-queue.md` with the exact error and continue without that plugin
+1. Log to `docs/harness/user-queue.md` with the exact error and plugin name, then continue without that plugin (see graceful degradation table below)
 
 ### Session restart (only if newly installed)
 

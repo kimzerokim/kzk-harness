@@ -1,6 +1,6 @@
 ---
 name: kzk-codex-cross-verification
-version: 1.0.1
+version: 1.0.2
 description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
 ---
 
@@ -70,7 +70,7 @@ Cite sections. Terse. No compliments. If category fine, say "none".
 PROMPT=$(cat /tmp/<topic>-review-prompt.txt)
 codex exec "$PROMPT" -C <repo-root> -s read-only \
   -c 'model_reasoning_effort="high"' --enable web_search_cached --json \
-  2>/tmp/codex-err.txt | PYTHONUNBUFFERED=1 python3 -u -c "<JSONL parser>"
+  2>/tmp/codex-err.txt | PYTHONUNBUFFERED=1 python3 -u -c "import sys,json; [print(json.loads(l).get('text','')) for l in sys.stdin if l.strip().startswith('{')]"
 ```
 
 - `timeout: 300000` (5 min). Background-monitor per `kzk-background-monitoring`.

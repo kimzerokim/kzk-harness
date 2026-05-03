@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-loop
-version: 1.0.0
+version: 1.0.1
 description: "The autonomous loop never stops politely. Combines rate-limit polling (Anthropic 5h), context-budget /compact at 80%, and multi-Plan auto-continuation. Required triggers: 'rate limit', '5h window', 'ScheduleWakeup', '/compact', 'context budget', 'polite stop', 'next Plan', 'Plan auto-continuation'."
 ---
 
@@ -50,11 +50,11 @@ Each Plan boundary records pass/fail in `harness-flow-progress.md` Session N "�
 
 ## Halt conditions (re-stated; canonical source: `kzk-autonomous-boundary`)
 
-- reviewer/critic 2 consecutive FAIL
+- reviewer/critic 2 consecutive FAIL (Exception: `kzk-web-loop` overrides this — skip issue, pick next; see `harness-share.md` §25 "Reviewer FAIL override")
 - build/test 3 consecutive FAIL
 - `main` access required next step
 - user-queue decision required
-- pre-merge `/deepinit` failed *(synthesized — not in current CLAUDE.md verbatim, but follows from `kzk-pre-merge-sync` "skip 허용 X" rule)*
+- pre-merge `/deepinit` failed (see `kzk-pre-merge-sync` "do not skip" rule)
 
 Anything else → continue.
 

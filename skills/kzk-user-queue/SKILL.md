@@ -1,6 +1,6 @@
 ---
 name: kzk-user-queue
-version: 1.0.0
+version: 1.0.1
 description: "user-queue protocol — append entries with tentative defaults during autonomous runs, parametrize so user can override cheaply, then run interactive 1-by-1 review (Stage 1/2/3) when user returns. Required triggers: 'user-queue', 'Q-PLAN', 'Pending', 'Resolved', 'DECISION', 'Interactive Queue Review', 'Stage 3', '모호 결정'."
 ---
 
@@ -66,8 +66,6 @@ User commit appends DECISIONs → kick a Stage-3 iteration:
 - Apply Resolved decisions to affected artifacts (PRD / plan / code)
 - Max **3 iterations** (infinite-loop guard)
 - Same entry processed twice OR DECISIONs conflict → move to `## Escalated` section + separate user session
-
-Detail: `docs/harness/ralph-items.md` "Stage 3 — User Queue Resolution Loop"
 
 ## Anti-patterns
 

@@ -69,3 +69,4 @@ When adding or editing skills in this repo:
 - Cross-references to sister skills by name, not by description
 - Version bump on any functional change (not cosmetic)
 - Update `README.md` skills table if adding a new skill
+- When adding a new skill, also update the skill count in `CLAUDE.md` line 3, `CLAUDE.md` "All N skills" line, `README.md` line 3, and the `README.md` install command skill count

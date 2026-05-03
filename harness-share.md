@@ -900,3 +900,27 @@ Critic prompt must include: "Check the plan covers every item in Features to Pre
 ### No-halt
 
 Survey failure (file unreadable, library docs unavailable) → note in report, continue with available data. Never halts the planning pipeline.
+
+---
+
+## 27. kzk-tool-retry — Tool Failure Auto-Retry Discipline
+
+Full skill: `skills/kzk-tool-retry/SKILL.md`.
+
+### Default policy
+
+Every tool failure = 1 automatic retry, no user prompt in between. Polite-stop after a single failure in autonomous mode is a hard violation.
+
+### Key failure modes
+
+- **Edit "String to replace not found"**: `Read` the file (±10 lines or `grep -n`) → re-issue Edit with corrected `old_string`. Two consecutive failures → `Write` whole file or queue.
+- **Edit/Write "File has not been read yet"**: Call `Read` once (1 line is enough) → re-issue the original Edit/Write. Do NOT ask the user.
+- **Bash transient**: 1 retry OK. Persistent failure (compile error, type error) → root-cause fix, no blind retry.
+
+### Queue-on-double-failure
+
+After auto-retry also fails: append Q-* entry to `docs/harness/user-queue.md` with failing tool shape + error + recommended fix, then continue to next task.
+
+### Forbidden
+
+Asking "어떻게 할까요?" between attempts in autonomous mode.

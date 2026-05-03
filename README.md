@@ -34,7 +34,7 @@ Re-paste the install command. Skills with a higher version overwrite existing on
 | `kzk-autonomous-boundary` | ralph, autonomous mode, halt condition, main branch boundary |
 | `kzk-autonomous-loop` | rate limit, context 80%, multi-plan continuation |
 | `kzk-background-monitoring` | run_in_background, Monitor, long-running, build, install |
-| `kzk-codex-cross-verification` | PRD, plan, architecture, ORM, DB schema, 3-pass review |
+| `kzk-codex-cross-verification` | codex review, cross-verify, spec draft, plan draft, major design, architecture review |
 | `kzk-pre-merge-sync` | merge, feature branch, CLAUDE.md sync, deepinit |
 | `kzk-production-access` | AWS, DB, SSM, production, credential |
 | `kzk-test-coverage` | session close, coverage gap, touched files |

@@ -1,6 +1,6 @@
 ---
 name: kzk-background-monitoring
-version: 1.0.0
+version: 1.0.1
 description: "Background process active monitoring mandate — agent owns every long-running task it spawns and never lets the user have to ask 'is it done?'. Applies to Bash run_in_background, Monitor, codex exec, npm install, docker build, subagent dispatch, anything ≥ 5s. Required triggers: 'background', 'monitor', 'long-running', 'stuck', 'codex consult', 'is it done', 'background task hung'."
 ---
 
@@ -58,9 +58,7 @@ cat <stderr-file>                         # error / hang signal
 
 ## Codex consult special case
 
-- First token within 30s in normal operation; > 5 min @ 0 byte = stuck.
-- Common causes: prompt-as-arg vs stdin collision, heredoc escape, oversized prompt
-- Mitigations: shrink prompt, `< /dev/null` to close stdin, alternate invocation, shorter timeout
+For Codex specifically, see `kzk-codex-cross-verification` §Codex execution shape (30s-to-first-token rule, 5 min 0-byte = stuck threshold, mitigation steps).
 
 ## Narration mandate (cross-link with kzk-playwright-verification)
 

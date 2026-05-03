@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.0.0
+version: 1.0.1
 description: "Autonomous-mode boundary — what the agent may and may NOT do without per-step user confirmation. Covers main-branch ban, halt conditions, and when autonomous mode is even allowed. Required triggers: 'autonomous', 'ralph로 돌려', '자는 동안 진행', 'harness-test branch', 'main 직접 접근', 'reviewer FAIL'."
 ---
 
@@ -25,6 +25,7 @@ Autonomous mode = explicit user permission only. Triggers: "ralph로 돌려", "�
 - Force-commit when a Pre-commit Gate fails
 - Adding files outside the declared source root (see CLAUDE.md for your repo's rootDir constraints)
 - Continuing the loop after `ralph` reviewer FAILs **2 times in a row** → halt + user-queue entry
+  Exception: `kzk-web-loop` intentionally overrides this — skip the failing issue, pick the next one (see `kzk-web-loop` §Failure Handling and `harness-share.md` §25 "Reviewer FAIL override").
 
 ## Halt conditions (entire autonomous run)
 
@@ -34,7 +35,7 @@ Halt and append a user-queue entry when:
 - build / test 3 consecutive FAIL
 - `main` access required for the next step
 - A user-queue decision is required to proceed
-- Pre-merge `/deepinit` fails *(synthesized — not in current CLAUDE.md verbatim, but follows from `kzk-pre-merge-sync` "do not skip" rule)*
+- Pre-merge `/deepinit` fails (see `kzk-pre-merge-sync` "do not skip" rule)
 - Crossing into a code/plan area pre-dating a current rule (e.g. plan written before PRD v1.13) — halt, do NOT retroactively rewrite policy via subagent guess
 
 Anything else → keep going (see `kzk-autonomous-loop` for polite-stop ban).

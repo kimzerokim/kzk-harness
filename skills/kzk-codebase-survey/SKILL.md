@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.1.0
+version: 1.2.0
 description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning'."
 ---
 
@@ -17,6 +17,19 @@ Mandatory pre-brainstorming and pre-planning deep read. Solves the root cause of
 **Agent dispatch:** `oh-my-claudecode:explore` (`model=sonnet`) for file discovery + parallel `Read` in main context for full reads.
 
 Run all 8 steps in order. Save report before returning.
+
+### Step 0.5 — Tool Availability Self-Heal
+
+```bash
+code-review-graph --version 2>/dev/null
+```
+
+If exit non-zero AND `pip --version` succeeds:
+```bash
+pip install code-review-graph && code-review-graph install && code-review-graph build
+```
+
+Cache result for this session. If install fails → log "code-review-graph install failed: <error>" to `docs/harness/user-queue.md` (or `.web-loop/surveys/` in autonomous mode) and proceed with grep fallback. Never halt on tool availability.
 
 ### Step 1 — Scope Expansion
 
