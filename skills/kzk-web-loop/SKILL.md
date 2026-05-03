@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.3.5
+version: 1.3.6
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
@@ -57,7 +57,7 @@ Each cycle executes these steps in order:
 
   **superpowers unavailable (fallback):**
   1. `Skill("kzk-codebase-survey")` — EXPLORER runs, report saved to `.web-loop/surveys/cycle-N-survey.md`.
-  2. PLANNER (`oh-my-claudecode:planner`, `model=opus`) authors frozen plan → `.web-loop/plans/cycle-N-plan.md` with `## Frozen` header. Prompt includes survey report path.
+  2. PLANNER (`oh-my-claudecode:planner`, `model=opus`) authors frozen plan → `docs/plans/YYYY-MM-DD-<topic>.md` with `## Frozen` header. Main controller copies plan to `.web-loop/plans/cycle-N-plan.md` (canonical plan stays in `docs/plans/` for git tracking). Prompt includes survey report path.
   3. CRITIC (`oh-my-claudecode:critic`, `model=opus`) reviews. Critic prompt: "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL." FAIL → planner revises once. Second FAIL → skip + user-queue.
   4. EXECUTOR (`oh-my-claudecode:executor`, `model=sonnet`) implements via TDD → `kzk-pre-commit-gate` → commit.
 

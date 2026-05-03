@@ -116,6 +116,8 @@ autonomous loop 이 commit 한 코드가 이후 잘못된 것으로 판명 된 �
 
 레포에 AGENTS.md hierarchy 가 없으면 Gate 0 N/A.
 
+Gate 0 통과 후, kzk-pre-commit-gate skill 은 추가로 `deepinit_manifest` tool (OMC plugin) 을 `action=save` 로 호출해 manifest baseline 을 저장한다. Tool 미설치 시 skip (Gate 0 자체는 AGENTS.md 편집만으로 PASS). 이 호출은 §3 게이트 요건 외의 skill-level extension 이다.
+
 ### Gate 1 — ai-slop-cleaner
 
 변경 파일 의 dead code / duplicate / needless abstraction / boundary leak 제거.
@@ -191,7 +193,7 @@ npm test -- --testPathPatterns=<changed-area>
 
 ### Doc-only commit 예외
 
-source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `docs/**`, `harness-flow-progress.md`, `skills/**/*.md`, `.claude/skills/**/*.md`, `docs/screenshots/**`):
+source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `docs/**`, `harness-flow-progress.md`, `CLAUDE.md`, `DESIGN.md`, `skills/**/*.md`, `.claude/skills/**/*.md`, `docs/screenshots/**`):
 - Gate 2 (build) + Gate 3 (test) skip
 - Gate 1 (ai-slop-cleaner) 변경 md 에 한해 필요시
 - Gate 4 N/A
@@ -723,7 +725,7 @@ Russian Judge Verdict:
   - spec file 경로 (있으면)
   - "Identify: (a) acceptance criteria gaps, (b) scope drift risk, (c) optimal alternative approach, (d) reviewable evidence requirements per phase"
   - "Assume autonomous ralph mode, harness-test branch only"
-- **REJECTED 또는 critical issues 반환 시**: plan 정정 후 재 review. 2 cycle 후에도 reject 시 brainstorming 단계로 후퇴 + user-queue entry.
+- **REJECTED 또는 critical issues 반환 시**: plan 정정 후 재 review. 2 cycle 후에도 reject 시 halt + user-queue entry. brainstorming 단계 후퇴는 사용자가 결정 — 자율 후퇴 금지.
 - **APPROVED 또는 minor only**: ralph 진입.
 
 ### Critic verdict file 저장 의무

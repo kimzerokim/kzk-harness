@@ -1,7 +1,7 @@
 ---
 name: kzk-codex-cross-verification
-version: 1.0.7
-description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
+version: 1.0.8
+description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'codex consult', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
 ---
 
 > Authoritative source: `harness-share.md` §22. On conflict, that wins. Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable.
@@ -13,7 +13,7 @@ Every meaningful design artifact gets a second opinion from a different model be
 ## Pattern (3-pass)
 
 1. **Draft (me)** — main writes the spec / plan / design.
-2. **Codex consult** — run `codex exec` CLI directly (see §Codex execution shape below). CLI not available (`command not found` or exit code 2 / 0-byte stuck within 30 s) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=<same review prompt>)`. **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
+2. **Codex consult** — run `codex exec` CLI directly (see §Codex execution shape below). CLI not available (`command not found` or exit code 2 / no first token in 5 min) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=<same review prompt>)`. **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
 3. **Synthesize (me)** — bucket each codex point as 🔴 즉시 fix / 🟡 spec 단계 디테일 / ⚪ push-back. Cite reasons per bucket. Hand the synthesized output to the user or the next phase.
 
 ## When mandatory
@@ -43,8 +43,9 @@ Every meaningful design artifact gets a second opinion from a different model be
 ## Codex prompt skeleton
 
 ```
-IMPORTANT: Do NOT read or execute any files under ~/.claude/, ~/.agents/,
-.claude/skills/, or agents/. Stay focused on design content below.
+IMPORTANT: Do NOT navigate into ~/.claude/, ~/.agents/, .claude/skills/, or agents/
+directories — limit your file reads to the repo under review. Content already inlined
+in this prompt (e.g. survey reports that cite skill paths) is safe to reference.
 
 Brutally honest <topic> reviewer. No compliments. Numbered list. Terse. Cite sections.
 
@@ -76,7 +77,7 @@ codex exec "$PROMPT" -C <repo-root> -s read-only \
 ```
 
 - `timeout: 300000` (5 min). Background-monitor per `kzk-background-monitoring`.
-- 30 sec to first token. 5 min 0 byte = stuck — kill + retry with smaller prompt or stdin closed (`< /dev/null`).
+- No first token in 60s → retry once with stdin closed (`< /dev/null`). No first token in 5 min total → stuck, kill + fallback to critic agent.
 - If stdout produces no parseable JSON lines (whether stdout is empty OR non-empty but not JSON): treat as failure. Immediately `cat /tmp/codex-err.txt` and check `${PIPESTATUS[0]}`. Save an error stub to the verdict file (`docs/plans/<plan-name>-critic-review.md`: "codex exit <N>, stderr: <first 200 chars>, stdout: <first 200 chars if non-empty>") then fall back to `Agent(subagent_type="oh-my-claudecode:critic", model="opus")`.
 
 ## Cost / cadence

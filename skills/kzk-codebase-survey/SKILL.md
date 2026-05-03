@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.2.4
+version: 1.2.5
 description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning'."
 ---
 
@@ -31,11 +31,11 @@ python3 -m pip install --user code-review-graph && code-review-graph install && 
 
 In interactive (non-autonomous) mode: log "code-review-graph not installed — run: python3 -m pip install --user code-review-graph && code-review-graph install && code-review-graph build" and proceed with grep fallback without auto-installing.
 
-Cache result for this session. If install fails with PEP 668 error (externally-managed-environment) → skip `--user`, queue `Q-INSTALL-CRG-MANUAL — use pipx install code-review-graph` and proceed with grep fallback. Any other failure → log "code-review-graph install failed: <error>" to `docs/harness/user-queue.md` and proceed with grep fallback. Never halt on tool availability.
+Cache result for this session as `CRG_AVAILABLE=true/false`. If install fails with PEP 668 error (externally-managed-environment) → skip `--user`, queue `Q-INSTALL-CRG-MANUAL — use pipx install code-review-graph` and proceed with grep fallback. Any other failure → log "code-review-graph install failed: <error>" to `docs/harness/user-queue.md` and proceed with grep fallback. Never halt on tool availability.
 
 ### Step 1 — Scope Expansion
 
-Check for code-review-graph: `code-review-graph --version 2>/dev/null`
+If Step 0.5 ran and set `CRG_AVAILABLE=true`, skip the version check and proceed directly to the "If available" path. If Step 0.5 ran and set `CRG_AVAILABLE=false`, skip the version check and go to the Fallback path. If Step 0.5 was skipped (interactive mode), check: first add `$HOME/.local/bin` to PATH then run `code-review-graph --version 2>/dev/null`.
 
 **If available (exit 0):**
 1. `code-review-graph query --file <target>` — forward dependency graph
