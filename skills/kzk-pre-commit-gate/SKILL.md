@@ -61,6 +61,8 @@ If the commit touches **no** source code — only docs/configs/screenshots (`*.m
 
 Any single source-code line in the same commit revokes this exception → run full 5 gates.
 
+Note: skill files (`skills/**/*.md`) count as doc-only. `.claude/skills/**/*.md` is the legacy OMC path — both patterns qualify.
+
 ## Autonomous-mode commit policy
 
 User explicitly entered autonomous mode ("ralph로 돌려", "자는 동안 진행", "끝까지 끝내줘"):

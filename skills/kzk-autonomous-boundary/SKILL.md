@@ -12,7 +12,7 @@ Autonomous mode = explicit user permission only. Triggers: "ralph로 돌려", "�
 
 ## Allowed actions (autonomous mode ON)
 
-- Auto-commit after `kzk-pre-commit-gate` 4-gate PASS
+- Auto-commit after `kzk-pre-commit-gate` 5-gate PASS (Gates 0–4; see that skill)
 - Move to next task after TDD test passes
 - Worktree parallel execution (`/superpowers:using-git-worktrees`)
 - Subagent dispatch (`oh-my-claudecode:code-reviewer`, `oh-my-claudecode:critic`, `oh-my-claudecode:verifier`) replacing interactive review skills

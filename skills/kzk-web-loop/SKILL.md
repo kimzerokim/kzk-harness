@@ -22,6 +22,8 @@ If no goal is given, infer from the existing codebase on the first cycle (read `
 
 If `harness-flow-progress.md` does not exist at repo root, create it with a single header line: `# harness-flow-progress` before the first cycle begins.
 
+If `.web-loop/` and `.web-loop/plans/` directories do not exist, create them before the first cycle begins. These are gitignored — ephemeral per-cycle report and plan artifacts.
+
 ## Loop Structure
 
 Each cycle executes these steps in order:
@@ -81,7 +83,7 @@ Playwright is an **optional enhancement**. The loop continues without it.
 ① Pre-flight: ToolSearch("+browser navigate")
    → tool NOT in catalog → DEGRADED MODE immediately (skip steps ②-③)
 
-② Call mcp__playwright__browser_navigate(url)  (shorthand for `mcp__playwright__browser_navigate`)
+② Call mcp__playwright__browser_navigate(url)
    → response received → proceed with screenshot + snapshot → done
 
    → no response / error → cascade recovery:
