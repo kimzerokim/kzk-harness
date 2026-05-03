@@ -1,6 +1,6 @@
 ---
 name: kzk-codex-cross-verification
-version: 1.0.8
+version: 1.0.9
 description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'codex consult', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
 ---
 
@@ -43,8 +43,9 @@ Every meaningful design artifact gets a second opinion from a different model be
 ## Codex prompt skeleton
 
 ```
-IMPORTANT: Do NOT navigate into ~/.claude/, ~/.agents/, .claude/skills/, or agents/
-directories — limit your file reads to the repo under review. Content already inlined
+IMPORTANT: Do NOT navigate into ~/.claude/skills/, .claude/skills/ (relative to repo root),
+or any directory whose path contains a skills/ segment with skill agent prompts —
+limit your file reads to the repo under review. Content already inlined
 in this prompt (e.g. survey reports that cite skill paths) is safe to reference.
 
 Brutally honest <topic> reviewer. No compliments. Numbered list. Terse. Cite sections.

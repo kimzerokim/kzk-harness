@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.3.7
+version: 1.3.8
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
@@ -51,7 +51,7 @@ Each cycle executes these steps in order:
 
   **superpowers available:**
   1. `Skill("kzk-codebase-survey")` — EXPLORER runs all steps (Step 0.5 + Step 1–8), saves report to `.web-loop/surveys/cycle-N-survey.md`. Report path passed to writing-plans as required reading.
-  2. `Skill("superpowers:writing-plans")` — creates a frozen plan (default path: `docs/plans/YYYY-MM-DD-<topic>.md`). After the skill returns, main controller copies the plan to `.web-loop/plans/cycle-N-plan.md` so the loop's state dir stays consistent (canonical plan remains in `docs/plans/` for git tracking; in-cycle reads use `.web-loop/plans/`). Prompt includes survey report path.
+  2. `Skill("superpowers:writing-plans")` — creates a frozen plan (default path: `docs/plans/YYYY-MM-DD-<topic>.md`). After the skill returns, main controller copies the plan to `.web-loop/plans/cycle-N-plan.md` so the loop's state dir stays consistent (canonical plan remains in `docs/plans/` for git tracking; in-cycle reads use `.web-loop/plans/`). Both copies are read-only after Frozen. Any plan amendment requires a new `## Frozen v2` section in `docs/plans/...` and re-copy to `.web-loop/plans/`. Prompt includes survey report path.
   3. `Skill("superpowers:subagent-driven-development")` — reads frozen plan, dispatches implementer subagent, 2-stage spec + quality review. gstack available → append `Skill("gstack:review")` as the final code review pass.
   4. Second consecutive FAIL from the same reviewer (or 3+ FAILs total across all reviewers in the same cycle) → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
 
@@ -104,13 +104,18 @@ Run once at loop start (Setup Checklist step 1). Detect each plugin; **install i
 ### Step-by-step (run in this exact order)
 
 ```bash
-# 1. Get current plugin list
-PLUGINS=$(claude plugin list 2>/dev/null)
+# 1. Get current plugin list (capture exit code; if subcommand unavailable, degrade)
+if ! PLUGINS=$(claude plugin list 2>/tmp/plugin-err.txt); then
+  echo "Q-PLUGIN-PREFLIGHT — claude plugin subcommand unavailable ($(cat /tmp/plugin-err.txt | head -1)), pre-flight skipped" >> docs/harness/user-queue.md
+  PLUGINS=""
+fi
 
-# 2. Install missing plugins right now
-echo "$PLUGINS" | grep -qi "oh-my-claudecode" || claude plugin add oh-my-claudecode
-echo "$PLUGINS" | grep -qi "superpowers"       || claude plugin add superpowers
-echo "$PLUGINS" | grep -qi "gstack"            || claude plugin add gstack
+# 2. Install missing plugins right now (only runs if plugin list succeeded)
+if [ -n "$PLUGINS" ]; then
+  echo "$PLUGINS" | grep -qi "oh-my-claudecode" || claude plugin add oh-my-claudecode
+  echo "$PLUGINS" | grep -qi "superpowers"       || claude plugin add superpowers
+  echo "$PLUGINS" | grep -qi "gstack"            || claude plugin add gstack
+fi
 ```
 
 If any `claude plugin add` command fails (network error, registry issue, unknown name):

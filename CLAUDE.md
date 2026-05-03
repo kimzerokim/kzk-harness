@@ -16,7 +16,7 @@ All 14 skills are active in this repo. Load one by mentioning its trigger keywor
 | `kzk-background-monitoring` | run_in_background, Monitor, long-running, build, install |
 | `kzk-codex-cross-verification` | codex review, cross-verify, spec draft, plan draft, major design, architecture review |
 | `kzk-pre-merge-sync` | merge, feature branch, CLAUDE.md sync, deepinit |
-| `kzk-production-access` | AWS, DB, SSM, production, credential |
+| `kzk-production-access` | AWS, DB, production, credential, destructive, AKIA, ASIA, aws-vault |
 | `kzk-test-coverage` | session close, coverage gap, touched files |
 | `kzk-tool-retry` | Edit fail, Write fail, File has not been read yet |
 | `kzk-user-queue` | ambiguous decision, user returns, queue review |

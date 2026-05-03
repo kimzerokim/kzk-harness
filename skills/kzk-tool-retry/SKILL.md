@@ -1,7 +1,7 @@
 ---
 name: kzk-tool-retry
-version: 1.0.2
-description: "Tool failure auto-retry mandate — every Edit/Write/Bash failure gets exactly one automatic retry before any user prompt. 'File has not been read yet' is always solved by re-reading the same path then retrying — never by asking the user. Polite-stop after 1 failure is a rule violation in autonomous mode. Required triggers: 'tool retry', 'auto retry', 'File has not been read yet', 'String to replace not found', 'Edit failed', 'Write failed', 'polite-stop'."
+version: 1.0.3
+description: "Tool failure auto-retry mandate — every Edit/Write/Bash failure gets exactly one automatic retry before any user prompt. 'File has not been read yet' is always solved by re-reading the same path then retrying — never by asking the user. Polite-stop after 1 failure is a rule violation in autonomous mode. Required triggers: 'tool retry', 'auto-retry', 'retry', 'File has not been read yet', 'String to replace not found', 'Edit failed', 'Write failed', 'polite-stop'."
 ---
 
 > Authoritative source: `harness-share.md` §27. On conflict, that wins.

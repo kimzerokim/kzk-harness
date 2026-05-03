@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.0.6
+version: 1.0.7
 description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체'."
 ---
 
@@ -33,11 +33,11 @@ Subagent dispatches are split by phase, not by topic. Reasoning-heavy phases get
 
 | Phase | Subagent type | Model | Cross-check |
 |---|---|---|---|
-| Plan authoring | `oh-my-claudecode:planner` / `oh-my-claudecode:architect` / `oh-my-claudecode:deep-interview` | **opus** | Mandatory Codex CLI consult on draft plan before freezing (see `kzk-codex-cross-verification`) |
+| Plan authoring | `oh-my-claudecode:planner` / `oh-my-claudecode:architect` (invoke `deep-interview` via `Skill()` not Agent) | **opus** | Mandatory Codex CLI consult on draft plan before freezing (see `kzk-codex-cross-verification`) |
 | Critic / review | `oh-my-claudecode:critic` / `oh-my-claudecode:code-reviewer` | **opus** | Codex CLI review parallel pass (see `kzk-codex-cross-verification`) |
 | Verify | `oh-my-claudecode:verifier` | **opus** | Codex CLI consult on uncertain assertions (see `kzk-codex-cross-verification`) |
 | Implementation | `oh-my-claudecode:executor` | **sonnet** | none — plan must already be detailed enough |
-| Quick research / file search | `oh-my-claudecode:explore` | **haiku** or default | none |
+| Quick research / file search | `oh-my-claudecode:explore` | **sonnet** (survey/deep reads); **haiku** (quick targeted lookups) | none |
 
 Reason: heavy reasoning where it changes the outcome, cheap execution where the plan already determined every move. Override: if sonnet returns BLOCKED or main reviews the diff and finds plan-vs-code drift, re-dispatch the same task with `model="opus"` and root-cause whether the plan was insufficient (fix the plan policy) or the model failed (record once, do not generalize from a single failure).
 

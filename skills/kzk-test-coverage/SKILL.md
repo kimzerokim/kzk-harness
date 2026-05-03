@@ -1,6 +1,6 @@
 ---
 name: kzk-test-coverage
-version: 1.0.4
+version: 1.0.5
 description: "Autonomous-mode test coverage goal: 100% line + branch on changed files. Touched legacy raised too. Best-effort excuses forbidden. Required triggers: 'test coverage', 'test:cov', '100% coverage', '변경 파일 cov', 'coverage exemption'."
 ---
 
@@ -23,6 +23,8 @@ Autonomous session = 100% line + branch coverage on the files the session change
 - ORM entity decorator-only files (no logic)
 
 These count as "no logic — coverage non-goal". Anything with a branch or expression must be covered.
+
+Required PR description line format per exemption: `Coverage exemption: <file> — <reason>` (e.g. `Coverage exemption: src/main.ts — boot file, no logic`).
 
 ## Anti-patterns
 

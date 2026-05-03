@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.0.7
+version: 1.0.8
 description: "Autonomous-mode boundary — what the agent may and may NOT do without per-step user confirmation. Covers main-branch ban, halt conditions, and when autonomous mode is even allowed. Required triggers: 'autonomous', 'ralph로 돌려', '자는 동안 진행', 'feature branch boundary', 'main 직접 접근', 'reviewer FAIL'."
 ---
 
@@ -51,7 +51,7 @@ If the autonomous loop committed code that is later found to be wrong (reviewer 
 
 ## Branch policy
 
-- Default feature branch: `feature/<topic>`. (`harness-test` is the kzk-harness repo's own convention — use `feature/<topic>` in all other projects.)
+- Default feature branch: `feature/<topic>`.
 - One Plan = one PR (no batch). First plan-direction error → others stay protected
 - PR description must include "CLAUDE.md updated to match current state" + "deepinit ran" lines (see `kzk-pre-merge-sync`)
 

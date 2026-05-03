@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.2.6
+version: 1.2.7
 description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning'."
 ---
 
@@ -31,7 +31,7 @@ python3 -m pip install --user code-review-graph && code-review-graph install && 
 
 In interactive (non-autonomous) mode: log "code-review-graph not installed — run: python3 -m pip install --user code-review-graph && code-review-graph install && code-review-graph build" and proceed with grep fallback without auto-installing.
 
-Cache result for this session as `CRG_AVAILABLE=true/false`. If install fails with PEP 668 error (externally-managed-environment) → skip `--user`, queue `Q-INSTALL-CRG-MANUAL — use pipx install code-review-graph` and proceed with grep fallback. Any other failure → log "code-review-graph install failed: <error>" to `docs/harness/user-queue.md` and proceed with grep fallback. Never halt on tool availability.
+Cache result for this session as `CRG_AVAILABLE=true/false`. When auto-install succeeds and `build` completes, the graph artifact persists on disk (e.g. `.code-review-graph/` index). Subsequent survey calls within the same session where `CRG_AVAILABLE=true` skip `build` — the artifact is already current. Only re-run `build` if new files were committed since the last build. If install fails with PEP 668 error (externally-managed-environment) → skip `--user`, queue `Q-INSTALL-CRG-MANUAL — use pipx install code-review-graph` and proceed with grep fallback. Any other failure → log "code-review-graph install failed: <error>" to `docs/harness/user-queue.md` and proceed with grep fallback. Never halt on tool availability.
 
 ### Step 1 — Scope Expansion
 
@@ -165,6 +165,7 @@ Report format:
 When called from kzk-web-loop or harness loop (non-interactive):
 
 ```typescript
+// dispatch shape pseudocode — not literal TypeScript; use Agent tool with JSON params
 Agent({
   subagent_type: 'oh-my-claudecode:explore',
   model: 'sonnet',

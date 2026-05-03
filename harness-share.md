@@ -720,7 +720,7 @@ Russian Judge Verdict:
 
 - 절차:
   1. `/writing-plans` skill 로 plan draft 작성
-  2. `omc ask codex --agent-prompt critic "<plan path + spec path + acceptance criteria>"` 호출 — codex가 fresh 시각 으로 review
+  2. `codex exec` CLI 직접 호출 (full command: see `kzk-codex-cross-verification` §Codex execution shape) — codex가 fresh 시각 으로 review
   3. **codex CLI parse fail 시 fallback** = `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=...)` (claude opus critic agent)
   4. codex/critic feedback 수신 → critical issues 반영 (architecture / acceptance criteria gap / scope drift / risk 미고려)
   5. revised plan 으로 ralph autonomous 진입
