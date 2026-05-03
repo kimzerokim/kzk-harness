@@ -4,7 +4,7 @@ version: 1.0.2
 description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체'."
 ---
 
-> Authoritative source: repo `CLAUDE.md` "Large Task Delegation" + `harness-share.md` §4. On conflict, those win.
+> Authoritative source: `harness-share.md` §4. On conflict, that wins.
 
 # kzk-large-task-delegation
 

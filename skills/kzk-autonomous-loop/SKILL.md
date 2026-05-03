@@ -4,7 +4,7 @@ version: 1.0.0
 description: "The autonomous loop never stops politely. Combines rate-limit polling (Anthropic 5h), context-budget /compact at 80%, and multi-Plan auto-continuation. Required triggers: 'rate limit', '5h window', 'ScheduleWakeup', '/compact', 'context budget', 'polite stop', 'next Plan', 'Plan auto-continuation'."
 ---
 
-> Authoritative source: repo `CLAUDE.md` "Rate Limit Polling" + "Context Budget" + "Plan Auto-Continuation" + `harness-share.md` §12 / §13 / §14. On conflict, those win.
+> Authoritative source: `harness-share.md` §12 / §13 / §14. On conflict, that wins.
 
 # kzk-autonomous-loop
 

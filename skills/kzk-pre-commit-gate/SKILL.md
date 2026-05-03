@@ -4,7 +4,7 @@ version: 1.0.0
 description: "5-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'autonomous commit', 'doc-only exception'."
 ---
 
-> Authoritative source: repo `CLAUDE.md` "Git Commit Rules" + `harness-share.md` §3. On conflict, those win.
+> Authoritative source: `harness-share.md` §3. On conflict, that wins.
 
 # kzk-pre-commit-gate
 

@@ -4,7 +4,7 @@ version: 1.0.0
 description: "Production / external-infra access boundary plus credential-handling protocol. Covers explicit-instruction rule, multi-step OK-sign pattern, destructive operations, AWS STS-vs-permanent IAM key triage. Required triggers: 'AWS 접속', 'production', 'destructive', 'DB drop', 'snapshot', 'credential', 'ASIA prefix', 'AKIA prefix', 'aws-vault'."
 ---
 
-> Authoritative source: repo `CLAUDE.md` "Production AWS Access" + "Credential Handling" + `harness-share.md` §2. On conflict, those win.
+> Authoritative source: `harness-share.md` §2. On conflict, that wins.
 
 # kzk-production-access
 

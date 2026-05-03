@@ -4,7 +4,7 @@ version: 1.0.0
 description: "Autonomous-mode test coverage goal: 100% line + branch on changed files. Touched legacy raised too. Best-effort excuses forbidden. Required triggers: 'test coverage', 'test:cov', '100% coverage', '변경 파일 cov', 'coverage exemption'."
 ---
 
-> Authoritative source: repo `CLAUDE.md` "Test Coverage Goal: 100% on changed code" + `harness-share.md` §11. On conflict, those win.
+> Authoritative source: `harness-share.md` §11. On conflict, that wins.
 
 # kzk-test-coverage
 

@@ -4,7 +4,7 @@ version: 1.0.0
 description: "user-queue protocol — append entries with tentative defaults during autonomous runs, parametrize so user can override cheaply, then run interactive 1-by-1 review (Stage 1/2/3) when user returns. Required triggers: 'user-queue', 'Q-PLAN', 'Pending', 'Resolved', 'DECISION', 'Interactive Queue Review', 'Stage 3', '모호 결정'."
 ---
 
-> Authoritative source: repo `CLAUDE.md` "User Queue 운용" + "Interactive Queue Review Protocol" + `harness-share.md` §6. On conflict, those win.
+> Authoritative source: `harness-share.md` §6. On conflict, that wins.
 
 # kzk-user-queue
 

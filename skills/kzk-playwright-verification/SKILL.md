@@ -4,7 +4,7 @@ version: 1.0.0
 description: "Playwright MCP-based UI Gate 4 verification routine, debug cheatsheet, and result-narration mandate (also applies to any long-running tool ≥ 2s). Use whenever a commit touches frontend source files or whenever the agent calls a Playwright MCP tool or any long-running tool. Required triggers: 'Playwright', 'Gate 4', 'browser_navigate', 'browser_take_screenshot', 'screenshot 검수', 'MCP drop', 'visual verification', 'Result narration', 'long-running tool', 'Cooked for Nm', 'silence', 'stuck', 'Bash background', 'Agent dispatch progress'."
 ---
 
-> Authoritative source: repo `CLAUDE.md` "UI Verification via Playwright MCP" + `harness-share.md` §3 Gate 4. On conflict, those win.
+> Authoritative source: `harness-share.md` §3 Gate 4. On conflict, that wins.
 
 # kzk-playwright-verification
 
