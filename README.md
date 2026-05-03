@@ -1,6 +1,6 @@
 # kzk-harness
 
-Workflow skill layer for [Claude Code](https://claude.ai/code). Installs 12 `kzk-*` skills into any project — commit gates, autonomous mode boundaries, Playwright verification, large task delegation, and more.
+Workflow skill layer for [Claude Code](https://claude.ai/code). Installs 13 `kzk-*` skills into any project — commit gates, autonomous mode boundaries, Playwright verification, large task delegation, and more.
 
 Each skill is a markdown file loaded by Claude when you mention its trigger keyword. No runtime, no config files, no build step.
 
@@ -15,7 +15,7 @@ Then:
 1. git clone --depth 1 https://github.com/kimzerokim/kzk-harness.git /tmp/kzk-harness
 2. For each skill in /tmp/kzk-harness/skills/: copy to .claude/skills/<name>/SKILL.md. Version check: read the `version:` field in the frontmatter of both the source and any existing target. Only overwrite if source version is higher (or target does not exist).
 3. Copy /tmp/kzk-harness/harness-share.md to the project root (overwrite).
-4. If CLAUDE.md does not exist, create it. Read CLAUDE.md and add or update an "## Active Skills (kzk-harness)" section listing all 12 kzk-* skills with their trigger keywords (read from each SKILL.md frontmatter description field). Do not modify any other section.
+4. If CLAUDE.md does not exist, create it. Read CLAUDE.md and add or update an "## Active Skills (kzk-harness)" section listing all 13 kzk-* skills with their trigger keywords (read from each SKILL.md frontmatter description field). Do not modify any other section.
 5. rm -rf /tmp/kzk-harness
 ```
 
@@ -39,6 +39,7 @@ Re-paste the install command. Skills with a higher version overwrite existing on
 | `kzk-test-coverage` | session close, coverage gap, touched files |
 | `kzk-tool-retry` | Edit fail, Write fail, File has not been read yet |
 | `kzk-user-queue` | ambiguous decision, user returns, queue review |
+| `kzk-web-loop` | web loop, 웹 루프, 12시간, 자율 개선, loop forever, 무한 개선 |
 
 ## harness-share.md
 
