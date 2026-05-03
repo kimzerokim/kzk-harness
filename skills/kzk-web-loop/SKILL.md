@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.0.0
+version: 1.0.1
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
@@ -26,19 +26,26 @@ If `harness-flow-progress.md` does not exist at repo root, create it with a sing
 
 Each cycle executes these steps in order:
 
-1. **EVALUATOR AGENT** (`oh-my-claudecode:critic`, `model=opus`) — fresh subagent with zero memory of previous cycles. Runs the built-in checklist (see §Evaluation Criteria). Outputs a prioritized issue list: P0 / P1 / P2.
+**1a. TOOL RUNNER** (`oh-my-claudecode:executor`, `model=sonnet`) — fresh subagent. Runs `npm test` (or project test command), Playwright screenshots + snapshots (if available, per §Playwright Resilience), counts console errors. Saves raw output to `.web-loop/cycle-N-report.md`. Returns immediately after saving — does not interpret results.
 
-2. **Pick top-priority issue** — take the highest-severity issue from the list that is NOT already recorded in `harness-flow-progress.md` as completed or skipped this session. (The evaluator runs fresh each cycle; the progress file is the claim ledger.)
+**1b. EVALUATOR AGENT** (`oh-my-claudecode:critic`, `model=opus`) — fresh subagent with zero memory of previous cycles. Reads `.web-loop/cycle-N-report.md` + the built-in checklist (see §Evaluation Criteria). Outputs a prioritized issue list: P0 / P1 / P2.
 
-3. **Ambiguous?** — If any decision is unclear, append an entry to `docs/harness/user-queue.md` (per `kzk-user-queue` skill) with a tentative default and continue immediately. Never stop to ask the user.
+**2. Pick top-priority issue** — take the highest-severity issue from the list that is NOT already recorded in `harness-flow-progress.md` as "Cycle N: completed" or "Cycle N: skipped" for the **current cycle number**. Each cycle is independent — an issue fixed in Cycle 3 may recur and be picked again in Cycle 9.
 
-4. **EXECUTOR AGENT** (`oh-my-claudecode:executor`, `model=sonnet`) — receives the evaluator's issue description verbatim (passed as a quoted string, not re-interpreted) + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), commits.
+**3. Ambiguous?** — If any decision is unclear, append an entry to `docs/harness/user-queue.md` (per `kzk-user-queue` skill) with a tentative default and continue immediately. Never stop to ask the user.
 
-5. **Update `harness-flow-progress.md`** — one-line entry: cycle number, issue completed, queue length, Playwright status.
+**4a. P0 fast path** — If the issue is P0, dispatch `oh-my-claudecode:executor` (`model=sonnet`) directly with the evaluator's issue description verbatim (passed as a quoted string, not re-interpreted) + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), commits.
 
-6. **Back to step 1.**
+**4b. P1/P2 plan gate** (per `kzk-large-task-delegation` plan-critic loop requirement) — If the issue is P1 or P2:
+  1. PLANNER (`oh-my-claudecode:planner`, `model=opus`) authors a frozen plan for the issue → saved to `.web-loop/plans/cycle-N-plan.md` with a `## Frozen` header line.
+  2. CRITIC (`oh-my-claudecode:critic`, `model=opus`) reviews the frozen plan. FAIL → planner revises once. Second consecutive FAIL → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
+  3. EXECUTOR (`oh-my-claudecode:executor`, `model=sonnet`) receives the evaluator's issue description verbatim + frozen plan path + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), commits.
 
-**Result narration:** Per `kzk-background-monitoring` + `kzk-playwright-verification` §Result-narration mandate, narrate 1-3 sentences after each evaluator and executor subagent dispatch (file count / commit / phase / latest output snippet). Silence between dispatches is forbidden.
+**5. Update `harness-flow-progress.md`** — one-line entry: `Cycle N: completed — [P-level] [issue one-liner]` or `Cycle N: skipped — [reason]`.
+
+**6. Back to step 1a.**
+
+**Result narration:** Per `kzk-background-monitoring` + `kzk-playwright-verification` §Result-narration mandate, narrate 1-3 sentences after each subagent dispatch (tool runner / evaluator / planner / critic / executor): file count / commit / phase / latest output snippet. Silence between dispatches is forbidden.
 
 The loop runs until the user explicitly stops it. No automatic termination.
 
@@ -126,7 +133,7 @@ This allows the loop to resume correctly after rate-limit wakeups and context re
 
 ## Subagent Dispatch Requirements
 
-Every evaluator and executor dispatch prompt must include (per `kzk-large-task-delegation`):
+Every tool runner, evaluator, planner, critic, and executor dispatch prompt must include (per `kzk-large-task-delegation`):
 
 - Scope: file paths + line ranges
 - Branch name (never `main` — per `kzk-autonomous-boundary`)
