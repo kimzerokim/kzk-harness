@@ -851,3 +851,7 @@ After `/compact`, restate: "Cycle N, last: [issue], queue: [N remaining], PW: [o
 ### Reviewer FAIL override
 
 `kzk-web-loop` intentionally overrides `kzk-autonomous-loop`'s halt-on-reviewer-FAIL: instead of halting, skip the failing task and pick the next issue. This keeps the cycle moving across tasks.
+
+### Branch boundary
+
+`kzk-autonomous-boundary` applies in full — executor agent dispatches always target a feature branch, never `main`. `main` merge requires explicit user approval outside the loop.

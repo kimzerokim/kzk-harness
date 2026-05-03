@@ -36,7 +36,7 @@ Each cycle executes these steps in order:
 
 6. **Back to step 1.**
 
-**Result narration:** Per `kzk-playwright-verification` §Result-narration mandate, narrate 1-3 sentences after each evaluator and executor subagent dispatch (file count / commit / phase / latest output snippet). Silence between dispatches is forbidden.
+**Result narration:** Per `kzk-background-monitoring` + `kzk-playwright-verification` §Result-narration mandate, narrate 1-3 sentences after each evaluator and executor subagent dispatch (file count / commit / phase / latest output snippet). Silence between dispatches is forbidden.
 
 The loop runs until the user explicitly stops it. No automatic termination.
 
@@ -127,7 +127,7 @@ This allows the loop to resume correctly after rate-limit wakeups and context re
 Every evaluator and executor dispatch prompt must include (per `kzk-large-task-delegation`):
 
 - Scope: file paths + line ranges
-- Branch name (never `main`)
+- Branch name (never `main` — per `kzk-autonomous-boundary`)
 - Required reading: `CLAUDE.md`, spec doc path, harness-share.md §25
 - Rules: TDD strict, context7 mandate, `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), DO-NOT-MODIFY paths
 - Commit convention: English conventional commits, no Co-Authored-By
