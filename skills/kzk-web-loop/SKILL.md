@@ -8,7 +8,7 @@ description: "Autonomous web page improvement loop — runs indefinitely, self-g
 
 # kzk-web-loop
 
-Runs a self-directed improvement cycle on a web project until the user explicitly stops it. Never asks the user for direction — generates its own task queue from a built-in evaluation checklist every cycle.
+Runs a self-directed improvement cycle on a web project until the user explicitly stops it. Solves two problems: (1) Claude lacks a self-directed task source and stops to ask for direction, (2) Playwright MCP calls frequently hang and stall the loop. This skill generates its own task queue from a built-in evaluation checklist and treats Playwright as an optional enhancement with cascade recovery.
 
 ## Entry
 
