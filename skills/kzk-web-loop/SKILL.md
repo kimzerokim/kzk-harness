@@ -18,7 +18,7 @@ Say a trigger keyword, optionally with a one-line goal:
 웹 루프 시작해줘 [optional one-line goal]
 ```
 
-If no goal is given, infer from the existing codebase on the first cycle (read `CLAUDE.md`, `README.md`, and main entry file).
+If no goal is given, infer from the existing codebase on the first cycle (read `CLAUDE.md`, `README.md`, and the main entry file: `package.json` `main` field → fallback to `src/index.*` → fallback to `src/main.*`).
 
 ## Loop Structure
 
@@ -26,15 +26,17 @@ Each cycle executes these steps in order:
 
 1. **EVALUATOR AGENT** (`oh-my-claudecode:critic`, `model=opus`) — fresh subagent with zero memory of previous cycles. Runs the built-in checklist (see §Evaluation Criteria). Outputs a prioritized issue list: P0 / P1 / P2.
 
-2. **Pick top-priority issue** — take the highest-severity unclaimed issue from the list.
+2. **Pick top-priority issue** — take the highest-severity issue from the list that is NOT already recorded in `docs/harness/harness-flow-progress.md` as completed or skipped this session. (The evaluator runs fresh each cycle; the progress file is the claim ledger.)
 
-3. **Ambiguous?** — If any decision is unclear, append a `kzk-user-queue` entry with a tentative default and continue immediately. Never stop to ask the user.
+3. **Ambiguous?** — If any decision is unclear, append an entry to `docs/harness/user-queue.md` (per `kzk-user-queue` skill) with a tentative default and continue immediately. Never stop to ask the user.
 
-4. **EXECUTOR AGENT** (`oh-my-claudecode:executor`, `model=sonnet`) — receives the frozen issue description + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (all 4 gates), commits.
+4. **EXECUTOR AGENT** (`oh-my-claudecode:executor`, `model=sonnet`) — receives the evaluator's issue description verbatim (passed as a quoted string, not re-interpreted) + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (5 gates: 0–4), commits.
 
-5. **Update `harness-flow-progress.md`** — one-line entry: cycle number, issue completed, queue length, Playwright status.
+5. **Update `docs/harness/harness-flow-progress.md`** — one-line entry: cycle number, issue completed, queue length, Playwright status.
 
 6. **Back to step 1.**
+
+**Result narration:** Per `kzk-playwright-verification` §Result-narration mandate, narrate 1-3 sentences after each evaluator and executor subagent dispatch (file count / commit / phase / latest output snippet). Silence between dispatches is forbidden.
 
 The loop runs until the user explicitly stops it. No automatic termination.
 
@@ -68,14 +70,14 @@ Playwright is an **optional enhancement**. The loop continues without it.
 
 ```
 ① Pre-flight: ToolSearch("+browser navigate")
-   → not found → skip to DEGRADED MODE immediately
+   → tool NOT in catalog → DEGRADED MODE immediately (skip steps ②-③)
 
-② Call browser_navigate(url)
-   → response received → proceed with screenshot + snapshot
+② Call mcp__playwright__browser_navigate(url)  (shorthand for `mcp__playwright__browser_navigate`)
+   → response received → proceed with screenshot + snapshot → done
 
-   → no response / error:
-      Attempt 1: `claude mcp list` → re-register if missing (`claude mcp add playwright npx '@playwright/mcp@latest'`)
-      Attempt 2: wait 10 s → retry browser_navigate once
+   → no response / error → cascade recovery:
+      Attempt 1: `claude mcp list` → if unregistered: `claude mcp add playwright npx '@playwright/mcp@latest'`
+      Attempt 2: wait 10 s → retry mcp__playwright__browser_navigate once
       Attempt 3: still failing → DEGRADED MODE
 
 DEGRADED MODE:
@@ -94,7 +96,7 @@ Every failure skips the current issue and picks the next one. All skipped issues
 | Scenario | Recovery | True halt? |
 |---|---|---|
 | Build fails 3× on same issue | Skip → next issue | Only if every issue in queue fails 3× |
-| Reviewer FAIL 2× on same task | Skip → next issue | No |
+| Reviewer FAIL 2× on same task | Skip → next issue (overrides kzk-autonomous-loop's halt-on-reviewer-FAIL — intentional: keep the cycle moving across tasks) | No |
 | Playwright MCP hangs | Cascade recovery → degraded mode | No |
 | Playwright auth expired | Skip visual this cycle → continue | No |
 | Rate limit (5 h window) | `ScheduleWakeup(delaySeconds=600)` → resume | No |
@@ -104,11 +106,12 @@ Every failure skips the current issue and picks the next one. All skipped issues
 | Missing npm package | `npm install <pkg>` → retry | No |
 | Evaluator finds no issues | Deepen criteria level → always find something | No |
 | Every issue in queue blocked | Halt + user-queue summary | Yes |
+| System-level failure (disk full, network down) | Cleanup temp files → retry; halt if unrecoverable | Yes (last resort) |
 | User explicit stop | Immediate halt | Yes |
 
 ## State Persistence
 
-After every cycle, append to `harness-flow-progress.md`:
+After every cycle, append to `docs/harness/harness-flow-progress.md`:
 
 ```
 Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue one-liner] — queue: N remaining — PW: ok|degraded
@@ -126,7 +129,7 @@ Every evaluator and executor dispatch prompt must include (per `kzk-large-task-d
 - Scope: file paths + line ranges
 - Branch name (never `main`)
 - Required reading: `CLAUDE.md`, spec doc path, harness-share.md §25
-- Rules: TDD strict, context7 mandate, `kzk-pre-commit-gate` gates 0-4, DO-NOT-MODIFY paths
+- Rules: TDD strict, context7 mandate, `kzk-pre-commit-gate` (5 gates: 0–4), DO-NOT-MODIFY paths
 - Commit convention: English conventional commits, no Co-Authored-By
 - Working directory absolute path
 - Return format on success
