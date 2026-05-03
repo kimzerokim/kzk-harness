@@ -1,7 +1,7 @@
 # kzk-web-loop Design Spec
 
 **Date:** 2026-05-03  
-**Status:** Draft — pending user review  
+**Status:** Approved  
 **Scope:** New harness skill `kzk-web-loop` — autonomous web page improvement loop
 
 ---

@@ -20,6 +20,8 @@ Say a trigger keyword, optionally with a one-line goal:
 
 If no goal is given, infer from the existing codebase on the first cycle (read `CLAUDE.md`, `README.md`, and the main entry file: `package.json` `main` field → fallback to `src/index.*` → fallback to `src/main.*`).
 
+If `harness-flow-progress.md` does not exist at repo root, create it with a single header line: `# harness-flow-progress` before the first cycle begins.
+
 ## Loop Structure
 
 Each cycle executes these steps in order:
