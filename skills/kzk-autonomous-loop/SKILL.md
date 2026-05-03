@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-loop
-version: 1.0.1
+version: 1.0.2
 description: "The autonomous loop never stops politely. Combines rate-limit polling (Anthropic 5h), context-budget /compact at 80%, and multi-Plan auto-continuation. Required triggers: 'rate limit', '5h window', 'ScheduleWakeup', '/compact', 'context budget', 'polite stop', 'next Plan', 'Plan auto-continuation'."
 ---
 
@@ -37,6 +37,7 @@ Polite-stop here is forbidden too — completion within the user-granted autonom
 Sequence Plan A → Plan B → ... → Plan N in one autonomous session:
 
 - Plan complete = (a) PR pushed (or branch direct push) + (b) checkpoint commit + (c) `harness-flow-progress.md` updated. After these 3 steps, **immediately dispatch the next Plan with no user prompt**.
+- **Open PR conflict guard**: if Plan B touches files that are also in Plan A's open PR, check for conflict via `git merge-base HEAD <plan-a-branch>` before dispatching Plan B executor. If same-file overlap found → append to user-queue and defer Plan B until Plan A merges.
 - Anti-pattern: "I'll wait for user approval before Plan B." Forbidden inside autonomous scope.
 - Between Plans, inject:
   - `superpowers:subagent-driven-development` — fresh subagent per task + two-stage review

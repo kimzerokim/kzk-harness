@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.3.1
+version: 1.3.2
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
@@ -219,5 +219,7 @@ Halt and append user-queue summary only when:
 - User explicitly stops the loop
 - Every issue in the current queue has failed 3× (nothing left to try)
 - System-level failure that prevents any progress (disk full, etc.)
+
+**Who writes the halt summary:** Main context (not a subagent). Append to `docs/harness/user-queue.md` with: cycle number, last issue attempted, failure count, and recommended next action. Then stop.
 
 Anything else → keep going.

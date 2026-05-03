@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.0.2
+version: 1.0.3
 description: "5-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'autonomous commit', 'doc-only exception'."
 ---
 
@@ -32,6 +32,18 @@ After Gate 0 passes, load the tool schema first — `ToolSearch(query="select:mc
 `Skill("oh-my-claudecode:ai-slop-cleaner")` on changed files. Removes dead code / duplicate / needless abstraction / boundary leak.
 
 Trivial 1-line flag changes may skip → commit body must say `ai-slop-cleaner skipped (trivial)`.
+
+## Gate 1.5 — secrets scan
+
+Before committing, scan staged files for accidental secrets:
+
+```bash
+git diff --cached | grep -iE "(password|secret|api_key|aws_secret|private_key|token)\s*[:=]\s*['\"]?[A-Za-z0-9+/]{8,}" || true
+```
+
+Also check for `AKIA`/`ASIA` prefixes (AWS key patterns) per `kzk-production-access`. If any match found → unstage the file, remove the secret, re-stage. Never commit secrets even in test fixtures.
+
+Trivial false positives (e.g. test fixture strings that are obviously fake) → commit body must say `secrets-scan: false positive — <reason>`.
 
 ## Gate 2 — build green
 

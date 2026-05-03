@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.0.2
+version: 1.0.3
 description: "Autonomous-mode boundary — what the agent may and may NOT do without per-step user confirmation. Covers main-branch ban, halt conditions, and when autonomous mode is even allowed. Required triggers: 'autonomous', 'ralph로 돌려', '자는 동안 진행', 'feature branch boundary', 'main 직접 접근', 'reviewer FAIL'."
 ---
 
@@ -39,6 +39,15 @@ Halt and append a user-queue entry when:
 - Crossing into a code/plan area pre-dating a current rule (e.g. plan written before PRD v1.13) — halt, do NOT retroactively rewrite policy via subagent guess
 
 Anything else → keep going (see `kzk-autonomous-loop` for polite-stop ban).
+
+## Rollback / revert policy
+
+If the autonomous loop committed code that is later found to be wrong (reviewer FAIL after commit, or test regression discovered in a later cycle):
+
+1. `git revert <sha>` — prefer revert over reset; preserves history
+2. Never `git reset --hard` on a pushed branch without explicit user "hard reset it"
+3. Append a user-queue entry with: which commit, why reverted, what the correct approach should be
+4. Resume the loop from the next issue — do not re-attempt the same issue immediately after revert
 
 ## Branch policy
 
