@@ -28,7 +28,7 @@ Re-paste the install command. Skills with a higher version overwrite existing on
 
 | Skill | Trigger keywords |
 |---|---|
-| `kzk-pre-commit-gate` | commit, pre-commit, Gate 0/1/2/3/4, AGENTS.md sync, doc-only |
+| `kzk-pre-commit-gate` | commit, pre-commit, Gate 0/1/1.5/2/3/4, AGENTS.md sync, secrets scan, doc-only |
 | `kzk-large-task-delegation` | 3+ file edits, 200+ LoC, subagent dispatch, opus/sonnet routing |
 | `kzk-playwright-verification` | Playwright, Gate 4, browser_navigate, screenshot, MCP drop |
 | `kzk-autonomous-boundary` | ralph, autonomous mode, halt condition, main branch boundary |
@@ -45,7 +45,7 @@ Re-paste the install command. Skills with a higher version overwrite existing on
 
 ## harness-share.md
 
-Also installed: `harness-share.md` — a portable workflow guide covering the full 5-gate pre-commit flow, autonomous mode rules, session tracking, and more. Referenced by the skills as a shared source of truth.
+Also installed: `harness-share.md` — a portable workflow guide covering the full 6-gate pre-commit flow, autonomous mode rules, session tracking, and more. Referenced by the skills as a shared source of truth.
 
 ## License
 

@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.0.4
+version: 1.0.5
 description: "Autonomous-mode boundary — what the agent may and may NOT do without per-step user confirmation. Covers main-branch ban, halt conditions, and when autonomous mode is even allowed. Required triggers: 'autonomous', 'ralph로 돌려', '자는 동안 진행', 'feature branch boundary', 'main 직접 접근', 'reviewer FAIL'."
 ---
 
@@ -12,7 +12,7 @@ Autonomous mode = explicit user permission only. Triggers: "ralph로 돌려", "�
 
 ## Allowed actions (autonomous mode ON)
 
-- Auto-commit after `kzk-pre-commit-gate` 5-gate PASS (Gates 0–4; see that skill)
+- Auto-commit after `kzk-pre-commit-gate` 6-gate PASS (Gates 0, 1, 1.5, 2, 3, 4; see that skill)
 - Move to next task after TDD test passes
 - Worktree parallel execution (`/superpowers:using-git-worktrees`)
 - Subagent dispatch (`oh-my-claudecode:code-reviewer`, `oh-my-claudecode:critic`, `oh-my-claudecode:verifier`) replacing interactive review skills

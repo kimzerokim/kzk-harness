@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-merge-sync
-version: 1.0.3
+version: 1.0.4
 description: "Pre-merge checklist — sync CLAUDE.md to current code state and run `/oh-my-claudecode:deepinit` before any feature-branch merge. Required triggers: 'merge 전', 'PR 직전', 'deepinit', 'Pre-Merge', 'CLAUDE.md update', 'manifest 재생성'."
 ---
 
@@ -46,6 +46,6 @@ Skill("oh-my-claudecode:deepinit")
 
 - [x] CLAUDE.md updated to match current state
 - [x] deepinit ran
-- [x] kzk-pre-commit-gate 6-gate PASS (Gates 0, 1, 1.5, 2, 3, 4) on final commit
+- [x] kzk-pre-commit-gate full gate PASS (Gate 0 N/A if no AGENTS.md hierarchy; otherwise all of 0, 1, 1.5, 2, 3, 4) on final commit
 - [ ] Experiment complete + user merge approval received (skip if PR target is feature branch, not main)
 ```

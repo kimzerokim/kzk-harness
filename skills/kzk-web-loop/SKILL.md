@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.3.3
+version: 1.3.4
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
@@ -22,7 +22,7 @@ Say a trigger keyword, optionally with a one-line goal:
 
 1. **Plugin pre-flight** — Run §Plugin Pre-flight. Detect superpowers / gstack / OMC; install missing ones. Record availability in a local variable for the rest of this run.
 
-2. **Branch** — If no branch is specified, ask once: "어느 브랜치에서 작업할까요? (default: `feature/web-loop-<goal-slug>`)" Create it if it doesn't exist. Never `main`.
+2. **Branch** — If no branch is specified, ask once: "어느 브랜치에서 작업할까요? (default: `feature/web-loop-<goal-slug>`)" Create it if it doesn't exist. Never `main`. (This naming is a specialization of `feature/<topic>` per `kzk-autonomous-boundary`.)
 
 3. **Goal clarification** — If no goal is given:
    - superpowers available → `Skill("superpowers:brainstorming")` (keep to 2-3 questions max, then lock the goal)
@@ -45,15 +45,15 @@ Each cycle executes these steps in order:
 
 **3. Ambiguous?** — If any decision is unclear, append an entry to `docs/harness/user-queue.md` (per `kzk-user-queue` skill) with a tentative default and continue immediately. Never stop to ask the user.
 
-**4a. P0 fast path** — If the issue is P0, dispatch `oh-my-claudecode:executor` (`model=sonnet`) directly with the evaluator's issue description verbatim (passed as a quoted string, not re-interpreted) + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), commits.
+**4a. P0 fast path** — If the issue is P0, dispatch `oh-my-claudecode:executor` (`model=sonnet`) directly with the evaluator's issue description verbatim (passed as a quoted string, not re-interpreted) + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise), commits.
 
 **4b. P1/P2 plan gate** (per `kzk-large-task-delegation` plan-critic loop requirement) — If the issue is P1 or P2:
 
   **superpowers available:**
   1. `Skill("kzk-codebase-survey")` — EXPLORER runs all 8 steps, saves report to `.web-loop/surveys/cycle-N-survey.md`. Report path passed to writing-plans as required reading.
-  2. `Skill("superpowers:writing-plans")` — creates a frozen plan (default path: `docs/plans/YYYY-MM-DD-<topic>.md`). After the skill returns, main controller moves/copies the plan to `.web-loop/plans/cycle-N-plan.md` so the loop's state dir stays consistent. Prompt includes survey report path.
+  2. `Skill("superpowers:writing-plans")` — creates a frozen plan (default path: `docs/plans/YYYY-MM-DD-<topic>.md`). After the skill returns, main controller copies the plan to `.web-loop/plans/cycle-N-plan.md` so the loop's state dir stays consistent (canonical plan remains in `docs/plans/` for git tracking; in-cycle reads use `.web-loop/plans/`). Prompt includes survey report path.
   3. `Skill("superpowers:subagent-driven-development")` — reads frozen plan, dispatches implementer subagent, 2-stage spec + quality review. gstack available → append `Skill("gstack:review")` as the final code review pass.
-  4. Second consecutive FAIL from any reviewer → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
+  4. Second consecutive FAIL from the same reviewer (or 3+ FAILs total across all reviewers in the same cycle) → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
 
   **superpowers unavailable (fallback):**
   1. `Skill("kzk-codebase-survey")` — EXPLORER runs, report saved to `.web-loop/surveys/cycle-N-survey.md`.
@@ -61,7 +61,7 @@ Each cycle executes these steps in order:
   3. CRITIC (`oh-my-claudecode:critic`, `model=opus`) reviews. Critic prompt: "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL." FAIL → planner revises once. Second FAIL → skip + user-queue.
   4. EXECUTOR (`oh-my-claudecode:executor`, `model=sonnet`) implements via TDD → `kzk-pre-commit-gate` → commit.
 
-  Either path: evaluator's issue description is passed verbatim (quoted string). All dispatches include file scope + branch name + pre-commit gate rules (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise).
+  Either path: evaluator's issue description is passed verbatim (quoted string). All dispatches include file scope + branch name + pre-commit gate rules (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise).
 
 **5. Update `harness-flow-progress.md`** — append one line using the canonical format (see §State Persistence):
 - Completed: `Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue one-liner] — queue: N remaining — PW: ok|degraded`
@@ -207,7 +207,7 @@ Every tool runner, evaluator, planner, critic, and executor dispatch prompt must
 - Scope: file paths + line ranges
 - Branch name (never `main` — per `kzk-autonomous-boundary`)
 - Required reading: `CLAUDE.md`, spec doc path, harness-share.md §25
-- Rules: TDD strict, context7 mandate, `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), DO-NOT-MODIFY paths
+- Rules: TDD strict, context7 mandate, `kzk-pre-commit-gate` (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise), DO-NOT-MODIFY paths
 - Commit convention: English conventional commits, no Co-Authored-By
 - Working directory absolute path
 - Return format on success

@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.0.4
+version: 1.0.5
 description: "6-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / secrets-scan / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/1.5/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'secrets scan', 'Gate 1.5', 'autonomous commit', 'doc-only exception'."
 ---
 
@@ -8,7 +8,7 @@ description: "6-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / secrets
 
 # kzk-pre-commit-gate
 
-Every commit passes 5 gates in order. One failure → commit blocked.
+Every commit passes 6 gates in order (0, 1, 1.5, 2, 3, 4). One failure → commit blocked.
 
 ## Gate 0 — Touched-files AGENTS.md sync
 
@@ -25,7 +25,7 @@ Concrete rule:
 
 Failure → fix the AGENTS.md, re-stage, new commit. NEVER amend.
 
-After Gate 0 passes, load the tool schema first — `ToolSearch(query="select:mcp__plugin_oh-my-claudecode_t__deepinit_manifest")` — then call with `action=save`. Run once at the END of the commit batch (autonomous run) or at PR-creation time (interactive). If ToolSearch returns no result, search by keyword `ToolSearch(query="+deepinit_manifest")` and call the resolved name. Manifest baseline file is gitignored (`.omc/deepinit-manifest.json`); it just lets the next session's `action=diff` produce a real signal.
+After Gate 0 passes, load the tool schema first — `ToolSearch(query="select:mcp__plugin_oh-my-claudecode_t__deepinit_manifest")` — then call with `action=save`. Run once at the END of the commit batch (autonomous run) or at PR-creation time (interactive). If ToolSearch returns no result, search by keyword `ToolSearch(query="+deepinit_manifest")` and call the resolved name. If neither search finds the tool (OMC plugin not installed or not surfaced), Gate 0 PASSES on the AGENTS.md edit alone — log `deepinit_manifest tool unavailable, manifest baseline skipped this commit` in the commit body and continue. Manifest baseline file is gitignored (`.omc/deepinit-manifest.json`); it just lets the next session's `action=diff` produce a real signal.
 
 ## Gate 1 — ai-slop-cleaner
 
@@ -71,7 +71,7 @@ If the commit touches **no** source code — only docs/configs/screenshots (`*.m
 - Autonomous mode: commit without user prompt
 - Non-autonomous: still confirm with user
 
-Any single source-code line in the same commit revokes this exception → run full 5 gates.
+Any single source-code line in the same commit revokes this exception → run full 6 gates.
 
 Note: skill files (`skills/**/*.md`) count as doc-only ONLY when modifying an existing skill. ADDING a new skill triggers full Gate 0 + the README.md / CLAUDE.md skill-count update flow described in CLAUDE.md "Skill Development Rules". `.claude/skills/**/*.md` is the legacy OMC path — same rules apply.
 
@@ -97,4 +97,5 @@ Non-autonomous (default): every commit waits for user OK after gates pass. No au
 
 - 1st failure: fix root cause, re-stage, new commit
 - 3 build/test failures consecutively → halt, append user-queue entry (this is the autonomous-loop halt condition; see `kzk-autonomous-boundary`)
+- Reviewer/critic 2 consecutive FAIL on the same change (Gate 1 ai-slop-cleaner, Gate 4 Playwright visual review) → halt + user-queue entry. See `kzk-autonomous-boundary` for the full halt condition list.
 - Never `git commit --amend` after a hook failure (the commit didn't happen — amending hits the previous commit)

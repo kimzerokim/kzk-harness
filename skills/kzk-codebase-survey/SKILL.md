@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.2.2
+version: 1.2.3
 description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning'."
 ---
 
@@ -26,12 +26,12 @@ code-review-graph --version 2>/dev/null
 
 If exit non-zero AND `pip --version` succeeds AND running in autonomous mode, first append a user-queue entry: `Q-INSTALL-CRG — autonomous mode auto-installing code-review-graph (pip)`. Then:
 ```bash
-pip install code-review-graph && code-review-graph install && code-review-graph build
+python3 -m pip install --user code-review-graph && code-review-graph install && code-review-graph build
 ```
 
-In interactive (non-autonomous) mode: log "code-review-graph not installed — run: pip install code-review-graph && code-review-graph install && code-review-graph build" and proceed with grep fallback without auto-installing.
+In interactive (non-autonomous) mode: log "code-review-graph not installed — run: python3 -m pip install --user code-review-graph && code-review-graph install && code-review-graph build" and proceed with grep fallback without auto-installing.
 
-Cache result for this session. If install fails → log "code-review-graph install failed: <error>" to `docs/harness/user-queue.md` and proceed with grep fallback. Never halt on tool availability.
+Cache result for this session. If install fails with PEP 668 error (externally-managed-environment) → skip `--user`, queue `Q-INSTALL-CRG-MANUAL — use pipx install code-review-graph` and proceed with grep fallback. Any other failure → log "code-review-graph install failed: <error>" to `docs/harness/user-queue.md` and proceed with grep fallback. Never halt on tool availability.
 
 ### Step 1 — Scope Expansion
 
@@ -40,13 +40,13 @@ Check for code-review-graph: `code-review-graph --version 2>/dev/null`
 **If available (exit 0):**
 1. `code-review-graph query --file <target>` — forward dependency graph
 2. `code-review-graph blast-radius --file <target>` — reverse deps (who imports target)
-3. Include all files in the same feature directory (closest named folder boundary)
+3. Include all files in the same feature directory (closest named folder boundary — defined as the nearest ancestor directory whose name is not a generic structural folder such as `src/`, `lib/`, `app/`, `components/`, `pages/`)
 4. Include all co-located test files (`*.test.*`, `*.spec.*`)
 
 **Fallback (not installed):**
 1. Parse all `import`/`require`/`from` statements in the target files
 2. Trace one transitive hop: `grep -r "from '.*<module-name>'" --include="*.ts" --include="*.tsx" -l`
-3. Include all files in the same feature directory (closest named folder boundary)
+3. Include all files in the same feature directory (same definition as above — nearest non-generic ancestor)
 4. Include all co-located test files (`*.test.*`, `*.spec.*`)
 
 If code-review-graph is not installed, note "code-review-graph not available — using grep fallback" in report header.
