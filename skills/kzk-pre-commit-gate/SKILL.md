@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.0.1
+version: 1.0.2
 description: "5-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'autonomous commit', 'doc-only exception'."
 ---
 
@@ -25,7 +25,7 @@ Concrete rule:
 
 Failure → fix the AGENTS.md, re-stage, new commit. NEVER amend.
 
-After Gate 0 passes, run the OMC "deepinit manifest save" tool (current name: `mcp__plugin_oh-my-claudecode_t__deepinit_manifest`, `action=save`) once at the END of the commit batch (autonomous run) or at PR-creation time (interactive). If the call fails, verify the tool name via `ToolSearch(query="+deepinit_manifest")` and retry with the resolved name. Manifest baseline file is gitignored (`.omc/deepinit-manifest.json`); it just lets the next session's `action=diff` produce a real signal.
+After Gate 0 passes, load the tool schema first — `ToolSearch(query="select:mcp__plugin_oh-my-claudecode_t__deepinit_manifest")` — then call with `action=save`. Run once at the END of the commit batch (autonomous run) or at PR-creation time (interactive). If ToolSearch returns no result, search by keyword `ToolSearch(query="+deepinit_manifest")` and call the resolved name. Manifest baseline file is gitignored (`.omc/deepinit-manifest.json`); it just lets the next session's `action=diff` produce a real signal.
 
 ## Gate 1 — ai-slop-cleaner
 

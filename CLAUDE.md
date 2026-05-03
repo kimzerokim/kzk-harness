@@ -55,6 +55,7 @@ No-halt policy applies (same as `kzk-web-loop`). Ambiguous decisions → `docs/h
 - §15–§24: Supporting protocols (deepinit, production access, visibility, MCP reconnect, codex review)
 - §25: kzk-web-loop autonomous web improvement loop
 - §26: kzk-codebase-survey mandatory deep codebase explorer
+- §27: kzk-tool-retry tool-failure auto-retry discipline
 
 ## External Tools
 

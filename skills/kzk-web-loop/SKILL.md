@@ -1,7 +1,7 @@
 ---
 name: kzk-web-loop
-version: 1.3.0
-description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '자율 개선', 'loop forever', '무한 개선'."
+version: 1.3.1
+description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
 > Authoritative source: repo `docs/superpowers/specs/2026-05-03-kzk-web-loop-design.md` + `harness-share.md §25`. On conflict, those win.
@@ -69,7 +69,7 @@ Each cycle executes these steps in order:
 
 **6. Back to step 1a.**
 
-**Result narration:** Per `kzk-background-monitoring` + `kzk-playwright-verification` §Result-narration mandate, narrate 1-3 sentences after each subagent dispatch OR Skill invocation (tool runner / evaluator / brainstorming / writing-plans / subagent-driven-development / planner / critic / executor): file count / commit / phase / latest output snippet. Silence between dispatches is forbidden.
+**Result narration:** Per `kzk-background-monitoring` + `kzk-playwright-verification` §Result narration, narrate 1-3 sentences after each subagent dispatch OR Skill invocation (tool runner / evaluator / brainstorming / writing-plans / subagent-driven-development / planner / critic / executor): file count / commit / phase / latest output snippet. Silence between dispatches is forbidden.
 
 The loop runs until the user explicitly stops it. No automatic termination.
 
@@ -124,9 +124,9 @@ Newly installed plugins require a Claude Code session restart to surface their s
    ```
    Q-PLUGIN-RESTART — plugins installed, session restart required
    - Installed: [list of newly installed plugins]
-   - Action: restart Claude Code session, then re-trigger the web loop
+   - Action: restart Claude Code session, then re-trigger the web loop for full plugin access
    ```
-2. Halt and notify the user. Do NOT start the loop without the plugins surfaced.
+2. Continue the loop in **degraded mode** (see graceful degradation table below — same fallbacks apply as if the plugin install had failed). Do NOT halt. The degradation table covers all missing-plugin scenarios.
 
 If all plugins were already installed → no restart needed, continue to step 2 (Branch).
 

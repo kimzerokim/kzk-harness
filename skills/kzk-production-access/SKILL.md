@@ -1,6 +1,6 @@
 ---
 name: kzk-production-access
-version: 1.0.0
+version: 1.0.1
 description: "Production / external-infra access boundary plus credential-handling protocol. Covers explicit-instruction rule, multi-step OK-sign pattern, destructive operations, AWS STS-vs-permanent IAM key triage. Required triggers: 'AWS 접속', 'production', 'destructive', 'DB drop', 'snapshot', 'credential', 'ASIA prefix', 'AKIA prefix', 'aws-vault'."
 ---
 

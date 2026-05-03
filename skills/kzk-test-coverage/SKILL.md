@@ -1,6 +1,6 @@
 ---
 name: kzk-test-coverage
-version: 1.0.0
+version: 1.0.1
 description: "Autonomous-mode test coverage goal: 100% line + branch on changed files. Touched legacy raised too. Best-effort excuses forbidden. Required triggers: 'test coverage', 'test:cov', '100% coverage', '변경 파일 cov', 'coverage exemption'."
 ---
 
@@ -29,3 +29,7 @@ These count as "no logic — coverage non-goal". Anything with a branch or expre
 - "Best-effort coverage" without specific exemption call-out
 - Coverage-pad tests (calling a function with no assertion) — counted as 0
 - Skipping coverage for files outside the changed area — only allowed when truly untouched
+
+## Interaction with other kzk-*
+
+- **kzk-user-queue**: when a coverage gap is queued due to time constraint, use the entry template from that skill (`Q-COV-<FILE>` prefix).

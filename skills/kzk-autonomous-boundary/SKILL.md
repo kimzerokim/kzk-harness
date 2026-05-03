@@ -1,7 +1,7 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.0.1
-description: "Autonomous-mode boundary — what the agent may and may NOT do without per-step user confirmation. Covers main-branch ban, halt conditions, and when autonomous mode is even allowed. Required triggers: 'autonomous', 'ralph로 돌려', '자는 동안 진행', 'harness-test branch', 'main 직접 접근', 'reviewer FAIL'."
+version: 1.0.2
+description: "Autonomous-mode boundary — what the agent may and may NOT do without per-step user confirmation. Covers main-branch ban, halt conditions, and when autonomous mode is even allowed. Required triggers: 'autonomous', 'ralph로 돌려', '자는 동안 진행', 'feature branch boundary', 'main 직접 접근', 'reviewer FAIL'."
 ---
 
 > Authoritative source: repo `CLAUDE.md` "Autonomous Execution Boundary" + `harness-share.md` §2. On conflict, those win.

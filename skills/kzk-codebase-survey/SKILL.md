@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.2.0
+version: 1.2.1
 description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning'."
 ---
 
@@ -24,12 +24,14 @@ Run all 8 steps in order. Save report before returning.
 code-review-graph --version 2>/dev/null
 ```
 
-If exit non-zero AND `pip --version` succeeds:
+If exit non-zero AND `pip --version` succeeds AND running in autonomous mode:
 ```bash
 pip install code-review-graph && code-review-graph install && code-review-graph build
 ```
 
-Cache result for this session. If install fails → log "code-review-graph install failed: <error>" to `docs/harness/user-queue.md` (or `.web-loop/surveys/` in autonomous mode) and proceed with grep fallback. Never halt on tool availability.
+In interactive (non-autonomous) mode: log "code-review-graph not installed — run: pip install code-review-graph && code-review-graph install && code-review-graph build" and proceed with grep fallback without auto-installing.
+
+Cache result for this session. If install fails → log "code-review-graph install failed: <error>" to `docs/harness/user-queue.md` and proceed with grep fallback. Never halt on tool availability.
 
 ### Step 1 — Scope Expansion
 

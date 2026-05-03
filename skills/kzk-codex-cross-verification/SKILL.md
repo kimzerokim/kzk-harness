@@ -1,6 +1,6 @@
 ---
 name: kzk-codex-cross-verification
-version: 1.0.2
+version: 1.0.3
 description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
 ---
 
@@ -70,7 +70,7 @@ Cite sections. Terse. No compliments. If category fine, say "none".
 PROMPT=$(cat /tmp/<topic>-review-prompt.txt)
 codex exec "$PROMPT" -C <repo-root> -s read-only \
   -c 'model_reasoning_effort="high"' --enable web_search_cached --json \
-  2>/tmp/codex-err.txt | PYTHONUNBUFFERED=1 python3 -u -c "import sys,json; [print(json.loads(l).get('text','')) for l in sys.stdin if l.strip().startswith('{')]"
+  2>/tmp/codex-err.txt | PYTHONUNBUFFERED=1 python3 -u -c "import sys,json; [print(json.loads(l).get('text', json.loads(l).get('error',''))) for l in sys.stdin if l.strip().startswith('{')]"
 ```
 
 - `timeout: 300000` (5 min). Background-monitor per `kzk-background-monitoring`.
@@ -98,5 +98,5 @@ codex exec "$PROMPT" -C <repo-root> -s read-only \
 
 ## Interaction with other kzk-*
 
-- **kzk-large-task-delegation §"Pre-implementation plan-critic loop"** is a *narrower* version of this skill, scoped to plans that feed the sonnet executor. This skill is broader — covers spec / architecture / design too. Cross-reference, do not duplicate.
+- **kzk-large-task-delegation §"Pre-implementation plan-critic loop (opus + codex)"** is a *narrower* version of this skill, scoped to plans that feed the sonnet executor. This skill is broader — covers spec / architecture / design too. Cross-reference, do not duplicate.
 - **kzk-background-monitoring** governs the codex consult call itself (long-running CLI).
