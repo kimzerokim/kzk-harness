@@ -4,7 +4,7 @@ version: 1.0.0
 description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
 ---
 
-> Authoritative source: this skill body. Compatible with `oh-my-claudecode:codex` (consult mode) and `oh-my-claudecode:critic` (opus fallback). Originated from `gridless` repo `harness-share.md` §1.5; portable to all projects.
+> Authoritative source: this skill body. Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable. Originated from `gridless` repo `harness-share.md` §1.5; portable to all projects.
 
 # kzk-codex-cross-verification
 
@@ -13,7 +13,7 @@ Every meaningful design artifact gets a second opinion from a different model be
 ## Pattern (3-pass)
 
 1. **Draft (me)** — main writes the spec / plan / design.
-2. **Codex consult** — `oh-my-claudecode:codex` consult. CLI parse fail / exit code 2 / 0-byte stuck → fallback to `Agent(subagent_type="oh-my-claudecode:critic", model="opus", ...)`. Save the verdict to a named file (chat history alone is insufficient).
+2. **Codex consult** — run `codex exec` CLI directly (see §Codex execution shape below). CLI not available (`command not found` or exit code 2 / 0-byte stuck within 30 s) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=<same review prompt>)`. Save the verdict to a named file (chat history alone is insufficient).
 3. **Synthesize (me)** — bucket each codex point as 🔴 즉시 fix / 🟡 spec 단계 디테일 / ⚪ push-back. Cite reasons per bucket. Hand the synthesized output to the user or the next phase.
 
 ## When mandatory

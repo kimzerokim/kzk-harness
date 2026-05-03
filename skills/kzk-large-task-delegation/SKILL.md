@@ -33,15 +33,15 @@ Subagent dispatches are split by phase, not by topic. Reasoning-heavy phases get
 
 | Phase | Subagent type | Model | Cross-check |
 |---|---|---|---|
-| Plan authoring | `oh-my-claudecode:planner` / `oh-my-claudecode:architect` / `oh-my-claudecode:deep-interview` | **opus** | Mandatory `oh-my-claudecode:codex` consult on the draft plan before freezing |
-| Critic / review | `oh-my-claudecode:critic` / `oh-my-claudecode:code-reviewer` | **opus** | `codex review` parallel pass |
-| Verify | `oh-my-claudecode:verifier` | **opus** | `codex` consult on uncertain assertions |
+| Plan authoring | `oh-my-claudecode:planner` / `oh-my-claudecode:architect` / `oh-my-claudecode:deep-interview` | **opus** | Mandatory Codex CLI consult on draft plan before freezing (see `kzk-codex-cross-verification`) |
+| Critic / review | `oh-my-claudecode:critic` / `oh-my-claudecode:code-reviewer` | **opus** | Codex CLI review parallel pass (see `kzk-codex-cross-verification`) |
+| Verify | `oh-my-claudecode:verifier` | **opus** | Codex CLI consult on uncertain assertions (see `kzk-codex-cross-verification`) |
 | Implementation | `oh-my-claudecode:executor` | **sonnet** | none — plan must already be detailed enough |
 | Quick research / file search | `Explore` / `oh-my-claudecode:explore` | **haiku** or default | none |
 
 Reason: heavy reasoning where it changes the outcome, cheap execution where the plan already determined every move. Override: if sonnet returns BLOCKED or main reviews the diff and finds plan-vs-code drift, re-dispatch the same task with `model="opus"` and root-cause whether the plan was insufficient (fix the plan policy) or the model failed (record once, do not generalize from a single failure).
 
-Codex is invoked via `oh-my-claudecode:codex` (consult mode for plan, review mode for diff). Codex disagreement on plan ≠ veto — main reconciles; persistent disagreement → user-queue entry, do not silently override one model with the other.
+Codex is invoked via CLI: `codex exec "$PROMPT" -C <repo-root> -s read-only` (see `kzk-codex-cross-verification §Codex execution shape`). CLI unavailable → `Agent(subagent_type="oh-my-claudecode:critic", model="opus")`. Codex disagreement on plan ≠ veto — main reconciles; persistent disagreement → user-queue entry, do not silently override one model with the other.
 
 ### Default split — 80% sonnet
 
@@ -87,7 +87,7 @@ Agent({
 Before dispatching the sonnet executor, the plan must clear this gate exactly once per Plan or per discrete task:
 
 1. main authors the plan or dispatches `planner` (opus)
-2. `oh-my-claudecode:codex` consult on the plan draft → returns concerns
+2. Codex CLI consult on the plan draft (`codex exec` per `kzk-codex-cross-verification`) → returns concerns; CLI unavailable → `oh-my-claudecode:critic` opus
 3. main edits plan (or dispatches `oh-my-claudecode:critic` opus) to address concerns
 4. on agreement, plan is frozen — written to `docs/plans/<file>.md` with a `## Frozen` header line
 5. only frozen plans may feed a sonnet executor dispatch
