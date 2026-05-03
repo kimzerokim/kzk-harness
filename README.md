@@ -45,7 +45,7 @@ Re-paste the install command. Skills with a higher version overwrite existing on
 
 ## harness-share.md
 
-Also installed: `harness-share.md` — a portable workflow guide covering the full 6-gate pre-commit flow, autonomous mode rules, session tracking, and more. Referenced by the skills as a shared source of truth.
+Also installed: `harness-share.md` — a portable workflow guide covering the full 6-gate pre-commit flow (Gate 0 conditional on AGENTS.md hierarchy), autonomous mode rules, session tracking, and more. Referenced by the skills as a shared source of truth.
 
 ## License
 

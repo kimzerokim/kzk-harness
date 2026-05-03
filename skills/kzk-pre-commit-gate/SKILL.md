@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.0.6
+version: 1.0.7
 description: "6-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / secrets-scan / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/1.5/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'secrets scan', 'Gate 1.5', 'autonomous commit', 'doc-only exception'."
 ---
 
@@ -8,7 +8,7 @@ description: "6-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / secrets
 
 # kzk-pre-commit-gate
 
-Every commit passes 6 gates in order (0, 1, 1.5, 2, 3, 4). One failure → commit blocked.
+Every commit passes up to 6 gates in order (0, 1, 1.5, 2, 3, 4 — Gate 0 only when AGENTS.md hierarchy present, so 5 gates otherwise). One failure → commit blocked.
 
 ## Gate 0 — Touched-files AGENTS.md sync
 
@@ -71,7 +71,7 @@ If the commit touches **no** source code — only docs/configs/screenshots (`*.m
 - Autonomous mode: commit without user prompt
 - Non-autonomous: still confirm with user
 
-Any single source-code line in the same commit revokes this exception → run full 6 gates.
+Any single source-code line in the same commit revokes this exception → run all applicable gates (6 if AGENTS.md hierarchy present; 5 otherwise).
 
 Note: skill files (`skills/**/*.md`) count as doc-only ONLY when modifying an existing skill. ADDING a new skill triggers full Gate 0 + the README.md / CLAUDE.md skill-count update flow described in CLAUDE.md "Skill Development Rules". `.claude/skills/**/*.md` is the legacy OMC path — same rules apply.
 
@@ -96,6 +96,6 @@ Non-autonomous (default): every commit waits for user OK after gates pass. No au
 ## Failure protocol
 
 - 1st failure: fix root cause, re-stage, new commit
-- 3 build/test failures consecutively → halt, append user-queue entry (this is the autonomous-loop halt condition; see `kzk-autonomous-boundary`)
+- **Autonomous mode:** 3 consecutive build/test failures on the same area → halt, append user-queue entry (see `kzk-autonomous-boundary`). **Interactive mode:** surface failures to user, do not auto-halt.
 - Reviewer/critic 2 consecutive FAIL on the same change (Gate 1 ai-slop-cleaner, Gate 4 Playwright visual review) → halt + user-queue entry. See `kzk-autonomous-boundary` for the full halt condition list. Exception: `kzk-web-loop` overrides consecutive-FAIL halts with skip+next-issue (see `kzk-web-loop` §Failure Handling).
 - Never `git commit --amend` after a hook failure (the commit didn't happen — amending hits the previous commit)

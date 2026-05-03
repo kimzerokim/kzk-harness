@@ -191,13 +191,13 @@ npm test -- --testPathPatterns=<changed-area>
 
 ### Doc-only commit 예외
 
-source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `docs/**`, `harness-flow-progress.md`, `.claude/skills/**/*.md`, `docs/screenshots/**`):
+source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `docs/**`, `harness-flow-progress.md`, `skills/**/*.md`, `.claude/skills/**/*.md`, `docs/screenshots/**`):
 - Gate 2 (build) + Gate 3 (test) skip
 - Gate 1 (ai-slop-cleaner) 변경 md 에 한해 필요시
 - Gate 4 N/A
 - autonomous 모드 = 사용자 확인 없이 commit 허용. 평소 = 사용자 확인
 
-코드 변경 1줄이라도 섞이면 full 5-gate 수행 (AGENTS.md hierarchy 가 없는 레포는 4-gate).
+코드 변경 1줄이라도 섞이면 full 6-gate 수행 (AGENTS.md hierarchy 가 없는 레포는 5-gate).
 
 ### Token migration — shadcn + Tailwind v4 bridge requirement
 
@@ -901,7 +901,7 @@ If available (`code-review-graph --version` exits 0), use for scope expansion an
 - Install: `pip install code-review-graph && code-review-graph install && code-review-graph build` (run once per project)
 - Fallback: grep-based scope expansion if not installed.
 
-### 8-step EXPLORER
+### EXPLORER steps (Step 0.5 + Step 1–8)
 
 1a. Scope expansion (target files → transitive imports → feature dir → tests). **If code-review-graph available:** use `query` + `blast-radius` commands. **Fallback:** `grep -r "from '.*<module-name>'" --include="*.ts" -l`.
 1b. Deep read all files in parallel (full file, no excerpts) + `git log -5 <file>`
