@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-loop
-version: 1.0.2
+version: 1.0.3
 description: "The autonomous loop never stops politely. Combines rate-limit polling (Anthropic 5h), context-budget /compact at 80%, and multi-Plan auto-continuation. Required triggers: 'rate limit', '5h window', 'ScheduleWakeup', '/compact', 'context budget', 'polite stop', 'next Plan', 'Plan auto-continuation'."
 ---
 
@@ -55,7 +55,7 @@ Each Plan boundary records pass/fail in `harness-flow-progress.md` Session N "ì²
 - build/test 3 consecutive FAIL
 - `main` access required next step
 - user-queue decision required
-- pre-merge `/deepinit` failed (see `kzk-pre-merge-sync` "do not skip" rule)
+- pre-PR `/deepinit` failed at PR-creation time (runs on feature branch tip before `gh pr create`; see `kzk-pre-merge-sync`)
 
 Anything else â†’ continue.
 

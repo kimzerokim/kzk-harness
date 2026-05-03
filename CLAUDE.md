@@ -8,7 +8,7 @@ All 14 skills are active in this repo. Load one by mentioning its trigger keywor
 
 | Skill | Trigger keywords |
 |---|---|
-| `kzk-pre-commit-gate` | commit, pre-commit, Gate 0/1/2/3/4, AGENTS.md sync, doc-only |
+| `kzk-pre-commit-gate` | commit, pre-commit, Gate 0/1/1.5/2/3/4, AGENTS.md sync, secrets scan, doc-only |
 | `kzk-large-task-delegation` | 3+ file edits, 200+ LoC, subagent dispatch, opus/sonnet routing |
 | `kzk-playwright-verification` | Playwright, Gate 4, browser_navigate, screenshot, MCP drop |
 | `kzk-autonomous-boundary` | ralph, autonomous mode, halt condition, main branch boundary |

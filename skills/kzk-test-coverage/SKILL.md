@@ -1,6 +1,6 @@
 ---
 name: kzk-test-coverage
-version: 1.0.1
+version: 1.0.2
 description: "Autonomous-mode test coverage goal: 100% line + branch on changed files. Touched legacy raised too. Best-effort excuses forbidden. Required triggers: 'test coverage', 'test:cov', '100% coverage', '변경 파일 cov', 'coverage exemption'."
 ---
 

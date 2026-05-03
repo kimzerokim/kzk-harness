@@ -80,6 +80,15 @@ multi-step sequence (cutover, migration) 이면 단계별 OK 사인: AI propose 
 
 두 경우 모두 memory / metadata 저장 X. conversation 종료 시 자동 폐기.
 
+### Rollback / revert policy
+
+autonomous loop 이 commit 한 코드가 이후 잘못된 것으로 판명 된 경우:
+
+1. `git revert <sha>` 선호 — reset 보다 history 보존
+2. pushed branch 에서 `git reset --hard` 는 사용자 명시 ("hard reset 해줘") 없으면 금지
+3. user-queue 에 entry 추가: 어느 commit, 왜 revert, 올바른 접근 방향
+4. 같은 issue 를 바로 재시도 하지 말고 다음 issue 로 resume
+
 ### Polite-stop 금지
 
 - 사용자가 autonomous 지시 한 범위 안에선 모든 task 완료 또는 halt 조건 도달 시까지 정지 X
@@ -88,7 +97,7 @@ multi-step sequence (cutover, migration) 이면 단계별 OK 사인: AI propose 
 
 ---
 
-## 3. Pre-commit Gate (5 단계)
+## 3. Pre-commit Gate (6 단계)
 
 매 commit 직전 순차 통과. 하나라도 실패 시 commit 금지.
 
@@ -116,6 +125,16 @@ Skill("oh-my-claudecode:ai-slop-cleaner")
 ```
 
 trivial 변경 (1줄 옵션 flag) 인 경우 skip 가능 — commit body 에 "ai-slop-cleaner skipped (trivial)" 명시.
+
+### Gate 1.5 — secrets scan
+
+staged diff 에서 자격증명 패턴 검색:
+
+```bash
+git diff --cached | grep -iE "(password|secret|api_key|aws_secret|private_key|token)\s*[:=]\s*['\"]?[A-Za-z0-9+/]{8,}" || true
+```
+
+`AKIA`/`ASIA` prefix (AWS key 패턴) 도 추가 확인. match 발견 시 → unstage + secret 제거 + re-stage. test fixture 내 명백한 fake string 은 false positive — commit body 에 `secrets-scan: false positive — <reason>` 명시.
 
 ### Gate 2 — build green
 
@@ -696,7 +715,7 @@ Russian Judge Verdict:
 - 절차:
   1. `/writing-plans` skill 로 plan draft 작성
   2. `omc ask codex --agent-prompt critic "<plan path + spec path + acceptance criteria>"` 호출 — codex가 fresh 시각 으로 review
-  3. **codex CLI parse fail 시 fallback** = `Task(subagent_type="oh-my-claudecode:critic", model="opus", prompt=...)` (claude opus critic agent)
+  3. **codex CLI parse fail 시 fallback** = `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=...)` (claude opus critic agent)
   4. codex/critic feedback 수신 → critical issues 반영 (architecture / acceptance criteria gap / scope drift / risk 미고려)
   5. revised plan 으로 ralph autonomous 진입
 - codex/critic prompt 필수 포함:

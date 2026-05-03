@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.0.3
+version: 1.0.4
 description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체'."
 ---
 
@@ -142,6 +142,7 @@ Main verifies:
 1. Trust-but-verify — `git log` + `git diff` + dist artifact directly
 2. Build / test / Playwright (if applicable) result
 3. Spec acceptance criteria
+4. Coverage on touched files (per `kzk-test-coverage` — 100% line + branch on changed files; exemption only with explicit Q-COV-* entry in `docs/harness/user-queue.md`)
 
 Trusting only the agent's summary text = forbidden.
 

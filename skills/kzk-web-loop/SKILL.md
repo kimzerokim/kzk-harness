@@ -1,10 +1,10 @@
 ---
 name: kzk-web-loop
-version: 1.3.2
+version: 1.3.3
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
-> Authoritative source: repo `docs/superpowers/specs/2026-05-03-kzk-web-loop-design.md` + `harness-share.md §25`. On conflict, those win.
+> Authoritative source: `harness-share.md §25`. On conflict, that wins.
 
 # kzk-web-loop
 
@@ -51,7 +51,7 @@ Each cycle executes these steps in order:
 
   **superpowers available:**
   1. `Skill("kzk-codebase-survey")` — EXPLORER runs all 8 steps, saves report to `.web-loop/surveys/cycle-N-survey.md`. Report path passed to writing-plans as required reading.
-  2. `Skill("superpowers:writing-plans")` — creates a frozen plan at `.web-loop/plans/cycle-N-plan.md`. Prompt includes survey report path.
+  2. `Skill("superpowers:writing-plans")` — creates a frozen plan (default path: `docs/plans/YYYY-MM-DD-<topic>.md`). After the skill returns, main controller moves/copies the plan to `.web-loop/plans/cycle-N-plan.md` so the loop's state dir stays consistent. Prompt includes survey report path.
   3. `Skill("superpowers:subagent-driven-development")` — reads frozen plan, dispatches implementer subagent, 2-stage spec + quality review. gstack available → append `Skill("gstack:review")` as the final code review pass.
   4. Second consecutive FAIL from any reviewer → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
 

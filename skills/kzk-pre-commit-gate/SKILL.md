@@ -1,7 +1,7 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.0.3
-description: "5-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'autonomous commit', 'doc-only exception'."
+version: 1.0.4
+description: "6-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / secrets-scan / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/1.5/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'secrets scan', 'Gate 1.5', 'autonomous commit', 'doc-only exception'."
 ---
 
 > Authoritative source: `harness-share.md` §3. On conflict, that wins.
@@ -73,7 +73,7 @@ If the commit touches **no** source code — only docs/configs/screenshots (`*.m
 
 Any single source-code line in the same commit revokes this exception → run full 5 gates.
 
-Note: skill files (`skills/**/*.md`) count as doc-only. `.claude/skills/**/*.md` is the legacy OMC path — both patterns qualify.
+Note: skill files (`skills/**/*.md`) count as doc-only ONLY when modifying an existing skill. ADDING a new skill triggers full Gate 0 + the README.md / CLAUDE.md skill-count update flow described in CLAUDE.md "Skill Development Rules". `.claude/skills/**/*.md` is the legacy OMC path — same rules apply.
 
 ## Autonomous-mode commit policy
 

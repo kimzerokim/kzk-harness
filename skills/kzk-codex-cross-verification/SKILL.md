@@ -1,6 +1,6 @@
 ---
 name: kzk-codex-cross-verification
-version: 1.0.3
+version: 1.0.4
 description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
 ---
 
@@ -13,7 +13,7 @@ Every meaningful design artifact gets a second opinion from a different model be
 ## Pattern (3-pass)
 
 1. **Draft (me)** — main writes the spec / plan / design.
-2. **Codex consult** — run `codex exec` CLI directly (see §Codex execution shape below). CLI not available (`command not found` or exit code 2 / 0-byte stuck within 30 s) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=<same review prompt>)`. Save the verdict to a named file (chat history alone is insufficient).
+2. **Codex consult** — run `codex exec` CLI directly (see §Codex execution shape below). CLI not available (`command not found` or exit code 2 / 0-byte stuck within 30 s) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=<same review prompt>)`. **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
 3. **Synthesize (me)** — bucket each codex point as 🔴 즉시 fix / 🟡 spec 단계 디테일 / ⚪ push-back. Cite reasons per bucket. Hand the synthesized output to the user or the next phase.
 
 ## When mandatory
