@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.0.1
+version: 1.1.0
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
@@ -18,11 +18,20 @@ Say a trigger keyword, optionally with a one-line goal:
 웹 루프 시작해줘 [optional one-line goal]
 ```
 
-If no goal is given, infer from the existing codebase on the first cycle (read `CLAUDE.md`, `README.md`, and the main entry file: `package.json` `main` field → fallback to `src/index.*` → fallback to `src/main.*`).
+**One-time setup checklist (before cycle 1):**
 
-If `harness-flow-progress.md` does not exist at repo root, create it with a single header line: `# harness-flow-progress` before the first cycle begins.
+1. **Plugin pre-flight** — Run §Plugin Pre-flight. Detect superpowers / gstack / OMC; install missing ones. Record availability in a local variable for the rest of this run.
 
-If `.web-loop/` and `.web-loop/plans/` directories do not exist, create them before the first cycle begins. These are gitignored — ephemeral per-cycle report and plan artifacts.
+2. **Branch** — If no branch is specified, ask once: "어느 브랜치에서 작업할까요? (default: `feature/web-loop-<goal-slug>`)" Create it if it doesn't exist. Never `main`.
+
+3. **Goal clarification** — If no goal is given:
+   - superpowers available → `Skill("superpowers:brainstorming")` (keep to 2-3 questions max, then lock the goal)
+   - gstack available (no superpowers) → `Skill("gstack:office-hours")` as alternative
+   - neither available → infer from `CLAUDE.md`, `README.md`, and main entry file: `package.json` `main` field → `src/index.*` → `src/main.*`
+
+4. **`harness-flow-progress.md`** — Create at repo root with `# harness-flow-progress` if missing.
+
+5. **`.web-loop/` and `.web-loop/plans/`** — Create if missing. These are gitignored.
 
 ## Loop Structure
 
@@ -39,9 +48,18 @@ Each cycle executes these steps in order:
 **4a. P0 fast path** — If the issue is P0, dispatch `oh-my-claudecode:executor` (`model=sonnet`) directly with the evaluator's issue description verbatim (passed as a quoted string, not re-interpreted) + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), commits.
 
 **4b. P1/P2 plan gate** (per `kzk-large-task-delegation` plan-critic loop requirement) — If the issue is P1 or P2:
-  1. PLANNER (`oh-my-claudecode:planner`, `model=opus`) authors a frozen plan for the issue → saved to `.web-loop/plans/cycle-N-plan.md` with a `## Frozen` header line.
-  2. CRITIC (`oh-my-claudecode:critic`, `model=opus`) reviews the frozen plan. FAIL → planner revises once. Second consecutive FAIL → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
-  3. EXECUTOR (`oh-my-claudecode:executor`, `model=sonnet`) receives the evaluator's issue description verbatim + frozen plan path + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), commits.
+
+  **superpowers available:**
+  1. `Skill("superpowers:writing-plans")` — creates a frozen plan at `.web-loop/plans/cycle-N-plan.md`.
+  2. `Skill("superpowers:subagent-driven-development")` — reads frozen plan, dispatches implementer subagent, 2-stage spec + quality review. gstack available → append `Skill("gstack:review")` as the final code review pass.
+  3. Second consecutive FAIL from any reviewer → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
+
+  **superpowers unavailable (fallback):**
+  1. PLANNER (`oh-my-claudecode:planner`, `model=opus`) authors frozen plan → `.web-loop/plans/cycle-N-plan.md` with `## Frozen` header.
+  2. CRITIC (`oh-my-claudecode:critic`, `model=opus`) reviews. FAIL → planner revises once. Second FAIL → skip + user-queue.
+  3. EXECUTOR (`oh-my-claudecode:executor`, `model=sonnet`) implements via TDD → `kzk-pre-commit-gate` → commit.
+
+  Either path: evaluator's issue description is passed verbatim (quoted string). All dispatches include file scope + branch name + pre-commit gate rules (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise).
 
 **5. Update `harness-flow-progress.md`** — append one line using the canonical format (see §State Persistence):
 - Completed: `Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue one-liner] — queue: N remaining — PW: ok|degraded`
@@ -49,7 +67,7 @@ Each cycle executes these steps in order:
 
 **6. Back to step 1a.**
 
-**Result narration:** Per `kzk-background-monitoring` + `kzk-playwright-verification` §Result-narration mandate, narrate 1-3 sentences after each subagent dispatch (tool runner / evaluator / planner / critic / executor): file count / commit / phase / latest output snippet. Silence between dispatches is forbidden.
+**Result narration:** Per `kzk-background-monitoring` + `kzk-playwright-verification` §Result-narration mandate, narrate 1-3 sentences after each subagent dispatch OR Skill invocation (tool runner / evaluator / brainstorming / writing-plans / subagent-driven-development / planner / critic / executor): file count / commit / phase / latest output snippet. Silence between dispatches is forbidden.
 
 The loop runs until the user explicitly stops it. No automatic termination.
 
@@ -76,6 +94,44 @@ The evaluator agent checks these in strict priority order. When no P0/P1 issues 
 - Spacing / color values not from the project design system tokens
 - Touched files with no test coverage
 - Non-obvious logic without an inline explanation
+
+## Plugin Pre-flight
+
+Run once at loop start (Setup Checklist step 1). Detects superpowers, gstack, and OMC; installs missing plugins.
+
+### Detection
+
+```bash
+claude plugin list 2>/dev/null | grep -iE "superpowers|gstack|oh-my-claudecode"
+```
+
+| Plugin | Detected if |
+|---|---|
+| superpowers | `claude plugin list` shows `superpowers` |
+| gstack | `claude plugin list` shows `gstack` |
+| OMC | `claude plugin list` shows `oh-my-claudecode` |
+
+### Install if missing
+
+```bash
+claude plugin add superpowers        # brainstorming, writing-plans, subagent-driven-development
+claude plugin add gstack             # office-hours, review, browse, design-shotgun
+claude plugin add oh-my-claudecode   # planner, executor, critic, verifier agents
+```
+
+After install, a Claude Code session restart is required for skills to surface. Log this to `docs/harness/user-queue.md` and note which plugins were installed. Resume the loop in the new session.
+
+### Graceful degradation
+
+Missing plugins never halt the loop.
+
+| Plugin missing | Fallback |
+|---|---|
+| superpowers | Step 4b fallback path (raw planner/critic/executor agents) |
+| gstack | Skip `gstack:review` and `gstack:office-hours` steps |
+| OMC | Use `Agent(subagent_type="general-purpose")` calls |
+
+---
 
 ## Playwright Resilience
 

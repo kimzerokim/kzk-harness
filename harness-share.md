@@ -817,7 +817,7 @@ Full spec: `docs/superpowers/specs/2026-05-03-kzk-web-loop-design.md`. Skill: `s
 
 ### Purpose
 
-Run a self-directed improvement cycle on a web project until the user explicitly stops it. Never asks for direction — generates tasks from a built-in P0/P1/P2 checklist every cycle.
+Run a self-directed improvement cycle on a web project until the user explicitly stops it. Never asks for direction — generates tasks from a built-in P0/P1/P2 checklist every cycle. At start: asks for branch name, runs plugin pre-flight (superpowers / gstack / OMC — installs if missing), then optionally uses `superpowers:brainstorming` or `gstack:office-hours` for goal clarification.
 
 ### Loop (one sentence each)
 
