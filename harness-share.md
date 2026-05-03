@@ -822,9 +822,9 @@ Run a self-directed improvement cycle on a web project until the user explicitly
 ### Loop (one sentence each)
 
 1. Fresh evaluator agent (`oh-my-claudecode:critic`, opus) runs the built-in checklist → outputs prioritized issue list.
-2. Main picks top unclaimed issue (claim ledger = `docs/harness/harness-flow-progress.md`); ambiguous decisions → `docs/harness/user-queue.md` entry with tentative default, never stop.
-3. Executor agent (`oh-my-claudecode:executor`, sonnet) implements via TDD → kzk-pre-commit-gate (5 gates: 0–4) → commit.
-4. Update `docs/harness/harness-flow-progress.md` one-liner → back to step 1.
+2. Main picks top unclaimed issue (claim ledger = `harness-flow-progress.md`); ambiguous decisions → `docs/harness/user-queue.md` entry with tentative default, never stop.
+3. Executor agent (`oh-my-claudecode:executor`, sonnet) implements via TDD → kzk-pre-commit-gate (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise) → commit.
+4. Update `harness-flow-progress.md` one-liner → back to step 1.
 
 ### Evaluation Priority
 
@@ -843,7 +843,7 @@ Pre-flight: `ToolSearch("+browser navigate")` — if not found, DEGRADED MODE im
 
 ### State
 
-One-liner per cycle in `docs/harness/harness-flow-progress.md`:
+One-liner per cycle in `harness-flow-progress.md`:
 `Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue] — queue: N remaining — PW: ok|degraded`
 
 After `/compact`, restate: "Cycle N, last: [issue], queue: [N remaining], PW: [ok/degraded]"

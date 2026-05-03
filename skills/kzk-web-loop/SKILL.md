@@ -26,13 +26,13 @@ Each cycle executes these steps in order:
 
 1. **EVALUATOR AGENT** (`oh-my-claudecode:critic`, `model=opus`) — fresh subagent with zero memory of previous cycles. Runs the built-in checklist (see §Evaluation Criteria). Outputs a prioritized issue list: P0 / P1 / P2.
 
-2. **Pick top-priority issue** — take the highest-severity issue from the list that is NOT already recorded in `docs/harness/harness-flow-progress.md` as completed or skipped this session. (The evaluator runs fresh each cycle; the progress file is the claim ledger.)
+2. **Pick top-priority issue** — take the highest-severity issue from the list that is NOT already recorded in `harness-flow-progress.md` as completed or skipped this session. (The evaluator runs fresh each cycle; the progress file is the claim ledger.)
 
 3. **Ambiguous?** — If any decision is unclear, append an entry to `docs/harness/user-queue.md` (per `kzk-user-queue` skill) with a tentative default and continue immediately. Never stop to ask the user.
 
-4. **EXECUTOR AGENT** (`oh-my-claudecode:executor`, `model=sonnet`) — receives the evaluator's issue description verbatim (passed as a quoted string, not re-interpreted) + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (5 gates: 0–4), commits.
+4. **EXECUTOR AGENT** (`oh-my-claudecode:executor`, `model=sonnet`) — receives the evaluator's issue description verbatim (passed as a quoted string, not re-interpreted) + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), commits.
 
-5. **Update `docs/harness/harness-flow-progress.md`** — one-line entry: cycle number, issue completed, queue length, Playwright status.
+5. **Update `harness-flow-progress.md`** — one-line entry: cycle number, issue completed, queue length, Playwright status.
 
 6. **Back to step 1.**
 
@@ -111,7 +111,7 @@ Every failure skips the current issue and picks the next one. All skipped issues
 
 ## State Persistence
 
-After every cycle, append to `docs/harness/harness-flow-progress.md`:
+After every cycle, append to `harness-flow-progress.md`:
 
 ```
 Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue one-liner] — queue: N remaining — PW: ok|degraded
@@ -129,7 +129,7 @@ Every evaluator and executor dispatch prompt must include (per `kzk-large-task-d
 - Scope: file paths + line ranges
 - Branch name (never `main`)
 - Required reading: `CLAUDE.md`, spec doc path, harness-share.md §25
-- Rules: TDD strict, context7 mandate, `kzk-pre-commit-gate` (5 gates: 0–4), DO-NOT-MODIFY paths
+- Rules: TDD strict, context7 mandate, `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), DO-NOT-MODIFY paths
 - Commit convention: English conventional commits, no Co-Authored-By
 - Working directory absolute path
 - Return format on success

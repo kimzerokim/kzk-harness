@@ -51,7 +51,7 @@ START
 ┌─────────────────────────────────────────────────────────┐
 │  ③ EXECUTOR AGENT  (sonnet, per kzk-large-task-delegation)│
 │  • Takes top-priority issue                             │
-│  • TDD → implement → kzk-pre-commit-gate (4 gates)     │
+│  • TDD → implement → kzk-pre-commit-gate (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise)     │
 │  • Commits on PASS                                      │
 └─────────────────────────────────────────────────────────┘
   │
@@ -170,7 +170,7 @@ After `/compact`, the loop restates in one line: "Cycle N, last completed: [issu
 | `kzk-playwright-verification` | Playwright debug cheatsheet, result narration mandate |
 | `kzk-user-queue` | Append-during-autonomous protocol, tentative defaults |
 | `kzk-large-task-delegation` | Subagent dispatch rules, model routing (sonnet executor, opus evaluator) |
-| `kzk-pre-commit-gate` | 4-gate commit validation |
+| `kzk-pre-commit-gate` | 5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise |
 | `kzk-background-monitoring` | Background agent result narration |
 
 ---
