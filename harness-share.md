@@ -825,7 +825,7 @@ Run a self-directed improvement cycle on a web project until the user explicitly
 1b. Evaluator (`oh-my-claudecode:critic`, opus) reads report + built-in checklist → outputs P0 / P1 / P2 issue list.
 2. Main picks top issue NOT recorded as "Cycle N: completed/skipped" for the current cycle (cycle-scoped, not session-scoped); ambiguous decisions → `docs/harness/user-queue.md` entry with tentative default, never stop.
 3a. P0: executor (sonnet) implements directly via TDD → kzk-pre-commit-gate (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise) → commit.
-3b. P1/P2: planner (opus) writes frozen plan to `.web-loop/plans/cycle-N-plan.md` → critic (opus) reviews → executor (sonnet) implements → commit.
+3b. P1/P2: kzk-codebase-survey (EXPLORER) → survey report → writing-plans/planner (opus) → critic (opus) reviews → executor (sonnet) implements → commit.
 4. Update `harness-flow-progress.md` one-liner → back to step 1a.
 
 ### Evaluation Priority
@@ -857,3 +857,46 @@ After `/compact`, restate: "Cycle N, last: [issue], queue: [N remaining], PW: [o
 ### Branch boundary
 
 `kzk-autonomous-boundary` applies in full — executor agent dispatches always target a feature branch, never `main`. `main` merge requires explicit user approval outside the loop.
+
+---
+
+## 26. kzk-codebase-survey — Mandatory Deep Codebase Explorer
+
+Full spec: `docs/superpowers/specs/2026-05-04-kzk-codebase-survey-design.md`. Skill: `skills/kzk-codebase-survey/SKILL.md`.
+
+### Purpose
+
+Run before any brainstorming or planning phase. Reads the full codebase scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a "codebase intelligence report" that feeds planner + critic, preventing plans that miss features or integration points.
+
+### When mandatory
+
+- Before `superpowers:brainstorming` — report injected into brainstorming context
+- `kzk-large-task-delegation` Step 0 — before any planner dispatch
+- `kzk-web-loop` P1/P2 — survey → writing-plans order
+
+### code-review-graph (optional, recommended)
+
+If available (`code-review-graph --version` exits 0), use for scope expansion and blast radius analysis:
+- `code-review-graph query --file <target>` — forward dependency graph
+- `code-review-graph blast-radius --file <target>` — reverse deps (who imports target)
+- Install: `pip install code-review-graph && code-review-graph install && code-review-graph build` (run once per project)
+- Fallback: grep-based scope expansion if not installed.
+
+### 8-step EXPLORER
+
+1a. Scope expansion (target files → transitive imports → feature dir → tests). **If code-review-graph available:** use `query` + `blast-radius` commands. **Fallback:** `grep -r "from '.*<module-name>'" --include="*.ts" -l`.
+1b. Deep read all files in parallel (full file, no excerpts) + `git log -5 <file>`
+2. Library detection (parse imports → external packages only)
+3. Library knowledge: context7 docs → kzk/superpowers skill → web_search fallback
+4. Pattern extraction (naming, error handling, async, state management)
+5. TypeScript type/interface contracts (exports + reverse deps, ⚠ breaking-change flags)
+6. Env vars / config (`process.env.*`, `.env.example`)
+7. Report generation → `docs/harness/surveys/YYYY-MM-DD-<topic>-survey.md` (manual) or `.web-loop/surveys/cycle-N-survey.md` (autonomous)
+
+### Critic gate
+
+Critic prompt must include: "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL."
+
+### No-halt
+
+Survey failure (file unreadable, library docs unavailable) → note in report, continue with available data. Never halts the planning pipeline.

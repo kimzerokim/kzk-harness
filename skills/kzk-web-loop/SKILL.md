@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.1.0
+version: 1.2.0
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
@@ -31,7 +31,7 @@ Say a trigger keyword, optionally with a one-line goal:
 
 4. **`harness-flow-progress.md`** — Create at repo root with `# harness-flow-progress` if missing.
 
-5. **`.web-loop/` and `.web-loop/plans/`** — Create if missing. These are gitignored.
+5. **`.web-loop/`, `.web-loop/plans/`, and `.web-loop/surveys/`** — Create if missing. These are gitignored.
 
 ## Loop Structure
 
@@ -50,14 +50,16 @@ Each cycle executes these steps in order:
 **4b. P1/P2 plan gate** (per `kzk-large-task-delegation` plan-critic loop requirement) — If the issue is P1 or P2:
 
   **superpowers available:**
-  1. `Skill("superpowers:writing-plans")` — creates a frozen plan at `.web-loop/plans/cycle-N-plan.md`.
-  2. `Skill("superpowers:subagent-driven-development")` — reads frozen plan, dispatches implementer subagent, 2-stage spec + quality review. gstack available → append `Skill("gstack:review")` as the final code review pass.
-  3. Second consecutive FAIL from any reviewer → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
+  1. `Skill("kzk-codebase-survey")` — EXPLORER runs all 8 steps, saves report to `.web-loop/surveys/cycle-N-survey.md`. Report path passed to writing-plans as required reading.
+  2. `Skill("superpowers:writing-plans")` — creates a frozen plan at `.web-loop/plans/cycle-N-plan.md`. Prompt includes survey report path.
+  3. `Skill("superpowers:subagent-driven-development")` — reads frozen plan, dispatches implementer subagent, 2-stage spec + quality review. gstack available → append `Skill("gstack:review")` as the final code review pass.
+  4. Second consecutive FAIL from any reviewer → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
 
   **superpowers unavailable (fallback):**
-  1. PLANNER (`oh-my-claudecode:planner`, `model=opus`) authors frozen plan → `.web-loop/plans/cycle-N-plan.md` with `## Frozen` header.
-  2. CRITIC (`oh-my-claudecode:critic`, `model=opus`) reviews. FAIL → planner revises once. Second FAIL → skip + user-queue.
-  3. EXECUTOR (`oh-my-claudecode:executor`, `model=sonnet`) implements via TDD → `kzk-pre-commit-gate` → commit.
+  1. `Skill("kzk-codebase-survey")` — EXPLORER runs, report saved to `.web-loop/surveys/cycle-N-survey.md`.
+  2. PLANNER (`oh-my-claudecode:planner`, `model=opus`) authors frozen plan → `.web-loop/plans/cycle-N-plan.md` with `## Frozen` header. Prompt includes survey report path.
+  3. CRITIC (`oh-my-claudecode:critic`, `model=opus`) reviews. Critic prompt: "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL." FAIL → planner revises once. Second FAIL → skip + user-queue.
+  4. EXECUTOR (`oh-my-claudecode:executor`, `model=sonnet`) implements via TDD → `kzk-pre-commit-gate` → commit.
 
   Either path: evaluator's issue description is passed verbatim (quoted string). All dispatches include file scope + branch name + pre-commit gate rules (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise).
 

@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.0.0
+version: 1.1.0
 description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning'."
 ---
 
@@ -20,10 +20,21 @@ Run all 8 steps in order. Save report before returning.
 
 ### Step 1 — Scope Expansion
 
-Parse all `import`/`require`/`from` statements in the target files. Then:
-1. Trace one transitive hop: find files that import FROM the targets via `grep -r "from '.*<module-name>'" --include="*.ts" --include="*.tsx" -l`
-2. Include all files in the same feature directory (closest named folder boundary)
-3. Include all co-located test files (`*.test.*`, `*.spec.*`)
+Check for code-review-graph: `code-review-graph --version 2>/dev/null`
+
+**If available (exit 0):**
+1. `code-review-graph query --file <target>` — forward dependency graph
+2. `code-review-graph blast-radius --file <target>` — reverse deps (who imports target)
+3. Include all files in the same feature directory (closest named folder boundary)
+4. Include all co-located test files (`*.test.*`, `*.spec.*`)
+
+**Fallback (not installed):**
+1. Parse all `import`/`require`/`from` statements in the target files
+2. Trace one transitive hop: `grep -r "from '.*<module-name>'" --include="*.ts" --include="*.tsx" -l`
+3. Include all files in the same feature directory (closest named folder boundary)
+4. Include all co-located test files (`*.test.*`, `*.spec.*`)
+
+If code-review-graph is not installed, note "code-review-graph not available — using grep fallback" in report header.
 
 Output: complete file list for Step 2.
 

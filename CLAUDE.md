@@ -1,10 +1,10 @@
 # kzk-harness
 
-This is the kzk-harness repository — a workflow skill layer for Claude Code. It contains 13 `kzk-*` skills installed into any project via the one-liner in `README.md`.
+This is the kzk-harness repository — a workflow skill layer for Claude Code. It contains 14 `kzk-*` skills installed into any project via the one-liner in `README.md`.
 
 ## Active Skills (kzk-harness)
 
-All 13 skills are active in this repo. Load one by mentioning its trigger keyword.
+All 14 skills are active in this repo. Load one by mentioning its trigger keyword.
 
 | Skill | Trigger keywords |
 |---|---|
@@ -21,6 +21,7 @@ All 13 skills are active in this repo. Load one by mentioning its trigger keywor
 | `kzk-tool-retry` | Edit fail, Write fail, File has not been read yet |
 | `kzk-user-queue` | ambiguous decision, user returns, queue review |
 | `kzk-web-loop` | web loop, 웹 루프, 12시간, 자율 개선, loop forever, 무한 개선 |
+| `kzk-codebase-survey` | codebase survey, 코드베이스 탐색, deep explore, survey first, before planning |
 
 ## Autonomous Execution Boundary
 
@@ -53,6 +54,11 @@ No-halt policy applies (same as `kzk-web-loop`). Ambiguous decisions → `docs/h
 - §1–§14.5: Core workflow (gates, autonomous mode, rate limit, context, plan continuation)
 - §15–§24: Supporting protocols (deepinit, production access, visibility, MCP reconnect, codex review)
 - §25: kzk-web-loop autonomous web improvement loop
+- §26: kzk-codebase-survey mandatory deep codebase explorer
+
+## External Tools
+
+`code-review-graph` — installed globally via the kzk-harness install command. Builds a Tree-sitter + SQLite knowledge graph of the codebase for blast radius analysis and scope expansion. Used by `kzk-codebase-survey` Steps 1–2 when available (grep fallback if not). Install: `pip install code-review-graph && code-review-graph install && code-review-graph build`.
 
 ## Skill Development Rules
 
