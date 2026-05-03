@@ -808,3 +808,46 @@ Background 프로세스가 hang 상태일 때 main controller 가 직접 작업�
 - Plan H 가 §13.1 결정 며칠 만에 Plan I 에서 reversed = brainstorming 부족 사례 + 정정.
 - Plan J 의 agent 자율 정정 (spec pseudocode vs codebase fact 불일치 회피 사례).
 - Plan K (대규모 migration) = visibility/communication 통신 5.0/10 — "대기" 응답 25-30 turn + 사용자 답답함 4번 표명 → §18 visibility 룰 + §19 MCP reconnect 룰 + §20 self-critique 룰 + §21 memory inheritance 룰 도출.
+
+---
+
+## 25. kzk-web-loop — Autonomous Web Improvement Loop
+
+Full spec: `docs/superpowers/specs/2026-05-03-kzk-web-loop-design.md`. Skill: `skills/kzk-web-loop/SKILL.md`.
+
+### Purpose
+
+Run a self-directed improvement cycle on a web project until the user explicitly stops it. Never asks for direction — generates tasks from a built-in P0/P1/P2 checklist every cycle.
+
+### Loop (one sentence each)
+
+1. Fresh evaluator agent (`oh-my-claudecode:critic`, opus) runs the built-in checklist → outputs prioritized issue list.
+2. Main picks top unclaimed issue (claim ledger = `docs/harness/harness-flow-progress.md`); ambiguous decisions → `docs/harness/user-queue.md` entry with tentative default, never stop.
+3. Executor agent (`oh-my-claudecode:executor`, sonnet) implements via TDD → kzk-pre-commit-gate (5 gates: 0–4) → commit.
+4. Update `docs/harness/harness-flow-progress.md` one-liner → back to step 1.
+
+### Evaluation Priority
+
+- **P0** (block all): console errors, test failures, build errors, broken layout.
+- **P1** (this cycle): accessibility (WCAG AA), responsive (375 px / 768 px), missing error states, slow feedback (> 300 ms).
+- **P2** (improvement): complexity > 10, duplication ≥ 3 places, `any` types, off-token design values, coverage gaps, docs.
+- **Deepen**: when no P0/P1 found, shift to P2 → refactor → performance → docs. Loop never runs out.
+
+### No-halt Policy
+
+Every failure skips the current issue and picks the next. Halt only when: (a) user stops explicitly, (b) every queue item failed 3×, (c) system-level failure. Rate limit → `ScheduleWakeup(delaySeconds=600)`. Context 80% → `/compact` + one-line restate. Playwright drop → cascade recovery (pre-flight ToolSearch → 3-attempt retry → degraded mode), auto-retry next cycle.
+
+### Playwright as Optional Enhancement
+
+Pre-flight: `ToolSearch("+browser navigate")` — if not found, DEGRADED MODE immediately. If found but call hangs: 3-attempt cascade (`claude mcp list` re-register → 10s retry → DEGRADED). Degraded = test + code analysis only, visual check skipped, auto-retry next cycle.
+
+### State
+
+One-liner per cycle in `docs/harness/harness-flow-progress.md`:
+`Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue] — queue: N remaining — PW: ok|degraded`
+
+After `/compact`, restate: "Cycle N, last: [issue], queue: [N remaining], PW: [ok/degraded]"
+
+### Reviewer FAIL override
+
+`kzk-web-loop` intentionally overrides `kzk-autonomous-loop`'s halt-on-reviewer-FAIL: instead of halting, skip the failing task and pick the next issue. This keeps the cycle moving across tasks.
