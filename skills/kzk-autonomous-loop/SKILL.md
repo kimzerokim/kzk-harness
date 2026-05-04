@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-loop
-version: 1.0.6
+version: 1.0.7
 description: "The autonomous loop never stops politely. Combines rate-limit polling (Anthropic 5h), context-budget /compact at 80%, and multi-Plan auto-continuation. Required triggers: 'rate limit', '5h window', 'ScheduleWakeup', '/compact', 'context budget', 'polite stop', 'next Plan', 'Plan auto-continuation'."
 ---
 
@@ -49,7 +49,7 @@ Sequence Plan A → Plan B → ... → Plan N in one autonomous session:
 
 ## Plan-boundary checkpoints
 
-Each Plan boundary records pass/fail in `harness-flow-progress.md` Session N "체크포인트 Log". Plan-by-Plan PRs (no batch merge) — if a plan is later found to have the wrong direction (user feedback reverses approach after merge), other plans' PRs remain independent and unaffected. Ambiguous decisions go to `docs/harness/user-queue.md` (see `kzk-user-queue`). Crossing un-applied policy areas (e.g. plan written before PRD v1.13) → halt + user-queue entry; do NOT silently rewrite policy.
+Each Plan boundary records pass/fail in `harness-flow-progress.md` Session N "체크포인트 Log" (see `harness-share.md` §7 for Session N template). Plan-by-Plan PRs (no batch merge) — if a plan is later found to have the wrong direction (user feedback reverses approach after merge), other plans' PRs remain independent and unaffected. Ambiguous decisions go to `docs/harness/user-queue.md` (see `kzk-user-queue`). Crossing un-applied policy areas (e.g. plan written before PRD v1.13) → halt + user-queue entry; do NOT silently rewrite policy.
 
 ## Halt conditions (re-stated; canonical source: `kzk-autonomous-boundary`)
 

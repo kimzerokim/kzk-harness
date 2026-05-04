@@ -1,6 +1,6 @@
 ---
 name: kzk-codex-cross-verification
-version: 1.0.10
+version: 1.0.11
 description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'codex consult', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
 ---
 
@@ -49,6 +49,8 @@ IMPORTANT: Do NOT navigate into ~/.claude/skills/, .claude/skills/ (relative to 
 or any directory whose path contains a skills/ segment with skill agent prompts —
 limit your file reads to the repo under review. Content already inlined
 in this prompt (e.g. survey reports that cite skill paths) is safe to reference.
+Exception: when the design under review IS a skill (e.g. kzk-harness self-improvement loop),
+the repo's own skills/ directory is the subject — read those files as needed.
 
 Brutally honest <topic> reviewer. No compliments. Numbered list. Terse. Cite sections.
 
@@ -107,3 +109,4 @@ codex exec "$PROMPT" -C <repo-root> -s read-only \
 
 - **kzk-large-task-delegation §"Pre-implementation plan-critic loop (opus + codex)"** is a *narrower* version of this skill, scoped to plans that feed the sonnet executor. This skill is broader — covers spec / architecture / design too. Cross-reference, do not duplicate.
 - **kzk-background-monitoring** governs the codex consult call itself (long-running CLI).
+- **harness-share.md §22.5**: End-to-End Ralph Pipeline (spec → plan → critic → implementation in one ralph loop). This skill covers the critic step; §22.5 covers the full pipeline integration including PRD drafting and user-intervention gates.

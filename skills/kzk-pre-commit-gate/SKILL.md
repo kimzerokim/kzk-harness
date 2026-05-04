@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.0.10
+version: 1.0.11
 description: "6-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / secrets-scan / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/1.5/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'secrets scan', 'autonomous commit', 'doc-only exception'."
 ---
 
@@ -25,7 +25,7 @@ Concrete rule:
 
 Failure → fix the AGENTS.md, re-stage, new commit. NEVER amend.
 
-**Optional skill-level extension (NOT a Gate 0 gate requirement). Gate 0 alone passes on the AGENTS.md edit.** After that pass, load the deepinit_manifest tool schema — `ToolSearch(query="select:mcp__plugin_oh-my-claudecode_t__deepinit_manifest")` — then call with `action=save`. Concrete call shape: `mcp__plugin_oh-my-claudecode_t__deepinit_manifest(action="save")` — verify exact params from the loaded schema; `action` is the only required field in current OMC versions. Run once at the END of the commit batch (autonomous run) or at PR-creation time (interactive). If ToolSearch returns no result, search by keyword `ToolSearch(query="+deepinit_manifest")` and call the resolved name. If neither search finds the tool (OMC plugin not installed or not surfaced), skip — log `deepinit_manifest tool unavailable, manifest baseline skipped this commit` in the commit body and continue. Manifest baseline file is gitignored (`.omc/deepinit-manifest.json`); it lets the next session's `action=diff` produce a real signal.
+**Optional skill-level extension (NOT a Gate 0 gate requirement). Gate 0 alone passes on the AGENTS.md edit.** After that pass, load the deepinit_manifest tool schema — `ToolSearch(query="select:mcp__plugin_oh-my-claudecode_t__deepinit_manifest")` — then call with `action=save`. After `ToolSearch` resolves the tool, **read the loaded schema before calling** — do not hardcode `action="save"` as the full call shape if other params appear as required. If the schema requires more than `action`, log the extra params + values used in the commit body. Current OMC shape: `mcp__plugin_oh-my-claudecode_t__deepinit_manifest(action="save")`. Run once at the END of the commit batch (autonomous run) or at PR-creation time (interactive). If ToolSearch returns no result, search by keyword `ToolSearch(query="+deepinit_manifest")` and call the resolved name. If neither search finds the tool (OMC plugin not installed or not surfaced), skip — log `deepinit_manifest tool unavailable, manifest baseline skipped this commit` in the commit body and continue. Manifest baseline file is gitignored (`.omc/deepinit-manifest.json`); it lets the next session's `action=diff` produce a real signal.
 
 ## Gate 1 — ai-slop-cleaner
 

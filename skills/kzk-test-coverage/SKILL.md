@@ -1,6 +1,6 @@
 ---
 name: kzk-test-coverage
-version: 1.0.6
+version: 1.0.7
 description: "Autonomous-mode test coverage goal: 100% line + branch on changed files. Touched legacy raised too. Best-effort excuses forbidden. Required triggers: 'test coverage', 'test:cov', '100% coverage', '변경 파일 cov', 'coverage exemption'."
 ---
 
@@ -37,3 +37,5 @@ Required PR description line format per exemption: `Coverage exemption: <file> �
 ## Interaction with other kzk-*
 
 - **kzk-user-queue**: when a coverage gap is queued due to time constraint, use the entry template from that skill (`Q-COV-<FILE>` prefix).
+- **kzk-pre-commit-gate**: Gate 3 (module test pass) is the execution; this skill is the coverage threshold applied to that same test run on touched files.
+- **kzk-large-task-delegation**: two-stage review step 4 (coverage on touched files) references this skill's exemption rules.

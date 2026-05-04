@@ -1,7 +1,7 @@
 ---
 name: kzk-production-access
-version: 1.0.1
-description: "Production / external-infra access boundary plus credential-handling protocol. Covers explicit-instruction rule, multi-step OK-sign pattern, destructive operations, AWS STS-vs-permanent IAM key triage. Required triggers: 'AWS 접속', 'production', 'destructive', 'DB drop', 'snapshot', 'credential', 'ASIA prefix', 'AKIA prefix', 'aws-vault'."
+version: 1.0.2
+description: "Production / external-infra access boundary plus credential-handling protocol. Covers explicit-instruction rule, multi-step OK-sign pattern, destructive operations, AWS STS-vs-permanent IAM key triage. Required triggers: 'AWS', 'AWS 접속', 'SSM', 'SSM Session Manager', 'production', 'destructive', 'DB drop', 'snapshot', 'credential', 'ASIA prefix', 'AKIA prefix', 'aws-vault'."
 ---
 
 > Authoritative source: `harness-share.md` §2. On conflict, that wins.
@@ -47,3 +47,9 @@ Both cases: never store in memory / metadata / notepad / wiki. Conversation ends
 - Multi-step shortcut: "I'll do steps 2-4 since they're related" — one OK per step
 - Storing STS keys for later — single-use only
 - Bypass dev-token / backdoor when MCP drops — see `harness-share.md` §19 (escalate to user, do not bypass)
+
+## Interaction with other kzk-*
+
+- **kzk-autonomous-boundary**: this skill specializes the production-access permission model within the autonomous-mode contract defined there. Autonomous mode does NOT override the explicit-instruction requirement for production access.
+- **kzk-user-queue**: when production access is ambiguous (scope unclear, credential type unclear), append `Q-PROD-<TOPIC>` entry and halt. Do not proceed with guessed credentials.
+- **kzk-tool-retry**: Bash retry policy applies before destructive operation gates — but retrying a destructive command without new user explicit instruction is forbidden, regardless of retry count.

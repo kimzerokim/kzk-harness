@@ -1,10 +1,10 @@
 ---
 name: kzk-web-loop
-version: 1.3.9
+version: 1.3.10
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
-> Authoritative source: `harness-share.md §25`. On conflict, that wins.
+> Authoritative source: `harness-share.md` §25. On conflict, that wins.
 
 # kzk-web-loop
 

@@ -1,7 +1,7 @@
 ---
 name: kzk-user-queue
-version: 1.0.2
-description: "user-queue protocol — append entries with tentative defaults during autonomous runs, parametrize so user can override cheaply, then run interactive 1-by-1 review (Stage 1/2/3) when user returns. Required triggers: 'user-queue', 'Q-PLAN', 'Pending', 'Resolved', 'DECISION', 'Interactive Queue Review', 'Stage 3', '모호 결정'."
+version: 1.0.3
+description: "user-queue protocol — append entries with tentative defaults during autonomous runs, parametrize so user can override cheaply, then run interactive 1-by-1 review (Stage 1/2/3) when user returns. Required triggers: 'user-queue', 'Q-COV', 'Q-TOOL', 'Q-WEBLOOP', 'Q-SUBAGENT', 'Q-INSTALL', 'Q-PLUGIN', 'Pending', 'Resolved', 'DECISION', 'Interactive Queue Review', 'Stage 3', '모호 결정'."
 ---
 
 > Authoritative source: `harness-share.md` §6. On conflict, that wins.

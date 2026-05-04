@@ -1,7 +1,7 @@
 ---
 name: kzk-pre-merge-sync
-version: 1.0.6
-description: "Pre-merge checklist — sync CLAUDE.md to current code state and run `/oh-my-claudecode:deepinit` before any feature-branch merge. Required triggers: 'merge 전', 'PR 직전', 'deepinit', 'Pre-Merge', 'CLAUDE.md update', 'manifest 재생성'."
+version: 1.0.7
+description: "Pre-merge checklist — sync CLAUDE.md to current code state and run `/oh-my-claudecode:deepinit` before any feature-branch merge. Required triggers: 'merge', 'merge 전', 'feature branch', 'PR', 'PR 직전', 'deepinit', 'Pre-Merge', 'CLAUDE.md update', 'CLAUDE.md sync', 'manifest 재생성'."
 ---
 
 > Authoritative source: `harness-share.md` §14.5 + §15. On conflict, that wins.
