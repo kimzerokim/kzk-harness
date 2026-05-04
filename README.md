@@ -15,7 +15,7 @@ kzk-harness 설치해줘.
 
 답이 GLOBAL (default 권장) 이면:
   git clone --depth 1 https://github.com/kimzerokim/kzk-harness.git /tmp/kzk-harness
-  bash /tmp/kzk-harness/install/install-global.sh
+  bash /tmp/kzk-harness/install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger
   rm -rf /tmp/kzk-harness
 
 답이 PROJECT-ONLY 면:
@@ -43,7 +43,7 @@ Re-run the install one-liner above (`install-global.sh` is idempotent — versio
 Or, from a permanent checkout:
 
 ```
-cd /path/to/kzk-harness && git pull && bash install/install-global.sh --update
+cd /path/to/kzk-harness && git pull && bash install/install-global.sh --update --enable-hooks --regression-recall --fix-scope-trigger
 ```
 
 ## Uninstall
