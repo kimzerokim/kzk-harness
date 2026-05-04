@@ -1003,6 +1003,17 @@ After auto-retry also fails: append Q-* entry to `docs/harness/user-queue.md` wi
 
 Asking "어떻게 할까요?" between attempts in autonomous mode.
 
+### 27.1 PreToolUse Edit/Write Read-Guard (Plan F rev2)
+
+OS-level hook 으로 "Read 없이 Edit" 차단. 본문: `kzk-tool-retry` §PreToolUse guard.
+
+- `~/.claude/skills/.kzk-harness-shared/hooks/edit-read-guard.mjs` (PreToolUse Edit|Write `--mode=pre` + PostToolUse Read `--mode=post-read` 단일 파일).
+- Turn state: `~/.cache/kzk-harness/{current-turn.json (atomic), read-log.jsonl (O_APPEND atomic, flock 폐기)}`.
+- Bypass: `touch ~/.cache/kzk-harness/bypass-token` (one-shot, **PreToolUse 단독 소비**).
+- Kill switch: `OMC_SKIP_HOOKS=edit-read-guard`.
+- Hook 등록 = `dispatcher.mjs` 1개 (UserPromptSubmit). 활성 sub-hook = `enabled.json` manifest.
+- Disable: `bash uninstall-global.sh` (PreToolUse + PostToolUse + UserPromptSubmit + manifest 셋 다 cleanup, **managed 파일명 whitelist**).
+
 ---
 
 ## 28. Skill-load chain (메타 갭 방지)

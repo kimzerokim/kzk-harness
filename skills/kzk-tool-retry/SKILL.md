@@ -1,7 +1,7 @@
 ---
 name: kzk-tool-retry
-version: 1.2.0
-description: "One automatic retry on every Edit/Write/Bash failure before user prompt — 'File has not been read yet' always fixed by re-read + retry. Top triggers: 'Edit failed', 'File has not been read yet', 'String to replace not found', 'Write failed', 'polite-stop'. Body §Triggers for full list."
+version: 1.3.0
+description: "One automatic retry on every Edit/Write/Bash failure before user prompt — 'File has not been read yet' always fixed by re-read + retry. Top triggers: 'Edit failed', 'File has not been read yet', 'String to replace not found', 'Write failed', 'polite-stop', 'PreToolUse guard', 'edit-read-guard', 'Read first'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §27. On conflict, that wins.
@@ -62,6 +62,18 @@ A 1-line `Read` (offset=1, limit=5) is enough to refresh the tracker — cost is
 3. Re-issue the Edit. Do NOT ask the user.
 
 **Forbidden**: asking the user "재시도할까요?" or "다시 읽고 진행할까요?". The user already saw the error in the system reminder; what they want is the next Edit to land, not a permission prompt.
+
+## PreToolUse guard (edit-read-guard hook)
+
+Plan F 부터 PreToolUse `Edit`/`Write` 시스템 hook 으로 차단 강제. 메인 self-discipline 가 아닌 OS-level guard.
+
+- **Read 인정 범위**: Claude Code `Read` tool 호출만 — turn 단위 read-log 에 file_path 의 realpath 가 기록될 때.
+- **인정 안 됨**: shell `cat`, `grep`, `sed`, `awk`, `head`, `tail` — Bash tool 안에서 실행되더라도 hook tracker 가 못 잡음. Edit 직전 반드시 별도 `Read` tool 호출.
+- **bypass**: `touch ~/.cache/kzk-harness/bypass-token` — 단발성 (1회 Edit/Write 후 자동 unlink, **PreToolUse 단독 소비**). 사용자 explicit 의도 표명용.
+- **kill switch**: `OMC_SKIP_HOOKS=edit-read-guard` env — 세션 단위 비활성.
+- **turn 단위**: 매 사용자 prompt 마다 turn-id 회전 + read-log truncate. 이전 turn 의 Read 는 이번 turn 에 인정 안 됨.
+
+cross-ref: `harness-share.md` §27.1.
 
 ### Bash — transient failure
 
