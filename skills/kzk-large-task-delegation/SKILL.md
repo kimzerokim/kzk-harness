@@ -1,7 +1,7 @@
 ---
 name: kzk-large-task-delegation
-version: 1.1.2
-description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'large task', 'subagent dispatch', '3+ file edits', '200+ LoC', 'opus/sonnet routing', 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체', 'read-heavy audit', 'spec verification', '구현 검증', '버그 전수조사', 'implementation audit', '5+ file read', '마무리 해줘', '전수 검토', '끝내줘'."
+version: 1.2.0
+description: "Large tasks dispatch to fresh subagents — main never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, anti-pattern worked examples (Session-6 + Session-28), and the skill-load chain that must follow `kzk-codebase-survey`. Required triggers: 'large task', 'subagent dispatch', '3+ file edits', '200+ LoC', 'opus/sonnet routing', 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체', 'read-heavy audit', 'spec verification', '구현 검증', '버그 전수조사', 'implementation audit', '5+ file read', '마무리 해줘', '전수 검토', '끝내줘', '사용성 버그', '사용성 회귀', 'QA scan', '여러 plan 으로 쪼개', '플랜 여러개로 쪼개', 'plan 쪼개', '사이클 자율', '사이클로 자율', '사이클 돌면서', '버그들 모두', '모두 잡아줘'."
 ---
 
 > Authoritative source: `harness-share.md` §4. On conflict, that wins.
@@ -172,6 +172,20 @@ Re-prevention:
 3. Fresh subagent dispatch = `Agent` tool + `subagent_type="oh-my-claudecode:executor"` + `model="sonnet"` (default for implementation; see Model routing table) + frozen plan path + context7 mandate + Pre-commit Gates 0, 1, 1.5, 2, 3, 4 all in prompt
 4. Main reviews subagent return → gate check → commit+push, OR re-dispatch fresh subagent on failure
 5. 2 consecutive subagent failures → halt + user-queue entry. Main does NOT take over.
+
+## Session-28 lesson (skill-load chain)
+
+(2026-05-04, gridless grid bug bash): user said "이외에 스프레드 시트 기능 버그들 모두 개선해줘. 플랜 여러개로 쪼개고, 사이클 자율로 돌면서 사용성 버그 모두 잡아줘." Main loaded `kzk-codebase-survey` + `kzk-autonomous-boundary` correctly, dispatched the codebase survey to `oh-my-claudecode:explore` correctly — then proceeded to read 11+ files, edit 4 source files, run Playwright + docker rebuild **all directly in main**, never loading `kzk-large-task-delegation` and never dispatching an executor subagent for the actual fix. Token bloat + uncatchable regressions risk back.
+
+Root cause: trigger keyword gap — '사용성 버그', '여러 plan 으로 쪼개', '사이클 자율' did not match this skill's description. Fixed in v1.2.0 (description trigger expansion) + `install/hooks/keyword-detector.mjs` activation (Cycle 28).
+
+**Skill-load chain rule:** if `kzk-codebase-survey` is triggered for any task that will lead to edits (i.e., not a pure question), `kzk-large-task-delegation` MUST be loaded in the same turn. Survey alone defines *what to read*; delegation defines *who reads it and who writes back*. Loading survey without delegation = main has read context + no dispatch contract = anti-pattern by construction.
+
+**Operational checks before any Edit/Write in main:**
+1. Did the user phrase trigger any of: 'plan 쪼개', '사이클', '버그들 모두', '사용성', '전수조사', '구현 검증'? → load this skill (`kzk-large-task-delegation`).
+2. Will main read ≥ 5 files this turn? → §Read-heavy audit dispatch shape mandates EXPLORER subagent.
+3. Will main edit ≥ 3 files OR ≥ 200 LoC this turn? → §Model routing mandates fresh executor sonnet (opus only for plan/critic/verify).
+4. If 1, 2, or 3 → re-route through subagent dispatch. Main keeps orchestration + verification + commit.
 
 ## Interaction with other kzk-*
 

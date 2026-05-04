@@ -1,7 +1,7 @@
 ---
 name: kzk-spec-and-review
-version: 2.0.1
-description: "Spec / plan / major-design authoring + cross-vendor review loop. Step 0: kzk-codebase-survey precondition (no draft without code context). Steps 1–3: main controller drafts the artifact → codex CLI cross-vendor consult (or oh-my-claudecode:critic opus fallback) → synthesize. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'spec 잡자', 'spec 작성', 'spec draft', 'plan draft', 'plan 작성', 'design draft', 'major design', 'architecture review', 'codex review', 'codex consult', 'cross-verify'."
+version: 2.1.0
+description: "Spec / plan / major-design authoring + cross-vendor review loop. Step 0: kzk-codebase-survey precondition (no draft without code context). Steps 1–3: main controller drafts the artifact → codex CLI cross-vendor consult (or oh-my-claudecode:critic opus fallback) → synthesize. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'spec 잡자', 'spec 작성', 'spec draft', 'plan draft', 'plan 작성', 'design draft', 'major design', 'architecture review', 'codex review', 'codex consult', 'cross-verify', '플랜 만들', 'plan 만들', '여러 plan', '플랜 여러개', '메타 plan', 'meta plan', 'spec 만들'."
 ---
 
 > Authoritative source: `harness-share.md` §22 + §22.5 (Step 0 survey precondition references §26). On conflict, that wins.

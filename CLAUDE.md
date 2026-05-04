@@ -57,12 +57,14 @@ Each cycle:
 자가개선 루프 진입 시 메인 컨텍스트는 자체 kzk-* 스킬을 적극 호출한다. 다음 매핑이 default:
 
 - **Cycle 진입 전 branch contract 확인** = `kzk-autonomous-boundary §Branch contract — ASK FIRST` (별 branch / 직접 main / branch 이름 / PR 여부 — 사용자 명시 없이 진입 X)
+- **Skill-load chain — codebase-survey 트리거 시 large-task-delegation 동반 로드 의무** = `kzk-large-task-delegation §Session-28 lesson` (survey 만 로드하면 메인이 read-heavy audit 직접 수행하는 갭 — 본문 §Operational checks 1–4 점검)
 - **EVALUATOR / EXECUTOR dispatch** = `kzk-large-task-delegation §Model routing` (critic opus, executor sonnet)
 - **메인이 검증 차원에서 5+ 파일 read 필요 시** = `kzk-large-task-delegation §Read-heavy audit dispatch shape` (메인 직접 read 금지, EXPLORER subagent 위임)
 - **메인이 cross-cutting 검증 필요 시** = `kzk-codebase-survey §code-review-graph` (CRG MCP / CLI 우선, grep fallback). 이 레포 자체에 CRG 인덱스 없으면 `code-review-graph build` 부터 — 자기 인프라 부트스트랩 안 한 채 grep 으로 우회하면 메타 갭
 - **새 스킬 추가 / 큰 구조 변경 / 글로벌 install 등 메타 작업** = `kzk-spec-and-review` Step 0 (codebase survey 선행) → Step 1–3 (spec → codex 리뷰 → frozen plan)
 - **Cycle 끝에서 변경 commit** = `kzk-pre-commit-gate` (Gate 0 conditional + Gate 1.5 secrets) + `kzk-pre-merge-sync` (PR-flow 면 PR 직전, direct-main flow 면 milestone 직전)
 - **다중 cycle 자율 실행** = `kzk-autonomous-loop` + `kzk-autonomous-boundary` (rate limit / context 80% / halt 조건)
+- **사용자 prompt 가 'plan 쪼개', '사이클 자율', '사용성 버그', '버그 전수조사' 등 large-task signal 포함 시** = `install/hooks/keyword-detector.mjs` (UserPromptSubmit hook, `--enable-hooks` 로 활성화 — 매칭 시 system-reminder 강제 주입)
 
 자가개선 루프가 자기 스킬을 안 쓰는 패턴은 메타 갭 — 즉시 다음 cycle 의 P0 로 처리한다.
 

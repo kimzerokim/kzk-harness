@@ -952,3 +952,16 @@ After auto-retry also fails: append Q-* entry to `docs/harness/user-queue.md` wi
 ### Forbidden
 
 Asking "어떻게 할까요?" between attempts in autonomous mode.
+
+---
+
+## 28. Skill-load chain (메타 갭 방지)
+
+Cycle 28 학습: `kzk-codebase-survey` 가 트리거됐는데 `kzk-large-task-delegation` 이 같이 로드되지 않으면, 메인이 survey 결과만 받고 그 후 read-heavy audit + 직접 edit 을 수행하는 패턴이 발생. (Session-28 worked example: gridless 그리드 버그 batch fix — 메인이 11+ 파일 직접 read + 4 source 파일 직접 edit + Playwright + docker rebuild 전부 메인에서 실행.)
+
+룰:
+
+1. `kzk-codebase-survey` 가 로드되었으면 (트리거 또는 명시 호출), 같은 turn 안에 `kzk-large-task-delegation` 도 로드 의무.
+2. 메인 turn 시작 전 점검 — 사용자 prompt 가 다음 phrase 포함 시 large-task hop 강제: '플랜 쪼개', '사이클 자율', '버그들 모두', '모두 개선', '사용성 버그', '구현 검증', '전수조사', '마무리'.
+3. 점검 자동화: `install/hooks/keyword-detector.mjs` UserPromptSubmit hook (`install-global.sh --enable-hooks`). 매칭 시 system-reminder 로 강제 skill-load 명시.
+4. Survey 단독 로드 + 메인 직접 large execute = §Session-28 anti-pattern. `kzk-large-task-delegation §Operational checks 1–4` 으로 매 turn 점검.
