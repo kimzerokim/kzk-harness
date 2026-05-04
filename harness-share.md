@@ -58,7 +58,7 @@ skill 호출 형식:
 
 ### 금지 동작 (강제)
 
-- **`main` branch 접근 금지**. autonomous 작업은 별 branch (예: `harness-test` / `feature/<topic>`) 에서. PR target 도 그 branch. main merge 는 사용자 명시 후
+- **`main` branch 접근 금지**. autonomous 작업은 별 branch (예: `feature/<topic>`. kzk-harness 레포는 자체 컨벤션으로 `harness-test`를 쓰지만 다른 프로젝트는 채용 불필요) 에서. PR target 도 그 branch. main merge 는 사용자 명시 후
 - 사용자 PRD / 설계 문서 자동 override
 - Pre-commit Gate 실패 시 force commit
 - verification reviewer 2회 연속 FAIL 시 loop 지속 (halt + user-queue 적재)
@@ -557,7 +557,7 @@ Skill("oh-my-claudecode:deepinit")
 - [ ] `.gitignore` 에 `.playwright-mcp/` 추가 (Playwright MCP 사용 시)
 - [ ] (Playwright 사용 시) Playwright MCP 설치 + Chromium for Testing
 - [ ] 자기 프로젝트의 Pre-commit Gate 명령 결정 (build / test 명령)
-- [ ] feature branch 이름 결정 (예: `feature/<topic>` 또는 `harness-test`)
+- [ ] feature branch 이름 결정 (예: `feature/<topic>`. kzk-harness 레포 내부에서만 `harness-test`라는 이름을 별도 컨벤션으로 사용)
 
 ### 첫 세션 시작 시
 

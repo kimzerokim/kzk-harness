@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.2.9
+version: 1.2.10
 description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning'."
 ---
 
@@ -195,7 +195,7 @@ If any step is blocked, note the reason in the report and continue.`,
 
 ## Interaction with other kzk-*
 
-- **kzk-large-task-delegation**: This skill is Step 0 of the plan-critic loop. Report path must be in planner + critic prompts.
+- **kzk-large-task-delegation §"Pre-implementation plan-critic loop (opus + codex)"**: This skill is Step 0 of that loop. Report path must be in planner + critic prompts.
 - **kzk-web-loop P1/P2**: Survey runs before `writing-plans`. Report path passed as "Required reading".
 - **kzk-codex-cross-verification**: Survey report appended to Codex CLI prompt DESIGN UNDER REVIEW section.
 - **kzk-background-monitoring**: EXPLORER dispatch is a long-running subagent; narrate after completion per result-narration mandate.
