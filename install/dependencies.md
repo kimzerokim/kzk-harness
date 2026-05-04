@@ -40,9 +40,13 @@ The skills are designed to degrade gracefully: if a dependency is missing, the r
 - **Install**: `brew install aws-vault`.
 - **Fallback if missing**: User must use `aws sso login` / 1Password CLI / equivalent. `kzk-production-access` will refuse plaintext permanent IAM keys.
 
-## Claude Code plugin dependencies (manual via `/plugin`)
+## Claude Code plugin dependencies (detected only — manual install via `/plugin`)
 
-These are Claude Code plugins, installed from inside a Claude Code session — `/plugin` slash command. The shell installer cannot do this; it only emits a reminder.
+These are Claude Code plugins, installed from inside a Claude Code session — `/plugin` slash command. The shell installer cannot install them, but it does **detect** whether they are already present and reports `installed (version X)` vs `NOT DETECTED`.
+
+Detection sources:
+- **oh-my-claudecode**: `~/.claude/plugins/installed_plugins.json` — checked via `jq` for any key matching `oh-my-claudecode@*`.
+- **playwright-mcp**: scans `~/.claude.json` (user-level) and `<project>/.mcp.json` (project-level) for an MCP server entry containing `"playwright"` and `@playwright/mcp`.
 
 ### oh-my-claudecode (OMC) — recommended
 

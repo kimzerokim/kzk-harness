@@ -112,6 +112,35 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 5. Claude Code plugins (oh-my-claudecode, playwright-mcp) — detect-only
+# ---------------------------------------------------------------------------
+# Plugins themselves cannot be installed from shell (they require /plugin in a
+# Claude Code session), but we can detect whether the user has them.
+PLUGIN_DB="$HOME/.claude/plugins/installed_plugins.json"
+USER_CLAUDE_JSON="$HOME/.claude.json"
+PROJECT_MCP_JSON="$PROJECT_ROOT/.mcp.json"
+
+if command -v jq >/dev/null 2>&1 && [ -f "$PLUGIN_DB" ] && jq -e '.plugins | keys[] | select(startswith("oh-my-claudecode@"))' "$PLUGIN_DB" >/dev/null 2>&1; then
+  omc_version=$(jq -r '.plugins | to_entries[] | select(.key | startswith("oh-my-claudecode@")) | .value[0].version' "$PLUGIN_DB" 2>/dev/null || echo "unknown")
+  record "oh-my-claudecode plugin: installed (version $omc_version)"
+else
+  record "oh-my-claudecode plugin: NOT DETECTED. Recommended — provides critic/executor/verifier agents, deepinit_manifest tool, ToolSearch helpers. Install: in a Claude Code session run /plugin and add oh-my-claudecode."
+fi
+
+playwright_found=0
+for json_file in "$USER_CLAUDE_JSON" "$PROJECT_MCP_JSON"; do
+  [ -f "$json_file" ] || continue
+  if grep -q '"playwright"' "$json_file" 2>/dev/null && grep -q '@playwright/mcp' "$json_file" 2>/dev/null; then
+    playwright_found=1
+    record "playwright-mcp: registered (found in $(basename "$json_file"))"
+    break
+  fi
+done
+if [ "$playwright_found" -eq 0 ]; then
+  record "playwright-mcp: NOT DETECTED. Required by kzk-web-loop, recommended for Gate 4 (UI smoke). Install: in a Claude Code session run /plugin and add playwright-mcp, OR run 'claude mcp add playwright -- npx -y @playwright/mcp@latest'."
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 emit ""
@@ -119,9 +148,5 @@ emit "=== kzk-harness dependency install summary ==="
 for line in "${SUMMARY[@]}"; do
   emit "  - $line"
 done
-emit ""
-emit "Claude Code plugin dependencies (install in a Claude Code session via /plugin — cannot be automated from shell):"
-emit "  - oh-my-claudecode (recommended)  — provides critic/executor/verifier agents, deepinit_manifest tool, ToolSearch helpers."
-emit "  - playwright-mcp (kzk-web-loop required) — provides browser_navigate/screenshot MCP tools for Gate 4 + web loop."
 emit ""
 emit "See install/dependencies.md in the kzk-harness repo for the authoritative list and per-skill fallback behavior."
