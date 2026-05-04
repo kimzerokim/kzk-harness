@@ -1,7 +1,7 @@
 ---
 name: kzk-codebase-survey
-version: 1.6.0
-description: "Mandatory pre-planning deep codebase read — full import scope, context7 docs, TypeScript contracts, fix-time callsite expansion. Top triggers: 'codebase survey', '코드베이스 탐색', 'spec 검증', '하나하나 확인', 'before planning', 'fix 시작', 'callsite 전수'. Body §Triggers for full list."
+version: 1.7.0
+description: "Mandatory pre-planning deep codebase read — full import scope, context7 docs, TypeScript contracts, fix-time callsite expansion. Top triggers: 'codebase survey', '코드베이스 탐색', 'spec 검증', '하나하나 확인', 'before planning', 'fix 시작', 'callsite 전수', 'preparation phase delegation'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §26. On conflict, that wins.
@@ -241,6 +241,30 @@ When `code-review-graph install` ran (per `install/dependencies.sh`), the tool r
 | `refactor_tool` | Out-of-scope of this skill (planning renames / dead-code detection) |
 
 Fallback order: MCP → CLI → grep. Skill never halts on missing MCP server. Adopting projects who don't want the MCP registration can delete the per-editor artifacts and `.mcp.json` after install — the CLI form in Step 1 still works.
+
+## Preparation phase delegation
+
+spec 작성 / plan 작성 / library 변경의 preparation phase 에서 reference 파일 collection 도 EXPLORER subagent 위임 의무다.
+
+### 5+ 파일 read = EXPLORER subagent 무조건
+
+메인이 preparation 목적으로 5+ 파일을 직접 read 하면 안 된다. context saturation 으로 결론 품질이 저하되고 ("main reads code weirdly" failure mode), 이후 plan 이나 spec 에 갭이 생긴다.
+
+- **5+ 파일 read** → `oh-my-claudecode:explore` (model=sonnet) dispatch. 메인은 200-word evidence summary 만 받는다.
+- **raw 파일 내용이 메인 컨텍스트로 직접 유입되는 것 자체가 갭** — 축약 summary 도 200 words 상한.
+- 3-4 파일 이하 read 도 preparation 목적이면 EXPLORER 우선 권장 (must 아님, 단 5+ 는 must).
+
+### Anti-pattern — cycle7-handoff style
+
+cycle7-handoff transcript 에서 메인이 cycle 6 spec / Gridly research / 핵심 코드 7+ 파일을 직접 read 한 사례가 확인됨. 이 패턴은 다음과 같이 나타난다:
+
+- 메인이 spec 작성을 위해 reference 코드 파일 여러 개를 순서대로 직접 read
+- 메인이 Bash(ls/find) → Read 를 연속으로 호출해 reference 목록 수집
+- 메인이 같은 응답에서 3+ 파일 read 시도 (preparation 목적 여부 무관)
+
+이 중 하나라도 감지되면 즉시 EXPLORER subagent dispatch 로 전환. 이미 read 한 파일 내용은 요약 형태로만 보관 (raw 내용 참조 중단).
+
+Cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit`, `kzk-autonomous-boundary §Q-MAIN-DIRECT-EDIT`.
 
 ## Interaction with other kzk-*
 

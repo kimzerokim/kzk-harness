@@ -1026,6 +1026,8 @@ Cycle 28 학습: `kzk-codebase-survey` 가 트리거됐는데 `kzk-large-task-de
 2. 메인 turn 시작 전 점검 — 사용자 prompt 가 다음 phrase 포함 시 large-task hop 강제: '플랜 쪼개', '사이클 자율', '버그들 모두', '모두 개선', '사용성 버그', '구현 검증', '전수조사', '마무리'.
 3. 점검 자동화: `install/hooks/keyword-detector.mjs` UserPromptSubmit hook (`install-global.sh --enable-hooks`). 매칭 시 system-reminder 로 강제 skill-load 명시.
 4. Survey 단독 로드 + 메인 직접 large execute = §Session-28 anti-pattern. `kzk-large-task-delegation §Operational checks 1–4` 으로 매 turn 점검.
+5. **메인이 reference collection 목적으로 Bash(ls) / Read 를 연속 호출** = 메타 갭 = 즉시 EXPLORER subagent 로 전환 (`kzk-codebase-survey §Preparation phase delegation`).
+6. **메인이 multi-file 라이브러리 변경 / 5+ 파일 edit** = `kzk-large-task-delegation §Model routing` (executor sonnet) 으로 위임, 메인 직접 Edit 금지 (`kzk-autonomous-boundary §Q-MAIN-DIRECT-EDIT`).
 
 ---
 

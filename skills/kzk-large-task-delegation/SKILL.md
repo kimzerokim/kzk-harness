@@ -1,7 +1,7 @@
 ---
 name: kzk-large-task-delegation
-version: 1.8.0
-description: "Large tasks (3+ files / 200+ LoC / 5+ file read / multi-stage) dispatch to fresh subagents — main never executes. Top triggers: '큰 작업', '버그 전수조사', '사이클 자율', 'plan 쪼개', 'subagent dispatch', 'Stage 3', 'fresh-agent verifier', 'verifier dispatch', 'INVALID_VERDICT'. Body §Triggers for full list."
+version: 1.9.0
+description: "Large tasks (3+ files / 200+ LoC / 5+ file read / multi-stage) dispatch to fresh subagents — main never executes. Top triggers: '큰 작업', '버그 전수조사', '사이클 자율', 'plan 쪼개', 'subagent dispatch', 'Stage 3', 'fresh-agent verifier', 'verifier dispatch', 'INVALID_VERDICT', 'Body §Anti-pattern Main direct-edit'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §4. On conflict, that wins.
@@ -434,6 +434,22 @@ Root cause: trigger keyword gap — '사용성 버그', '여러 plan 으로 쪼�
 2. Will main read ≥ 5 files this turn? → §Read-heavy audit dispatch shape mandates EXPLORER subagent.
 3. Will main edit ≥ 3 files OR ≥ 200 LoC this turn? → §Model routing mandates fresh executor sonnet (opus only for plan/critic/verify).
 4. If 1, 2, or 3 → re-route through subagent dispatch. Main keeps orchestration + verification + commit.
+
+## Anti-pattern — Main direct-edit during multi-file work
+
+메인이 multi-file 변경 / 5+ 파일 read / 200+ LoC 작업에서 직접 Edit/Write/Read/Bash(ls) 로 빠지는 것은 메타 갭이다. 사용자가 "서브에이전트 돌리고", "라이브러리 개선", "harness 개선" 등 subagent 위임을 명시했을 때 특히 차단.
+
+### 신호 — 이 중 하나라도 잡히면 즉시 dispatch 전환
+
+- 메인이 Bash(ls)/Read 를 reference collection 목적으로 연속 호출 (같은 응답 내 2+ 연속 Read, 또는 Bash(ls/find) → Read 패턴)
+- 메인이 같은 응답에서 3+ 파일 read 시도
+- 메인이 spec 작성 / library 변경의 preparation phase 에서 reference 코드 직접 read
+
+### 대응
+
+즉시 EXPLORER subagent dispatch 로 전환. 메인은 200-word summary 만 받는다. raw 파일 내용이 메인 컨텍스트로 직접 유입되는 것 자체가 갭 — context saturation 과 "meain reads code weirdly" failure mode 의 원인.
+
+Cross-ref: `kzk-codebase-survey §Preparation phase delegation`, `kzk-autonomous-boundary §Q-MAIN-DIRECT-EDIT`.
 
 ## Interaction with other kzk-*
 
