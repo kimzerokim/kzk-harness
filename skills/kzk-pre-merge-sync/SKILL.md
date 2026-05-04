@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-merge-sync
-version: 1.2.0
+version: 1.3.0
 description: "Pre-merge/milestone checklist — sync CLAUDE.md + run deepinit before any user-visible milestone. Top triggers: 'merge', 'PR 직전', 'deepinit', 'CLAUDE.md sync', 'milestone marker'. Body §Triggers for full list."
 ---
 

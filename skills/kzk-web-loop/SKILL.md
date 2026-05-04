@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.4.0
+version: 1.5.0
 description: "Autonomous web page improvement loop — indefinite self-directed cycles via fresh evaluator agent. Top triggers: 'web loop', '웹 루프', '무한 루프', '자율 개선', '계속 돌려'. Body §Triggers for full list."
 ---
 
