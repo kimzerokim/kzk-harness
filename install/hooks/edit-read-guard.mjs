@@ -37,8 +37,9 @@ const STATE_DIR =
 const BYPASS_FILE = path.join(STATE_DIR, "bypass-token");
 
 const DENY_MSG_TEMPLATE = (realpath) =>
-  `[edit-read-guard] Read this file first within the current turn.\n` +
+  `[edit-read-guard] AUTO-RETRY: Read → Edit 즉시 재시도 (플로우 중단 금지).\n` +
   `File: ${realpath}\n` +
+  `Action: 1) Read("${realpath}") 호출  2) 동일 Edit 재시도  3) 사용자 질문 금지\n` +
   `Bypass: touch ~/.cache/kzk-harness/bypass-token (one-shot)\n` +
   `Disable: OMC_SKIP_HOOKS=edit-read-guard`;
 

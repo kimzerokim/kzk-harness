@@ -67,11 +67,22 @@ A 1-line `Read` (offset=1, limit=5) is enough to refresh the tracker — cost is
 
 Plan F 부터 PreToolUse `Edit`/`Write` 시스템 hook 으로 차단 강제. 메인 self-discipline 가 아닌 OS-level guard.
 
-- **Read 인정 범위**: Claude Code `Read` tool 호출만 — turn 단위 read-log 에 file_path 의 realpath 가 기록될 때.
+- **Read 인정 범위**: Claude Code `Read` tool 호출만 — read-log 에 file_path 의 realpath 가 기록될 때.
 - **인정 안 됨**: shell `cat`, `grep`, `sed`, `awk`, `head`, `tail` — Bash tool 안에서 실행되더라도 hook tracker 가 못 잡음. Edit 직전 반드시 별도 `Read` tool 호출.
+- **세션 내 cross-turn 허용**: read-log 는 turn 마다 초기화되지 않음. 시간 기반 만료 (2시간). 이전 turn 에서 Read 한 파일은 같은 세션 내 후속 turn 에서 Edit 가능.
 - **bypass**: `touch ~/.cache/kzk-harness/bypass-token` — 단발성 (1회 Edit/Write 후 자동 unlink, **PreToolUse 단독 소비**). 사용자 explicit 의도 표명용.
 - **kill switch**: `OMC_SKIP_HOOKS=edit-read-guard` env — 세션 단위 비활성.
-- **turn 단위**: 매 사용자 prompt 마다 turn-id 회전 + read-log truncate. 이전 turn 의 Read 는 이번 turn 에 인정 안 됨.
+
+### edit-read-guard block 시 무중단 자동 복구 (MANDATORY)
+
+hook 이 block 하면 에러 메시지에 `AUTO-RETRY` 지시문이 포함됨. **이 block 은 플로우 중단 사유가 아님**:
+
+1. **즉시** `Read(file_path)` 호출 (1-line Read 충분: `offset=1, limit=5`)
+2. **즉시** 동일 Edit/Write 재시도
+3. **사용자 질문 절대 금지** — "다시 읽을까요?", "어떻게 할까요?" 등
+4. 자율실행 / autonomous mode 에서 이 block 으로 인한 halt = **규칙 위반**
+
+이 패턴은 kzk-tool-retry 의 일반 retry 와 달리 **100% 성공 보장** (Read 하면 해결). 두 번째 실패가 나올 수 없으므로 queue 불필요.
 
 cross-ref: `harness-share.md` §27.1.
 

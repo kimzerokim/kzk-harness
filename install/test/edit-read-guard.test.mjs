@@ -97,7 +97,7 @@ test("edit without read deny", async () => {
     });
     const out = JSON.parse(r.stdout);
     assert.equal(out.decision, "block");
-    assert.match(out.reason, /Read this file first/);
+    assert.match(out.reason, /edit-read-guard/);
   });
 });
 
