@@ -447,7 +447,7 @@ Root cause: trigger keyword gap — '사용성 버그', '여러 plan 으로 쪼�
 
 ### 대응
 
-즉시 EXPLORER subagent dispatch 로 전환. 메인은 200-word summary 만 받는다. raw 파일 내용이 메인 컨텍스트로 직접 유입되는 것 자체가 갭 — context saturation 과 "meain reads code weirdly" failure mode 의 원인.
+즉시 EXPLORER subagent dispatch 로 전환. 메인은 200-word summary 만 받는다. raw 파일 내용이 메인 컨텍스트로 직접 유입되는 것 자체가 갭 — context saturation 과 "main reads code weirdly" failure mode 의 원인.
 
 Cross-ref: `kzk-codebase-survey §Preparation phase delegation`, `kzk-autonomous-boundary §Q-MAIN-DIRECT-EDIT`.
 
