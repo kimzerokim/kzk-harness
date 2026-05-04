@@ -44,12 +44,29 @@ claude_md_extract_block() {
 }
 
 # claude_md_strip_block <file> <dest>
-# Removes the marker block (inclusive) from <file> and writes result to <dest>.
+# Removes the marker block (inclusive) from <file> AND a single blank line
+# immediately preceding the BEGIN marker, mirroring the separator that
+# claude_md_inject_block always adds. This is what makes install+uninstall
+# byte-identity-preserving (verify-install.sh AC6).
 claude_md_strip_block() {
   awk -v b="$KZK_MARKER_BEGIN" -v e="$KZK_MARKER_END" '
-    $0==b{skip=1;next}
-    $0==e{skip=0;next}
-    !skip{print}
+    BEGIN { skip = 0; prev_set = 0 }
+    {
+      if (skip) {
+        if ($0 == e) skip = 0
+        next
+      }
+      if ($0 == b) {
+        # Drop the buffered prev line if it is the blank separator inject added
+        if (prev_set && prev == "") prev_set = 0
+        skip = 1
+        next
+      }
+      if (prev_set) print prev
+      prev = $0
+      prev_set = 1
+    }
+    END { if (prev_set) print prev }
   ' "$1" >"$2"
 }
 
