@@ -221,7 +221,7 @@ Every dispatch prompt must include:
 - Scope (file paths, line ranges)
 - Plan file path (which task within) — **frozen plan only when dispatching to sonnet**
 - Required reading list (CLAUDE.md, the spec doc, sister files)
-- Rules block: TDD sequence (red-green-refactor — see kzk-test-coverage §TDD sequence; failing test BEFORE impl is non-negotiable in autonomous mode) + context7 mandate + `kzk-pre-commit-gate` (incl. **Gate 0 AGENTS.md sync** — touched-files AGENTS.md goes in the SAME commit) + DO-NOT-MODIFY paths + branch boundary (the session **branch contract** locked by `kzk-autonomous-boundary` — verify the current branch matches the contract via `git branch --show-current` before dispatch; `main` is allowed only if the contract authorized direct-main flow this session)
+- Rules block: TDD sequence (red-green-refactor — see kzk-test-coverage §TDD sequence; failing test BEFORE impl is non-negotiable in autonomous mode) + **§Sonnet executor — Anti-self-verification boilerplate 의 literal boilerplate 텍스트를 dispatch prompt 의 Rules block 에 그대로 포함 (참조만 X — fresh agent 는 SKILL.md 를 자동으로 읽지 않음)** + context7 mandate + `kzk-pre-commit-gate` (incl. **Gate 0 AGENTS.md sync** — touched-files AGENTS.md goes in the SAME commit) + DO-NOT-MODIFY paths + branch boundary (the session **branch contract** locked by `kzk-autonomous-boundary` — verify the current branch matches the contract via `git branch --show-current` before dispatch; `main` is allowed only if the contract authorized direct-main flow this session)
 - Commit message convention (English conventional commits, no Co-Authored-By)
 - Working directory absolute path
 - Race-condition awareness (file scopes vs other parallel subagents)
@@ -244,6 +244,21 @@ When the target dispatch is `model=sonnet`, the plan must spell out — sonnet d
 If the plan cannot be made this detailed, the task is not yet ready for sonnet — escalate to opus or run another plan-critic loop.
 
 Typical prompt = 60-150 lines for opus, 100-220 lines for sonnet. Terse prompt = shallow work.
+
+### Anti-self-verification boilerplate (Plan A)
+
+Sonnet executor dispatch prompt 에 다음 boilerplate 자동 inject (TDD red 단계 진입 시 implementation read 차단):
+
+```
+[ANTI-SELF-VERIFICATION RULE — kzk-test-coverage §Anti-pattern]
+TDD red 단계 (failing test 작성) 진입 시점:
+- 허용 read: spec / acceptance criteria / 사용자 prompt / public API 시그니처 / hook·install 인프라 코드
+- 금지 read: 지금 작성하려는 함수 본문, 같은 파일 sibling 함수 본문, 기존 test 파일
+- 자가 점검: "이 test 가 spec 에서 도출됐는가? implementation 의 현재 모양에서 추론한 것 아닌가?"
+위반 시 task BLOCKED 반환 + plan revision 요청.
+```
+
+이 boilerplate 는 sonnet dispatch prompt 의 Rules block 에 의무 inject. 메인이 dispatch prompt 작성 시 boilerplate 누락 = §Two-stage review FAIL.
 
 ## Parallel dispatch
 

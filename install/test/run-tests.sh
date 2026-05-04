@@ -625,6 +625,16 @@ test_keyword_detector_matches_tdd
 test_keyword_detector_matches_vague_large
 test_keyword_detector_matches_test_add
 
+# Plan A — skill-text-checks
+printf '\n--- skill-text-checks (Plan A) ---\n'
+if bash "$REPO_ROOT/install/test/skill-text-checks.sh"; then
+  PASS=$((PASS + 1))
+  printf '  PASS: skill-text-checks.sh\n'
+else
+  FAIL=$((FAIL + 1))
+  ERRORS+=("skill-text-checks.sh")
+fi
+
 printf '\n'
 printf '=%.0s' {1..60}
 printf '\n'
