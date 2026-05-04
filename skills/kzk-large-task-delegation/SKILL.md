@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.3.0
+version: 1.4.0
 description: "Large tasks (3+ files / 200+ LoC / 5+ file read / multi-stage) dispatch to fresh subagents — main never executes. Top triggers: '큰 작업', '버그 전수조사', '사이클 자율', 'plan 쪼개', 'subagent dispatch'. Body §Triggers for full list."
 ---
 
@@ -31,6 +31,48 @@ Any one of:
 - Single rule add (CLAUDE.md / DESIGN.md / `harness-flow-progress.md` 1-item)
 - Single file ≤ 5 LoC fix (typo, single import line, single variable rename)
 - Subagent result review · gate check · commit · push
+
+## Scope estimation (mandatory entry step on non-trivial requests)
+
+The user is often agentic-only — they describe outcomes, not file counts. Threshold rules ("3+ files", "200+ LoC", "5+ file read") are main-context decisions, but main can't decide if it never estimates. **Run a 30-second scope estimate as the first action on any non-trivial request** before any Edit / Write / multi-file Read.
+
+Trivial requests (skip estimation, go direct):
+
+- Single-line config flag (`tsconfig.json` option, env var add)
+- Single typo / variable rename in one known file
+- Pure question (no edit) about a single file
+- Single 1-line README / CLAUDE.md edit the user dictated verbatim
+
+Non-trivial = anything else. Estimate procedure:
+
+1. **`git status --short`** — see what's already in the working tree
+2. **Target dir scan** — `find <target-dirs> -type f -name '*.<ext>' | wc -l` for likely-touched modules (use the user's phrasing to guess scope: "auth flow" → `auth/`, `users/`, `sessions/`; "grid bug" → `grid/`, `cell/`, etc.)
+3. **CRG quick query if available** — `code-review-graph status` (1s) confirms index exists; if so, `query_graph(pattern="callers_of"|"imports_of", target=<symbol>)` widens scope without re-reading files
+4. **LoC rough projection** — likely-touched file count × average LoC change × 0.1-0.3 multiplier (most edits don't rewrite whole files)
+
+Output to user (1-line preamble before first Read/Edit):
+
+```
+[scope] est. <N> files / <M> LoC → <main-direct | executor-haiku | executor-sonnet | spec-and-review-first>
+```
+
+Routing decision tree:
+
+| Estimate | Route |
+|---|---|
+| 0-1 file, ≤ 30 LoC, no spec | main-direct (no skill chain needed) |
+| 2-3 files, ≤ 200 LoC, mechanical (rename/version/config) | executor-haiku |
+| 2-3 files, ≤ 200 LoC, substantive (logic, types, error paths) | executor-sonnet |
+| 3+ files OR 200+ LoC OR ambiguous (estimate uncertain by ≥ 2x) | spec-and-review-first → executor dispatch per plan |
+| Architecture / security / public-API change | opus plan + codex consult mandatory regardless of size |
+
+User can override the route with one line ("그냥 메인이 직접 해", "haiku 로 진행", "spec 먼저 잡자"). Without override, the agent proceeds per the estimate.
+
+Hard rules even after estimation:
+
+- Estimate says ≤ 30 LoC, but mid-execution main reads 5+ files → halt, restart with EXPLORER subagent (estimate was wrong; respect §Read-heavy audit dispatch shape).
+- Estimate says 1-file, but mid-execution scope expands to 3+ files → halt, restart with executor dispatch.
+- Re-estimate after every halt; do not silently widen scope under main.
 
 ## Read-heavy audit dispatch shape
 
@@ -71,7 +113,22 @@ Haiku tier (new — Cycle 29) for mechanical work where the change is pattern-ap
 - Atomic file rename across N files (rename + import path update only, no logic change)
 - Trivial test scaffolding when the assertion list is fully spec'd
 
+- Git ops (mechanical): `git status`, `git log`, `git diff`, `git show`, `git stash list`, `git branch`, `git fetch`, `git rev-parse`, `git tag`, `git add <specific-file>`, `git restore <file>`, `git commit -m` (with simple message), fast-forward `git merge`, non-conflict `git cherry-pick <sha>`, `git push` (when contract = PR-flow and no force flag).
+
 Anything where the executor must *infer* what to write (variable name, error message wording, conditional branch logic, type definition shape) → sonnet, not haiku.
+
+**Git ops EXCLUDED from haiku tier (escalate to sonnet/opus):**
+
+- `git rebase -i` (interactive) — semantic decisions on commit history
+- Conflict resolution during merge / rebase / cherry-pick
+- `git reset --hard` on a pushed branch — destructive, opus + explicit user OK
+- `git push --force` / `--force-with-lease` — destructive, opus + explicit user OK
+- `git filter-branch` / `git filter-repo` / history rewrite
+- Multi-commit message authoring with substance (commit body explanation, breaking-change note)
+- `git blame` interpretation (semantic — "why was this written this way") → sonnet
+- Branch contract decisions (which branch to commit to, whether to PR) → main, not haiku
+
+Rule of thumb: read-only git inspection + atomic commit/stage/push under PR-flow contract = haiku. Anything that reshapes history, resolves conflicts, or makes a routing decision = sonnet/opus.
 
 ### Tier triggers — when to escalate to opus
 
@@ -164,7 +221,7 @@ Every dispatch prompt must include:
 - Scope (file paths, line ranges)
 - Plan file path (which task within) — **frozen plan only when dispatching to sonnet**
 - Required reading list (CLAUDE.md, the spec doc, sister files)
-- Rules block: TDD strict + context7 mandate + `kzk-pre-commit-gate` (incl. **Gate 0 AGENTS.md sync** — touched-files AGENTS.md goes in the SAME commit) + DO-NOT-MODIFY paths + branch boundary (the session **branch contract** locked by `kzk-autonomous-boundary` — verify the current branch matches the contract via `git branch --show-current` before dispatch; `main` is allowed only if the contract authorized direct-main flow this session)
+- Rules block: TDD sequence (red-green-refactor — see kzk-test-coverage §TDD sequence; failing test BEFORE impl is non-negotiable in autonomous mode) + context7 mandate + `kzk-pre-commit-gate` (incl. **Gate 0 AGENTS.md sync** — touched-files AGENTS.md goes in the SAME commit) + DO-NOT-MODIFY paths + branch boundary (the session **branch contract** locked by `kzk-autonomous-boundary` — verify the current branch matches the contract via `git branch --show-current` before dispatch; `main` is allowed only if the contract authorized direct-main flow this session)
 - Commit message convention (English conventional commits, no Co-Authored-By)
 - Working directory absolute path
 - Race-condition awareness (file scopes vs other parallel subagents)

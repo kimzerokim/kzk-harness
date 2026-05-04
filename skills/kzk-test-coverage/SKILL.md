@@ -1,7 +1,7 @@
 ---
 name: kzk-test-coverage
-version: 1.1.0
-description: "100% line + branch coverage on changed files — autonomous mode, no best-effort excuses. Top triggers: 'test coverage', 'test:cov', '100% coverage', '변경 파일 cov', 'coverage exemption'. Body §Triggers for full list."
+version: 1.2.0
+description: "TDD-strict + 100% line+branch coverage on changed files — failing test FIRST (red), impl (green), refactor, commit. Top triggers: 'TDD', 'test first', '테스트 먼저', 'test coverage', 'coverage exemption'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §11. On conflict, that wins.
@@ -10,7 +10,7 @@ description: "100% line + branch coverage on changed files — autonomous mode, 
 
 ## Triggers
 
-`test coverage`, `test:cov`, `100% coverage`, `변경 파일 cov`, `coverage exemption`.
+`test coverage`, `test:cov`, `100% coverage`, `변경 파일 cov`, `coverage exemption`, `tdd`, `TDD`, `test first`, `테스트 먼저`, `테스트부터`, `failing test`, `red-green`, `테스트 추가`, `테스트 추가해줘`, `test 추가`, `coverage 추가`.
 
 Autonomous session = 100% line + branch coverage on the files the session changed. Legacy code in those files counts too — touched = raised.
 
@@ -19,6 +19,19 @@ Autonomous session = 100% line + branch coverage on the files the session change
 - Run the repo's coverage command before session close (e.g. `npm run test:cov`, `pytest --cov`, `go test -cover ./...`)
 - Uncovered region in a touched file → add unit / integration / e2e until covered
 - Hard time constraint → append explicit user-queue entry stating which files + why; do not silently leave gaps
+
+## TDD sequence (mandatory in autonomous mode)
+
+For any new feature or bugfix in autonomous mode (or any large-task dispatch), the executor follows this sequence — NOT impl-first:
+
+1. **Red** — write failing test that captures the spec'd behavior. Run; confirm it fails for the right reason (assertion mismatch, not import error).
+2. **Green** — implement minimum code to pass the test. Run; confirm green.
+3. **Refactor** — clean diff (de-dup, naming, error paths). Run again; still green.
+4. **Commit** — Pre-commit Gate 0-4 + commit message includes test path(s) added/modified.
+
+Skipping step 1 (going straight to impl) violates this skill in autonomous mode. Interactive mode: user may waive TDD per task with explicit "skip TDD" — log in commit body.
+
+For bug fixes specifically: failing test reproducing the bug is the FIRST artifact. Bug-fix without a regression test = incomplete fix.
 
 ## Exemptions (declare in PR description)
 
