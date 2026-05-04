@@ -1,10 +1,10 @@
 # kzk-harness
 
-This is the kzk-harness repository — a workflow skill layer for Claude Code. It contains 16 `kzk-*` skills installed into any project via the one-liner in `README.md`.
+This is the kzk-harness repository — a workflow skill layer for Claude Code. It contains 17 `kzk-*` skills installed into any project via the one-liner in `README.md`.
 
 ## Active Skills (kzk-harness)
 
-All 16 skills are active in this repo. Load one by mentioning its trigger keyword.
+All 17 skills are active in this repo. Load one by mentioning its trigger keyword.
 
 | Skill | Trigger keywords |
 |---|---|
@@ -24,6 +24,7 @@ All 16 skills are active in this repo. Load one by mentioning its trigger keywor
 | `kzk-codebase-survey` | codebase survey, 코드베이스 탐색, deep explore, survey first, before planning, 구현 검증, spec verification, 버그 전수조사, spec 체크, 스펙 체크, 하나하나 확인, ralph로 체크 |
 | `kzk-regression-memory` | regression memory, 재발 방지, fix 시작, recall, 과거 fix 조회, gstack learn, dismiss recall |
 | `kzk-fix-scope-expansion` | fix scope expansion, 한 callsite, 호출자 전수, fix-start, callsite mismatch, Gate 4.5, KZK_GATE45_SKIP |
+| `kzk-freshness-guard` | stale 체크, freshness, 문서 신선도, stale check, freshness guard, Gate 0.5, KZK_GATE05_SKIP |
 
 ## Autonomous Execution Boundary
 
@@ -69,6 +70,7 @@ Each cycle:
 - **사용자 prompt 가 'plan 쪼개', '사이클 자율', '사용성 버그', '버그 전수조사' 등 large-task signal 포함 시** = `install/hooks/keyword-detector.mjs` (UserPromptSubmit hook, `--enable-hooks` 로 활성화 — 매칭 시 system-reminder 강제 주입)
 - **메인이 reference collection 목적으로 Bash(ls) / Read 를 연속 호출** = 메타 갭 = 즉시 EXPLORER subagent 로 전환 (`kzk-codebase-survey §Preparation phase delegation`)
 - **메인이 multi-file 라이브러리 변경 / 5+ 파일 edit** = `kzk-large-task-delegation §Model routing` (executor sonnet) 으로 위임, 메인 직접 Edit 금지 (`kzk-autonomous-boundary §Q-MAIN-DIRECT-EDIT`)
+- **Pre-commit Gate 0.5 freshness check** = `kzk-freshness-guard` (staged 코드 → CRG 심볼 역참조 → 메타 문서 stale 감지 → auto-fix)
 
 자가개선 루프가 자기 스킬을 안 쓰는 패턴은 메타 갭 — 즉시 다음 cycle 의 P0 로 처리한다.
 

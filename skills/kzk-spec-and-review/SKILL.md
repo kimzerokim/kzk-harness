@@ -1,7 +1,7 @@
 ---
 name: kzk-spec-and-review
-version: 2.5.0
-description: "Spec/plan/major-design authoring with mandatory codex CLI cross-vendor review (Step 0 codebase-survey precondition). Top triggers: 'spec 잡자', 'plan draft', 'codex review', '여러 plan', '메타 plan'. Body §Triggers for full list."
+version: 2.6.0
+description: "Spec/plan/major-design authoring with mandatory codex CLI cross-vendor review (Step 0 codebase-survey precondition). Top triggers: 'spec 잡자', 'plan draft', 'codex review', '여러 plan', '메타 plan', 'brainstorming', 'Step -1', 'brainstorm mode'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §22 + §22.5 (Step 0 survey precondition references §26). On conflict, that wins.
@@ -10,13 +10,31 @@ description: "Spec/plan/major-design authoring with mandatory codex CLI cross-ve
 
 ## Triggers
 
-`spec 잡자`, `spec 작성`, `spec draft`, `plan draft`, `plan 작성`, `design draft`, `major design`, `architecture review`, `codex review`, `codex consult`, `cross-verify`, `플랜 만들`, `plan 만들`, `여러 plan`, `플랜 여러개`, `메타 plan`, `meta plan`, `spec 만들`.
+`spec 잡자`, `spec 작성`, `spec draft`, `plan draft`, `plan 작성`, `design draft`, `major design`, `architecture review`, `codex review`, `codex consult`, `cross-verify`, `플랜 만들`, `plan 만들`, `여러 plan`, `플랜 여러개`, `메타 plan`, `meta plan`, `spec 만들`, `brainstorming`, `brainstorm`, `Step -1`, `brainstorm mode`.
 
 Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable or produces no parseable output (parse fail — see §Codex execution shape).
 
 Every meaningful design artifact gets a second opinion from a different model before it ships. Self-review and codex catch different classes of issue — both are needed.
 
+## Step -1 — Brainstorming (conditional)
+
+> 탐색적 키워드 감지 시에만 진입. "spec 잡자", "plan 만들어" 등 명확 키워드는 Step 0 직행.
+
+**진입 조건**: keyword-detector 가 `(brainstorm mode)` marker 를 system-reminder 에 inject 한 경우.
+
+**동작**:
+1. `Skill("superpowers:brainstorming")` 호출
+2. brainstorming 완료 → design doc 경로 수집 (`docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`)
+3. design doc 경로를 Step 1 Draft 의 CONTEXT 에 `Required reading: <path>` 로 포함
+4. brainstorming 결정사항을 Step 2 codex consult 의 `LOCKED PRIOR DECISIONS` 에 포함
+
+**Skip**: 사용자가 "brainstorming 스킵" / "skip brainstorming" 입력 시 Step 0 으로 즉시 이동.
+
+**CRG spec reference 검증**: brainstorming 완료 후, 생성된 design doc 에 대해 `crg-utils.extractDocRefs(designDocPath)` + `crg-utils.validateLineRefs(designDocPath)` 실행. stale reference 발견 시 WARN.
+
 ## Step 0 — Codebase survey precondition (mandatory before drafting)
+
+> Freshness check: Step 0 진입 전 `kzk-freshness-guard` 자동 호출 (recursion guard 적용). Cross-ref: `kzk-freshness-guard` §자동 호출 지점.
 
 A spec / plan / design draft built without codebase context is the same root cause that `kzk-codebase-survey` exists to fix. Before the 3-pass loop runs, locate or generate a survey report for the topic.
 
@@ -214,3 +232,4 @@ jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .it
 - **kzk-large-task-delegation §"Pre-implementation plan-critic loop (opus + codex)"** is a *narrower* version of this skill, scoped to plans that feed the sonnet executor. This skill is broader — covers spec / architecture / design too. Cross-reference, do not duplicate.
 - **kzk-background-monitoring** governs the codex consult call itself (long-running CLI).
 - **harness-share.md §22.5**: End-to-End Ralph Pipeline (spec → plan → critic → implementation in one ralph loop). This skill covers the critic step; §22.5 covers the full pipeline integration including PRD drafting and user-intervention gates.
+- **kzk-freshness-guard**: Step 0 전 freshness check + Step -1 후 spec reference CRG 검증

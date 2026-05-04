@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.7.0
+version: 1.8.0
 description: "Mandatory pre-planning deep codebase read — full import scope, context7 docs, TypeScript contracts, fix-time callsite expansion. Top triggers: 'codebase survey', '코드베이스 탐색', 'spec 검증', '하나하나 확인', 'before planning', 'fix 시작', 'callsite 전수', 'preparation phase delegation'. Body §Triggers for full list."
 ---
 
@@ -10,7 +10,7 @@ description: "Mandatory pre-planning deep codebase read — full import scope, c
 
 ## Triggers
 
-`codebase survey`, `코드베이스 탐색`, `deep explore`, `survey first`, `before planning`, `spec 검증`, `spec verification`, `구현 확인`, `구현 검증`, `버그 전수조사`, `implementation audit`, `spec vs implementation`, `spec 체크`, `스펙 체크`, `하나하나 확인`, `ralph로 체크`, `fix 시작`, `버그 수정`, `에러 fix`, `regression fix`, `callsite 전수`, `함수 수정 영향`.
+`codebase survey`, `코드베이스 탐색`, `deep explore`, `survey first`, `before planning`, `spec 검증`, `spec verification`, `구현 확인`, `구현 검증`, `버그 전수조사`, `implementation audit`, `spec vs implementation`, `spec 체크`, `스펙 체크`, `하나하나 확인`, `ralph로 체크`, `fix 시작`, `버그 수정`, `에러 fix`, `regression fix`, `callsite 전수`, `함수 수정 영향`, `freshness check`, `stale survey`.
 
 Mandatory pre-brainstorming and pre-planning deep read. Solves the root cause of feature gaps in plans: the planner only sees a short file list, not the full codebase context, external library APIs, or TypeScript type contracts.
 
@@ -274,3 +274,4 @@ Cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit`, `kzk-a
 - **kzk-background-monitoring**: EXPLORER dispatch is a long-running subagent; narrate after completion per result-narration mandate.
 - **kzk-tool-retry**: If any EXPLORER Edit/Write/Bash call fails mid-survey, apply the 1-retry policy before halting — do not abort the entire survey on a single tool failure.
 - **kzk-fix-scope-expansion (Plan B)**: fix 시작 시 CRG callsite 전수 조회 트리거 (`fix 시작`, `버그 수정`, `callsite 전수` 등). SoT = harness-share §3.5. fix-start hook 발동 시 자동 invoke 관계.
+- **kzk-freshness-guard**: survey 시작 전 기존 리포트의 stale 여부 검증. `crg-utils.validateLineRefs()` 로 line reference 유효성 CRG 체크. recursion guard 적용.

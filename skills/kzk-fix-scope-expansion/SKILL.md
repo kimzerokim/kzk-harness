@@ -1,6 +1,6 @@
 ---
 name: kzk-fix-scope-expansion
-version: 1.0.0
+version: 1.1.0
 description: "Fix scope expansion — fix 시작 시 함수/심볼 callsite 전수 조회 (CRG 우선 + grep fallback) + Gate 4.5 sanity check. Top triggers: 'fix 시작', 'callsite 전수', 'Gate 4.5', 'fix-scope-cache', 'callsite mismatch', 'KZK_GATE45_SKIP'. Body §Triggers for full list."
 ---
 
@@ -150,3 +150,4 @@ bash install/install-global.sh --enable-hooks --regression-recall --fix-scope-tr
 - **kzk-pre-merge-sync**: step 3 에서 `--fix-scope-trigger` flag 로 자동 enable. fail-closed.
 - **kzk-large-task-delegation**: dispatch 시 `.kzk-harness/fix-scope-cache.jsonl` 존재 시 callsite list dispatch prompt 에 inject (200 char cap).
 - **hook-shared.mjs**: `install/lib/hook-shared.mjs` — FIX_KEYWORDS / shouldSkip / detectFixIntent 단일 SoT. regression-recall.mjs + fix-scope-trigger.mjs 둘 다 import 의무.
+- **kzk-freshness-guard**: fix 시 변경 심볼의 impact radius 확장 — `crg-utils.reverseRefs()` 결과에서 메타 문서 자동 감지. 영향받는 메타 문서를 fix scope 에 포함.

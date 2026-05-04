@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.10.0
+version: 1.11.0
 description: "Large tasks (3+ files / 200+ LoC / 5+ file read / multi-stage) dispatch to fresh subagents — main never executes. Top triggers: '큰 작업', '버그 전수조사', '사이클 자율', 'plan 쪼개', 'subagent dispatch', 'Stage 3', 'fresh-agent verifier', 'verifier dispatch', 'INVALID_VERDICT', 'Body §Anti-pattern Main direct-edit'. Body §Triggers for full list."
 ---
 
@@ -457,3 +457,4 @@ Cross-ref: `kzk-codebase-survey §Preparation phase delegation`, `kzk-autonomous
 - **kzk-autonomous-boundary**: Stage 3 verifier 2 consecutive FAIL on same thread → `Q-VERIFIER-FAIL`. INVALID_VERDICT → `Q-VERIFIER-INVALID`. dispatch fail → `Q-VERIFIER-DISPATCH-FAIL`. autonomous-boundary §Halt conditions 표가 모두 등록.
 - **kzk-regression-memory**: 메인이 받은 [REGRESSION RECALL] reminder 를 subagent dispatch prompt 에 inject (size cap 200 char, truncate + warning). fix subagent 도 recall 결과 read.
 - **kzk-test-coverage**: Plan A 의 Q-TDD-MAIN 흡수 종료 — 본 Plan C task 3 에서 kzk-autonomous-boundary 의 halt 표에 entry 추가 완료. 별도 follow-up 없음.
+- **kzk-freshness-guard**: CRG dependency graph 로 변경 영향 범위 자동 산출 → scope estimation 정밀화. `crg-utils.getChangedSymbols()` + `crg-utils.reverseRefs()` 로 변경 파일 수 + 영향 파일 수 산출.

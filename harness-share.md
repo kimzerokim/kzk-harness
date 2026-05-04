@@ -141,6 +141,10 @@ autonomous loop 이 commit 한 코드가 이후 잘못된 것으로 판명 된 �
 
 Gate 0 통과 후, kzk-pre-commit-gate skill 은 추가로 `deepinit_manifest` tool (OMC plugin) 을 `action=save` 로 호출해 manifest baseline 을 저장한다. Tool 미설치 시 skip (Gate 0 자체는 AGENTS.md 편집만으로 PASS). 이 호출은 §3 게이트 요건 외의 skill-level extension 이다.
 
+### Gate 0.5 — Freshness guard
+
+**Gate 0.5 — Freshness guard**: staged 코드 파일 → `crg-utils.findStaleMetaDocs()` → stale 메타 문서 감지. stale → BLOCK + auto-fix + restage. partial failure → WARN + user-queue. skip: `KZK_GATE05_SKIP=1`. Cross-ref: `kzk-freshness-guard`.
+
 ### Gate 1 — ai-slop-cleaner
 
 변경 파일 의 dead code / duplicate / needless abstraction / boundary leak 제거.
@@ -1112,3 +1116,26 @@ node install/bin/kzk-regression-memory.mjs dismiss <key>
 | Sidecar 손실 | dismiss_count + stale reset 만 — /learn 보존 |
 | Plan D 자가오염 | default DISABLED 라 즉시 위협 X. enable 후 발견 시 OMC_SKIP_HOOKS |
 | **Global install 산출물 cleanup** | `~/.claude/skills/.kzk-harness-shared/hooks/regression-recall.mjs` + `lib/sidecar-write.mjs` + `bin/kzk-regression-memory.mjs` 제거 + 중복 settings.json `UserPromptSubmit` entry 정리 (`uninstall-global.sh --regression-recall` 또는 jq: `jq '.hooks.UserPromptSubmit \|= map(select(.hooks[0].command \| test("regression-recall") \| not))' ~/.claude/settings.json`) |
+
+---
+
+## §30 kzk-freshness-guard (Stale 메타 문서 자동 감지)
+
+코드 변경 시 메타 문서(CLAUDE.md, AGENTS.md, spec, survey, memory) stale 자동 감지 + CRG 기반 심볼 역참조 + auto-fix.
+
+- **CRG canonical contract**: `install/lib/crg-utils.mjs` = 단일 진입점. 직접 CLI 호출 금지.
+- **자동 호출 6곳**: spec-and-review Step 0 전, codebase-survey 시작 전, plan execution 직전, Gate 0.5, pre-merge-sync, 수동 트리거.
+- **Edge case**: no-git skip, unborn HEAD skip, shallow fallback, recursion guard (depth=1).
+- **Auto-fix**: AGENTS.md 행단위, CLAUDE.md executor(sonnet), spec/survey executor(sonnet), memory 메인 판단, plan WARN only.
+- **Rollback**: `OMC_SKIP_HOOKS=freshness-guard`, `DISABLE_OMC=kzk-freshness-guard`, `KZK_GATE05_SKIP=1`.
+
+---
+
+## §31 Brainstorming 자동 체이닝 (kzk-spec-and-review Step -1)
+
+탐색적 키워드 감지 시 `superpowers:brainstorming` 자동 호출 → design doc 생성 → spec-and-review Step 0 진입.
+
+- **키워드 분기**: 탐색적 ("어떻게 하면", "아이디어", "설계하자" 등) → Step -1. 명확 ("spec 잡자", "plan 만들어") → Step 0 직행.
+- **결과 연결**: design doc → Step 1 Required reading + Step 2 LOCKED PRIOR DECISIONS.
+- **Skip**: "brainstorming 스킵" / "skip brainstorming" → Step 0 즉시 이동.
+- **CRG 검증**: brainstorming 완료 후 design doc 의 코드 참조를 `crg-utils.extractDocRefs()` + `validateLineRefs()` 로 검증.

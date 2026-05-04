@@ -1,6 +1,6 @@
 # kzk-harness external dependencies
 
-Authoritative list of every external tool the 16 `kzk-*` skills depend on, why, and the fallback behavior when missing.
+Authoritative list of every external tool the 17 `kzk-*` skills depend on, why, and the fallback behavior when missing.
 
 `install/dependencies.sh` auto-installs what can be installed from a shell. The Claude Code plugin entries (oh-my-claudecode, playwright-mcp) must be installed inside a Claude Code session via `/plugin` — they cannot be installed from a shell script.
 
@@ -94,6 +94,7 @@ Detection sources:
 | `kzk-web-loop` | playwright-mcp | code-review-graph (via `kzk-codebase-survey`), gstack (cycle retro `/learn` skill) |
 | `kzk-codebase-survey` | — | code-review-graph |
 | `kzk-regression-memory` | — | gstack plugin (`~/.gstack/projects/` JSONL) |
+| `kzk-freshness-guard` | code-review-graph (required, WARN on missing) | crg-utils.mjs (shared lib) |
 
 ## Manual smoke test — `--skip-project` flag
 

@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-merge-sync
-version: 1.3.0
+version: 1.4.0
 description: "Pre-merge/milestone checklist — sync CLAUDE.md + run deepinit before any user-visible milestone. Top triggers: 'merge', 'PR 직전', 'deepinit', 'CLAUDE.md sync', 'milestone marker'. Body §Triggers for full list."
 ---
 
@@ -89,9 +89,21 @@ Checkpoint: PR description (PR-flow) 또는 milestone commit message (direct-mai
 - [ ] regression-recall hook enabled via step 3 (or user-declined per spec rev6 §Default DISABLED, fail-closed verified)
 ```
 
+## 4. Freshness sweep
+
+> Cross-ref: `kzk-freshness-guard` §자동 호출 지점
+
+merge/milestone 직전 전체 메타 문서 CRG 기반 최종 검증:
+
+1. `crg-utils.getChangedFiles('base')` → branch 전체 변경 파일
+2. `crg-utils.findStaleMetaDocs(changedFiles)` → stale 메타 문서 감지
+3. stale 발견 시: auto-fix dispatch (Gate 0.5 와 동일 전략) → fix 후 추가 commit
+4. stale 없음 → PASS, merge 진행
+
 ## Interaction with other kzk-*
 
 - **kzk-autonomous-boundary**: Defines when autonomous PR creation is allowed (post-review explicit user merge approval is the sole exception).
 - **kzk-pre-commit-gate**: Provides the gate-PASS line this skill writes into the PR footer.
 - **kzk-spec-and-review**: Pre-PR `deepinit_manifest` refresh updates the AGENTS.md memory that codex review reads.
 - **kzk-regression-memory**: 본 skill step 3 가 regression-recall hook 의 first-enable gate. spec rev6 §Default DISABLED 의 자동 enable 진입점. fail-closed (jq 부재 / install-global.sh non-zero / duplicate entry → merge block).
+- **kzk-freshness-guard**: merge 직전 전체 freshness sweep (§4)

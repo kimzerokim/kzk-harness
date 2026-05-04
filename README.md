@@ -1,6 +1,6 @@
 # kzk-harness
 
-Workflow skill layer for [Claude Code](https://claude.ai/code). Installs 16 `kzk-*` skills into any project — commit gates, autonomous mode boundaries, Playwright verification, large task delegation, and more.
+Workflow skill layer for [Claude Code](https://claude.ai/code). Installs 17 `kzk-*` skills into any project — commit gates, autonomous mode boundaries, Playwright verification, large task delegation, and more.
 
 Each skill is a markdown file loaded by Claude when you mention its trigger keyword. No runtime, no config files, no build step.
 
@@ -15,7 +15,7 @@ kzk-harness 설치해줘.
 
 답이 GLOBAL (default 권장) 이면:
   git clone --depth 1 https://github.com/kimzerokim/kzk-harness.git /tmp/kzk-harness
-  bash /tmp/kzk-harness/install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger
+  bash /tmp/kzk-harness/install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard
   rm -rf /tmp/kzk-harness
 
 답이 PROJECT-ONLY 면:
@@ -43,7 +43,7 @@ Re-run the install one-liner above (`install-global.sh` is idempotent — versio
 Or, from a permanent checkout:
 
 ```
-cd /path/to/kzk-harness && git pull && bash install/install-global.sh --update --enable-hooks --regression-recall --fix-scope-trigger
+cd /path/to/kzk-harness && git pull && bash install/install-global.sh --update --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard
 ```
 
 ## Uninstall
@@ -94,6 +94,7 @@ The skills cross-reference each other; you don't have to memorize the whole chai
 | `kzk-codebase-survey` | codebase survey, 코드베이스 탐색, deep explore, survey first, before planning, 구현 검증, spec verification, 버그 전수조사, spec 체크, 스펙 체크, 하나하나 확인, ralph로 체크 |
 | `kzk-regression-memory` | regression memory, 재발 방지, fix 시작, recall, 과거 fix 조회, gstack learn, dismiss recall |
 | `kzk-fix-scope-expansion` | fix scope expansion, 한 callsite, 호출자 전수, fix-start, callsite mismatch, Gate 4.5, KZK_GATE45_SKIP |
+| `kzk-freshness-guard` | stale 체크, freshness, 문서 신선도, stale check, freshness guard |
 
 ## harness-share.md
 
@@ -101,7 +102,7 @@ Also installed: `harness-share.md` — a portable workflow guide covering the fu
 
 ## 작업 유형별 베스트 프랙티스 (한국어)
 
-설치만 해도 16개 kzk-* 스킬이 자동 로드되지만, **어떤 phrase 로 prompt 를 시작하느냐** 에 따라 자동 활성화되는 skill 묶음이 달라집니다. 매칭은 두 경로로:
+설치만 해도 17개 kzk-* 스킬이 자동 로드되지만, **어떤 phrase 로 prompt 를 시작하느냐** 에 따라 자동 활성화되는 skill 묶음이 달라집니다. 매칭은 두 경로로:
 
 - **`install/hooks/keyword-detector.mjs`** UserPromptSubmit hook (`install-global.sh --enable-hooks` 후) — 매 prompt 마다 phrase 매칭 → 강제 system-reminder 주입
 - **Claude Code 자체 skill discovery** — `~/.claude/skills/kzk-*/SKILL.md` description + body §Triggers 매칭
