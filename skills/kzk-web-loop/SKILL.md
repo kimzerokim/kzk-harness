@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.3.12
+version: 1.3.13
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '자율 개선', 'loop forever', '무한 개선', '무한 루프', '계속 돌려'."
 ---
 
@@ -112,13 +112,13 @@ fi
 
 # 2. Install missing plugins right now (only runs if plugin list succeeded)
 if [ -n "$PLUGINS" ]; then
-  echo "$PLUGINS" | grep -qi "oh-my-claudecode" || claude plugin add oh-my-claudecode
-  echo "$PLUGINS" | grep -qi "superpowers"       || claude plugin add superpowers
-  echo "$PLUGINS" | grep -qi "gstack"            || claude plugin add gstack
+  echo "$PLUGINS" | grep -qi "oh-my-claudecode" || claude plugin install oh-my-claudecode
+  echo "$PLUGINS" | grep -qi "superpowers"       || claude plugin install superpowers
+  echo "$PLUGINS" | grep -qi "gstack"            || claude plugin install gstack
 fi
 ```
 
-If any `claude plugin add` command fails (network error, registry issue, unknown name):
+If any `claude plugin install` command fails (network error, registry issue, unknown name):
 1. Log to `docs/harness/user-queue.md` with the exact error and plugin name, then continue without that plugin (see graceful degradation table below)
 
 ### Session restart (only if newly installed)

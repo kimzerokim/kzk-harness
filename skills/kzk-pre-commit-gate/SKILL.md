@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.0.14
+version: 1.0.15
 description: "Up-to-6-step Pre-commit Gate (Gate 0 conditional on AGENTS.md hierarchy; gates: AGENTS.md sync / ai-slop-cleaner / secrets-scan / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/1.5/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'secrets scan', 'autonomous commit', 'doc-only exception'."
 ---
 
@@ -104,9 +104,9 @@ Non-autonomous (default): every commit waits for user OK after gates pass. No au
 
 ## Interaction with other kzk-*
 
-- **kzk-autonomous-boundary**: Owns the halt protocol invoked when ≥3 reviewer FAILs occur during gate runs.
+- **kzk-autonomous-boundary**: Owns the halt protocol invoked when ≥2 consecutive reviewer/critic FAILs (or ≥3 consecutive build/test FAILs) occur during gate runs.
 - **kzk-playwright-verification**: Implements Gate 4 (browser smoke + screenshot drop).
 - **kzk-test-coverage**: Gate 3 runs the same test command this skill owns at session close.
 - **kzk-large-task-delegation**: Subagent prompts must echo the gate sequence so delegated executors commit with full gate awareness.
-- **kzk-web-loop**: Owns the override exception that lets the loop bypass full Gate 0–4 in indefinite-loop mode (see web-loop §Override exception).
+- **kzk-web-loop**: Owns the override exception that lets the loop bypass full Gate 0–4 in indefinite-loop mode (see kzk-web-loop §Failure Handling).
 - **kzk-pre-merge-sync**: Consumes the gate-PASS line this skill emits in the PR footer.

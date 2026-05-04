@@ -1,7 +1,7 @@
 ---
 name: kzk-large-task-delegation
-version: 1.0.11
-description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'large task', 'subagent dispatch', '3+ file edits', '200+ LoC', 'opus/sonnet routing', 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체'."
+version: 1.1.1
+description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'large task', 'subagent dispatch', '3+ file edits', '200+ LoC', 'opus/sonnet routing', 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체', 'read-heavy audit', 'spec verification', '구현 검증', '버그 전수조사', 'implementation audit', '5+ file read', '마무리 해줘', '전수 검토', '끝내줘'."
 ---
 
 > Authoritative source: `harness-share.md` §4. On conflict, that wins.
@@ -19,6 +19,7 @@ Any one of:
 - `@theme` / token / CSS rewrite (`src/styles/**`) or 5+ component simultaneous migration
 - Single Plan (any of A-N in `docs/plans/*.md`) full scope
 - Build · test · Playwright · code-reviewer multi-stage workflow
+- 5+ files needing full read for **verification or audit** (spec ↔ implementation match, bug sweep, existing-system review) — read-only does NOT exempt main from delegation
 
 ## Main-context-allowed (trivial / fast / safe)
 
@@ -26,6 +27,20 @@ Any one of:
 - Single rule add (CLAUDE.md / DESIGN.md / `harness-flow-progress.md` 1-item)
 - Single file ≤ 5 LoC fix (typo, single import line, single variable rename)
 - Subagent result review · gate check · commit · push
+
+## Read-heavy audit dispatch shape
+
+For verification / audit scenarios (user says "스펙파일 체크해줘", "구현 확인", "버그 전수조사", "spec vs code 매칭", "이거 제대로 구현됐나"):
+
+- Main context **MUST NOT** read 5+ files directly with `Read` — context saturation degrades conclusion quality (the "main reads code weirdly" failure mode).
+- Dispatch shape:
+  1. `oh-my-claudecode:explore` (`model=sonnet` for survey-style deep reads, `model=haiku` for quick targeted file lookups) — file discovery + Read in subagent context.
+  2. `code-review-graph` MCP/CLI (per `kzk-codebase-survey §MCP tool surface`) — `semantic_search_nodes`, `query_graph`, `get_impact_radius` for spec ↔ implementation matching without re-reading every file.
+  3. Main synthesizes the EXPLORER report + CRG output into the verification verdict.
+- For multi-spec verification (e.g. user asks to check N spec files in a row), each spec is one EXPLORER dispatch — parallel where file scopes are disjoint, sequential where they share files.
+- The verdict file goes in `docs/harness/surveys/YYYY-MM-DD-<topic>-verification.md` (per `kzk-codebase-survey §Step 7` report path convention).
+
+This is the read-only counterpart to the implementation dispatch above — same delegation rule, different output (verdict instead of diff).
 
 ## Model routing (mandatory split for subagent dispatch)
 

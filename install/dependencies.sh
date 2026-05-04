@@ -11,7 +11,15 @@
 
 set -u
 
-PROJECT_ROOT="${1:-$(pwd)}"
+SKIP_PROJECT_BUILD=0
+PROJECT_ROOT=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --skip-project) SKIP_PROJECT_BUILD=1; shift ;;
+    *) PROJECT_ROOT="$1"; shift ;;
+  esac
+done
+PROJECT_ROOT="${PROJECT_ROOT:-$(pwd)}"
 SUMMARY=()
 
 emit() { printf '%s\n' "$*"; }
@@ -62,7 +70,9 @@ fi
 # Rationale: the build log is misleading (shows last incremental pass, can read
 # "8 files" even when the full graph holds 2000+ nodes). Only `code-review-graph
 # status` is authoritative. Block on build, then parse status to confirm.
-if command -v code-review-graph >/dev/null 2>&1 && [ -d "$PROJECT_ROOT" ]; then
+if [ "$SKIP_PROJECT_BUILD" -eq 1 ]; then
+  record "code-review-graph: build SKIPPED (--skip-project — no single project root for global install)"
+elif command -v code-review-graph >/dev/null 2>&1 && [ -d "$PROJECT_ROOT" ]; then
   emit "Building code-review-graph index for $PROJECT_ROOT (foreground, may take 30s+)..."
   if ( cd "$PROJECT_ROOT" && code-review-graph build >/tmp/kzk-crg-build.log 2>&1 ); then
     status_out=$(cd "$PROJECT_ROOT" && code-review-graph status 2>&1)

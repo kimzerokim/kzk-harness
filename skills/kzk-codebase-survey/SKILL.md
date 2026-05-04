@@ -1,7 +1,7 @@
 ---
 name: kzk-codebase-survey
-version: 1.3.0
-description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning'."
+version: 1.4.1
+description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning', 'spec 검증', 'spec verification', '구현 확인', '구현 검증', '버그 전수조사', 'implementation audit', 'spec vs implementation', 'spec 체크', '스펙 체크', '하나하나 확인', 'ralph로 체크'."
 ---
 
 > Authoritative source: `harness-share.md` §26. On conflict, that wins.
@@ -10,7 +10,7 @@ description: "Mandatory deep codebase explorer — runs before brainstorming and
 
 Mandatory pre-brainstorming and pre-planning deep read. Solves the root cause of feature gaps in plans: the planner only sees a short file list, not the full codebase context, external library APIs, or TypeScript type contracts.
 
-**Run before:** `superpowers:brainstorming`, `kzk-spec-and-review` (spec / plan / major design draft — Step 0 precondition), `kzk-large-task-delegation` planner dispatch, `kzk-web-loop` P1/P2 `writing-plans` step.
+**Run before:** `superpowers:brainstorming`, `kzk-spec-and-review` (spec / plan / major design draft — Step 0 precondition), `kzk-large-task-delegation` planner dispatch, `kzk-web-loop` P1/P2 `writing-plans` step, implementation verification (spec ↔ code matching, bug sweep, existing-system audit — main context dispatches here instead of reading directly).
 
 ## EXPLORER Agent
 

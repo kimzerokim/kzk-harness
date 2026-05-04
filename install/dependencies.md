@@ -62,7 +62,7 @@ Detection sources:
 
 - **Purpose**: Browser automation MCP tools (`browser_navigate`, `browser_snapshot`, `browser_take_screenshot`, etc.).
 - **Used by**: `kzk-playwright-verification` (Gate 4 browser smoke), `kzk-web-loop` (loop core navigation + screenshot drop).
-- **Install**: in a Claude Code session, run `/plugin` and install `playwright-mcp`. Or run `claude plugin add @playwright/mcp@latest`.
+- **Install**: in a Claude Code session, run `/plugin` and install `playwright-mcp`. Or run `claude mcp add playwright -- npx -y @playwright/mcp@latest`.
 - **Fallback if missing**: 
   - `kzk-playwright-verification` Gate 4: skipped with a logged note. Gate 4 is conditional on UI-touching changes; non-UI commits still pass.
   - `kzk-web-loop`: cannot run. Loop start halts with "playwright MCP unavailable — install via /plugin".
@@ -85,6 +85,26 @@ Detection sources:
 | `kzk-user-queue` | — | — |
 | `kzk-web-loop` | playwright-mcp | code-review-graph (via `kzk-codebase-survey`) |
 | `kzk-codebase-survey` | — | code-review-graph |
+
+## Manual smoke test — `--skip-project` flag
+
+```bash
+# Assert build SKIPPED line appears and "Building code-review-graph" does NOT:
+bash /path/to/kzk-harness/install/dependencies.sh --skip-project 2>&1 \
+  | grep -q 'build SKIPPED (--skip-project' && echo PASS || echo FAIL
+
+# Assert codex/code-review-graph binary install is still attempted (not skipped):
+bash /path/to/kzk-harness/install/dependencies.sh --skip-project 2>&1 \
+  | grep -qE 'code-review-graph: (already installed|installed via|SKIPPED .pip)' && echo PASS || echo FAIL
+
+# Positional path + flag (flag must win — build still SKIPPED):
+bash /path/to/kzk-harness/install/dependencies.sh /tmp --skip-project 2>&1 \
+  | grep -q 'build SKIPPED (--skip-project' && echo PASS || echo FAIL
+
+# Flag first, path second (flag must win):
+bash /path/to/kzk-harness/install/dependencies.sh --skip-project /tmp 2>&1 \
+  | grep -q 'build SKIPPED (--skip-project' && echo PASS || echo FAIL
+```
 
 ## Re-running the installer
 
