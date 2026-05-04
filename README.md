@@ -6,41 +6,36 @@ Each skill is a markdown file loaded by Claude when you mention its trigger keyw
 
 ## Install
 
-### Recommended: global install
-
-Run once to make all 14 kzk-\* skills available in every Claude Code repo:
+Open Claude Code in any directory, paste this prompt, and answer the one question. Works for first-time install and re-install.
 
 ```
-git clone --depth 1 https://github.com/kimzerokim/kzk-harness.git /tmp/kzk-harness
-bash /tmp/kzk-harness/install/install-global.sh
-rm -rf /tmp/kzk-harness
+kzk-harness 설치해줘.
+
+먼저 사용자에게 묻기: "GLOBAL 설치 (권장: ~/.claude/skills/ 에 설치, 모든 Claude Code 세션에서 자동 활성) vs PROJECT-ONLY 설치 (현 디렉토리의 .claude/skills/ 에만, 다른 프로젝트 영향 X) — 어느 쪽?"
+
+답이 GLOBAL (default 권장) 이면:
+  git clone --depth 1 https://github.com/kimzerokim/kzk-harness.git /tmp/kzk-harness
+  bash /tmp/kzk-harness/install/install-global.sh
+  rm -rf /tmp/kzk-harness
+
+답이 PROJECT-ONLY 면:
+  1. 현 디렉토리가 project root 인지 verify (CLAUDE.md 존재 OR git repo). 아니면 abort: "kzk-harness must be installed from a project root directory."
+  2. git clone --depth 1 https://github.com/kimzerokim/kzk-harness.git /tmp/kzk-harness
+  3. /tmp/kzk-harness/skills/kzk-* 각각의 SKILL.md 를 .claude/skills/<name>/ 로 sync. Version-aware: 두 frontmatter 의 `version:` 비교 — source ≥ target 또는 target 없으면 overwrite, target > source 면 preserve + log "skipped <name> — local v<X> > source v<Y>"
+  4. .claude/skills/kzk-* 중 source 에 없는 것 (rename / removed) 한 번에 사용자에게 묻고 yes 면 삭제
+  5. /tmp/kzk-harness/harness-share.md 를 project root 에 복사 (overwrite — version field 없음, source 가 single canonical)
+  6. CLAUDE.md 의 `## Active Skills (kzk-harness)` 섹션 refresh (없으면 H1 뒤 append). 다른 섹션 손대지 X. 새 표는 source 의 kzk-* 각각에 대해 SKILL.md frontmatter 의 name + description "Required triggers:" 부분 추출
+  7. bash /tmp/kzk-harness/install/dependencies.sh "$(pwd)"
+  8. rm -rf /tmp/kzk-harness
 ```
 
-This writes:
+**Why global is recommended** — install once, every Claude Code session in any directory auto-activates. No per-project migration. Update with one command. No config files accumulate inside project trees. The 14 skill `.md` files live in `~/.claude/skills/kzk-*` (auto-loaded), the umbrella `harness-share.md` lives in `~/.claude/skills/.kzk-harness-shared/` (dot-prefix prevents Claude from treating it as an invocable skill), and a clearly-marked block in `~/.claude/CLAUDE.md` carries the routing table. Outside that block, your existing `~/.claude/CLAUDE.md` is left byte-for-byte identical.
 
-- `~/.claude/skills/kzk-*/SKILL.md` — 14 skill files, auto-loaded by Claude Code.
-- `~/.claude/skills/.kzk-harness-shared/` — `harness-share.md`, `VERSION`, `README.md` (umbrella; the dotfile prefix prevents Claude from treating it as an invocable skill).
-- `~/.claude/CLAUDE.md` — adds (or refreshes) a `<!-- BEGIN kzk-harness skills --> ... <!-- END kzk-harness skills -->` block with the routing table + self-trigger matrix. Outside the marker block, your existing CLAUDE.md content is left byte-for-byte identical.
+**Project artifacts** (`harness-flow-progress.md`, `docs/harness/`, `docs/plans/`, `.web-loop/`, `.omc/`, `docs/research/codex-reviews/`) always stay in `$PWD` per spec §6.2 — the install never writes outside `~/.claude/` (global mode) or outside the project root (project-only mode).
 
-Project artifacts (`harness-flow-progress.md`, `docs/harness/`, `docs/plans/`, `.web-loop/`, `.omc/`, `docs/research/codex-reviews/`) stay in `$PWD` per spec §6.2 — the global install never writes outside `~/.claude/`.
+**External dependencies** (auto-installed by `dependencies.sh` for both modes): `code-review-graph` (pip --user → pipx fallback), `codex` CLI (npm → brew fallback), `gh` and `aws-vault` (detected only). Claude Code plugins (`oh-my-claudecode`, `playwright-mcp`) detected via `~/.claude/plugins/installed_plugins.json` and `~/.claude.json` — missing plugins emit the `/plugin` install command. Never hard-fails. See `install/dependencies.md` for per-skill fallback behavior.
 
-### Project-only install (legacy / fallback)
-
-If you do not want a global install, open Claude Code in your project root and paste:
-
-```
-Install kzk-harness: first verify the current directory is a project (has CLAUDE.md or is a git repository) — if not, abort with "kzk-harness must be installed from a project root directory."
-
-Then:
-1. git clone --depth 1 https://github.com/kimzerokim/kzk-harness.git /tmp/kzk-harness
-2. **Sync skills (handles new installs, version bumps, AND renames/removals).**
-   - For each skill in /tmp/kzk-harness/skills/: copy to .claude/skills/<name>/SKILL.md. Version check: read the `version:` field in the frontmatter of both the source and any existing target. Overwrite if source version is higher OR if target does not exist. If target version is HIGHER than source (locally bumped), preserve and log "skipped <name> — local v<X> > source v<Y>".
-   - After copying, scan .claude/skills/ for any existing `kzk-*` directory whose name is NOT present in /tmp/kzk-harness/skills/ — those are renamed-away or removed-upstream. List them to the user once with the message "These local kzk-* skills are no longer in the source repo (renamed or removed): <list>. Delete?" and delete on yes.
-3. Copy /tmp/kzk-harness/harness-share.md to the project root (always overwrite — this file has no version field; source is the single canonical version).
-4. **Refresh CLAUDE.md skills section (handles renames + trigger updates).** If CLAUDE.md does not exist, create it. Read CLAUDE.md. If `## Active Skills (kzk-harness)` exists, REPLACE the entire section (heading + table, up to the next `##` heading or end-of-file) with a fresh table listing all kzk-* skills currently in /tmp/kzk-harness/skills/ — for each, read its SKILL.md frontmatter and extract the `name:` and the trigger keywords from `description:` (the comma-separated list following "Required triggers:" or all keywords listed for that skill). If the section does not exist, append it after the H1. Do not modify any other section of CLAUDE.md.
-5. Install external dependencies: run `bash /tmp/kzk-harness/install/dependencies.sh "$(pwd)"`. The script auto-installs `code-review-graph` (pip --user → pipx fallback) and `codex` CLI (npm → brew fallback), detects `gh` and `aws-vault`, and detects the Claude Code plugins (`oh-my-claudecode` via `~/.claude/plugins/installed_plugins.json`, `playwright-mcp` via `~/.claude.json` / `<project>/.mcp.json` MCP server entries) — if either plugin is missing, the script emits the `/plugin` install command instead. Never hard-fails. See `install/dependencies.md` for per-skill fallback behavior.
-6. rm -rf /tmp/kzk-harness
-```
+**code-review-graph indexing is per-project.** The binary is installed once globally (or per Python env), but the SQLite knowledge graph is built per project root on first `kzk-codebase-survey` trigger (or via `bash install/dependencies.sh "$(pwd)"` from that project — the first arg is the project root the build runs in). The global install runs `--skip-project` and never builds a graph; each project bootstraps its own index.
 
 ## Update
 
