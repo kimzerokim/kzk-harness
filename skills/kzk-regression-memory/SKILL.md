@@ -1,6 +1,6 @@
 ---
 name: kzk-regression-memory
-version: 1.0.0
+version: 1.1.0
 description: "Regression memory + auto-recall — fix 시작 시 과거 유사 fix 자동 조회 (gstack /learn + sidecar). dismiss CLI mutation 포함. Top triggers: 'regression memory', '재발 방지', 'fix 시작', 'recall', '과거 fix 조회', 'dismiss recall'. Body §Triggers for full list."
 ---
 
@@ -53,8 +53,8 @@ UserPromptSubmit hook (`install/hooks/regression-recall.mjs`) 발동 시:
 
 1. 자가-skip guard 평가 (아래 §자가-skip guard) — 매칭 시 즉시 skip
 2. user prompt **normalization**: `prompt.slice(0, 200)` + 공백 split + FIX_KEYWORDS / 정규식 기반 키워드 추출. raw prompt 전체 사용 X (codex #4 답)
-3. `gstack learn search --query <kw>` (또는 `~/.gstack/projects/<slug>/learnings.jsonl` 직접 grep — Plan D Step 0 에서 시그니처 확정)
-4. **gstack 미설치 시**: `querylearn()` 가 `_warn:"gstack-not-installed"` structured reason 반환. stderr WARN 출력. inject 결과 0건. silent skip 금지 (codex #7 답)
+3. `direct JSONL read from ~/.gstack/projects/*/learnings.jsonl` (hook reads files directly, no CLI)
+4. **gstack 미설치 시**: `querylearn()` 가 `_warn:"gstack-learnings-not-found"` structured reason 반환. stderr WARN 출력. inject 결과 0건. silent skip 금지 (codex #7 답)
 5. sidecar JSONL grep — 각 hit 의 dismiss_count, archived, last_dismissed_at, stale 조회
 6. **Decay 공식**: `confidence_decayed = confidence * (0.85 ** dismiss_count)`. floating point.
 7. 필터:
@@ -62,7 +62,7 @@ UserPromptSubmit hook (`install/hooks/regression-recall.mjs`) 발동 시:
    - `confidence_decayed < 4` → 제외
 8. **Orphan cleanup** (codex #4 답 — `searchHits` vs `allLearnKeys` 분리):
    - **searchHits** = 현재 query 결과 keys (recall hit 만)
-   - **allLearnKeys** = `gstack learn list --keys-only` 또는 전체 dump 의 keys
+   - **allLearnKeys** = `direct JSONL read — collect all key fields from ~/.gstack/projects/*/learnings.jsonl`
    - cleanup 은 `allLearnKeys` snapshot 기준만 — sidecar entry 의 key 가 `allLearnKeys` 에 부재 → 자동 삭제 + stderr 로그 (`[regression-recall] orphan key removed: <key>`). 현재 query 에 안 걸린 정상 entry 보존
 9. 잔존 hits 으로 system-reminder inject:
    ```
@@ -72,7 +72,7 @@ UserPromptSubmit hook (`install/hooks/regression-recall.mjs`) 발동 시:
    dismiss: kzk-regression-memory dismiss <key>  (sidecar dismiss_count++)
    ```
 
-매칭 0건 → `{"continue":true}` (silent pass-through, gstack 미설치 시 `_warn` 동봉)
+매칭 0건 → `{"continue":true}` (silent pass-through, gstack plugin 미설치 또는 ~/.gstack/projects/ 부재 시 `_warn` 동봉)
 
 ## Dismiss/Archive CLI mutation path (codex #1 답)
 
@@ -120,8 +120,8 @@ node install/bin/kzk-regression-memory.mjs dismiss <key>
 | Who | `harness-flow-progress.md` 에 cycle entry 작성하는 주체 (메인 컨텍스트 또는 evaluator subagent). subagent 면 dispatch prompt 에 log 호출 의무 inject. |
 | When | cycle commit 직후, harness-flow-progress 갱신 다음 step |
 | What | 1 entry per cycle. `key=cycle-<N>-<axis>`, `type=pattern`, `insight=<한 줄 요약>`, `confidence=<verifier 결과>`, `source=retro` |
-| How | `gstack learn add --key ... --type ... --insight ... --confidence ... --source retro` (Plan D Step 0 에서 정확 시그니처 확정). sidecar 는 동시에 `key`, `file_snapshot=<path>:<line>@<git rev-parse HEAD:path>`, `related_cycles=[N]`, 나머지 default 로 append. **sidecar atomic writer** 통해 (codex #9 답) |
-| 실패시 | gstack 미설치 → cycle commit 시 stderr WARN 출력 + cycle entry 본문에 "regression memory 비활성 (gstack 미설치)" 의무 표기. silent skip 금지. cycle 진행 자체는 계속 (회고 entry 만 누락) |
+| How | `Skill("learn") invocation in conversation context (gstack /learn skill — NOT CLI)`. sidecar 는 동시에 `key`, `file_snapshot=<path>:<line>@<git rev-parse HEAD:path>`, `related_cycles=[N]`, 나머지 default 로 append. **sidecar atomic writer** 통해 (codex #9 답) |
+| 실패시 | gstack plugin 미설치 또는 ~/.gstack/projects/ 부재 → cycle commit 시 stderr WARN 출력 + cycle entry 본문에 "regression memory 비활성 (gstack 미설치)" 의무 표기. silent skip 금지. cycle 진행 자체는 계속 (회고 entry 만 누락) |
 | Where (kzk-web-loop) | `kzk-web-loop` cycle 끝의 evaluator 결과 paragraph 에서 추출. `file_snapshot` canonical source = evaluator 가 `git rev-parse HEAD:<file>` 로 sentinel SHA 캡처 |
 
 ## Stale check
@@ -158,7 +158,7 @@ node install/bin/kzk-regression-memory.mjs dismiss <key>
 ## Interaction with other kzk-*
 
 - **kzk-pre-merge-sync**: 마지막 step 에서 `--enable-hooks --regression-recall` 자동 호출 (사용자 confirm). first-enable 망각 차단. fail-closed.
-- **kzk-web-loop**: cycle 끝 step 5.5 에서 `gstack learn add` 호출 — 회고 entry 자동 작성. gstack 미설치 시 stderr WARN. file_snapshot canonical = `git rev-parse HEAD:<file>`.
+- **kzk-web-loop**: cycle 끝 step 5.5 에서 `Skill("learn") (gstack /learn skill)` 호출 — 회고 entry 자동 작성. gstack plugin 미설치 또는 ~/.gstack/projects/ 부재 시 stderr WARN. file_snapshot canonical = `git rev-parse HEAD:<file>`.
 - **kzk-large-task-delegation**: subagent dispatch prompt 에 recall 결과 inject 룰. fix-start 시점 recall = subagent 도 recall 결과 read. **size cap 200 char** — 초과 시 truncate + warning.
 - **kzk-fix-scope-expansion** (Plan B): D recall 결과를 consumer 로 read — fix-start hook 이 D 다음에 발동.
 - **kzk-autonomous-boundary**: 자가-skip guard 가 자율 mode 동사구 grep + `KZK_AUTONOMOUS=1` env — 자율 cycle 메인 prompt 자가오염 차단.

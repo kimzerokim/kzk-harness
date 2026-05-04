@@ -1,6 +1,6 @@
 ---
 name: kzk-spec-and-review
-version: 2.3.0
+version: 2.5.0
 description: "Spec/plan/major-design authoring with mandatory codex CLI cross-vendor review (Step 0 codebase-survey precondition). Top triggers: 'spec 잡자', 'plan draft', 'codex review', '여러 plan', '메타 plan'. Body §Triggers for full list."
 ---
 
@@ -33,9 +33,28 @@ A spec / plan / design draft built without codebase context is the same root cau
 
 ## Pattern (3-pass) — runs after Step 0
 
-1. **Draft (me)** — main writes the spec / plan / design. Survey report path from Step 0 MUST appear in the draft prompt's CONTEXT block as "Required reading: <path>" (not just file-listed — the draft must actually cite findings from the survey).
-2. **Codex consult** — run `codex exec` CLI directly (see §Codex execution shape below). CLI not available (`command not found`) or stuck per §Codex execution shape (60s no first token → retry; 5 min total → kill) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=<same review prompt>)`. **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
-3. **Synthesize (me)** — bucket each codex point as 🔴 즉시 fix / 🟡 spec 단계 디테일 / ⚪ push-back. Cite reasons per bucket. Hand the synthesized output to the user or the next phase.
+1. **Draft** — main orchestrates; actual md file writing dispatches to `oh-my-claudecode:executor` (sonnet). Prompt must include survey report path from Step 0 as "Required reading: <path>" (not just file-listed — the draft must actually cite findings from the survey). Main drafts only when ≤ 5 LoC total change (typo, single-line append).
+2. **Codex consult** — run `codex exec` CLI directly (see §Codex execution shape below). CLI not available (`command not found`) or stuck per §Codex execution shape (60s no first token → retry; 5 min total → kill) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", prompt=<same review prompt>)` (model 생략 → 메인 opus 버전 상속). **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
+3. **Synthesize** — main categorizes each codex point as 🔴 즉시 fix / 🟡 spec 단계 디테일 / ⚪ push-back (cite reasons per bucket). Then dispatch revision edits per §Spec/plan revision dispatch below. Main never directly Edit/Write the md file for 2+ edits.
+
+## Spec/plan revision dispatch (post-critic edits)
+
+Main = orchestrator (categorize, decide). Subagent = executor (apply edits to md file).
+
+| Revision scope | Dispatch |
+|---|---|
+| 1 edit, ≤ 5 LoC | Main direct OK |
+| 2+ edits or 5+ LoC | `Agent(subagent_type="oh-my-claudecode:executor", model="sonnet")` |
+
+**Executor dispatch prompt must include:**
+- Full path to the md file to edit
+- Critic verdict file path (for reference)
+- Categorized edit list: each item = section anchor + exact change description + 🔴/🟡 tag
+- "Read the target file first. Apply edits precisely at the cited sections. Do not rewrite uninvolved sections."
+
+**Why sonnet (not haiku writer):** post-critic spec revision requires understanding technical context from the critic feedback — lock semantics, cascade logic, API contracts. Haiku lacks the depth for precise technical edits. Writer (haiku) is appropriate for standalone documentation, not spec revision.
+
+**Anti-pattern (gridless cycle 7 incident):** main directly applied 7+ Edit operations to a spec file after critic review. Correct flow: main categorizes → builds edit list → dispatches single executor with all edits bundled.
 
 ## When mandatory
 
@@ -92,19 +111,66 @@ YOUR JOB. Numbered list:
 Cite sections. Terse. No compliments. If category fine, say "none".
 ```
 
-## Codex execution shape (CLI direct fallback)
+## Codex execution shape (CLI best practice)
+
+### Plain text mode (recommended for reviews)
 
 ```bash
-PROMPT=$(cat /tmp/<topic>-review-prompt.txt)
-# Note: check ${PIPESTATUS[0]} not $? — the pipe exit is jq's, not codex's
-codex exec "$PROMPT" -C <repo-root> -s read-only \
-  -c 'model_reasoning_effort="high"' --enable web_search_cached --json \
-  2>/tmp/codex-err.txt | jq -rR 'fromjson? | select(.text != null or .error != null) | .text // .error // ""'
+# 1. Write prompt to file (from §Codex prompt skeleton above)
+cat > /tmp/<topic>-review-prompt.txt << 'EOF'
+<prompt content>
+EOF
+
+# 2. Pipe stdin → codex exec, redirect stdout to file
+#    MUST use `-` arg so codex reads prompt from stdin (not shell $VAR expansion)
+#    MUST use --ephemeral to avoid session file clutter
+cat /tmp/<topic>-review-prompt.txt \
+  | codex exec \
+    -s read-only --ephemeral \
+    -C <repo-root> \
+    -c 'model_reasoning_effort="high"' \
+    - \
+    2>/tmp/codex-err.txt \
+    > /tmp/codex-out.txt
+CODEX_EXIT=$?
+
+# 3. Check exit + non-empty output
+if [ $CODEX_EXIT -ne 0 ] || [ ! -s /tmp/codex-out.txt ]; then
+  # → fallback to critic agent
+fi
 ```
 
+### JSON mode (when structured parsing needed)
+
+```bash
+cat /tmp/<topic>-review-prompt.txt \
+  | codex exec \
+    -s read-only --ephemeral \
+    -C <repo-root> \
+    --json \
+    - \
+    2>/tmp/codex-err.txt \
+    > /tmp/codex-out.json
+
+# --json produces NDJSON (one JSON object per line), NOT a single JSON object.
+# NEVER pipe --json directly to jq — always redirect to file first.
+jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text' \
+  /tmp/codex-out.json > /tmp/codex-out.txt
+```
+
+### Hard rules
+
+1. **Prompt via stdin pipe** (`cat file | codex exec ... -`). Never pass multi-line prompt as `codex exec "$VAR"` — shell escaping breaks on newlines, quotes, backticks.
+2. **`--json` output → file → jq**. Never `--json | jq` direct pipe — codex emits NDJSON (one JSON object per line), jq expects single JSON by default and chokes.
+3. **`--ephemeral`** always — prevents session file accumulation from automated runs.
+4. **Short single-line prompt exception**: `codex exec "short prompt" < /dev/null` is safe. Multi-line → always use stdin pipe.
+5. **Plain text mode preferred** for review use cases — simpler, no NDJSON parsing needed. Use JSON mode only when you need structured fields (token counts, thread IDs).
+
+### Timeout + stuck detection
+
 - `timeout: 300000` (5 min). Background-monitor per `kzk-background-monitoring`.
-- No first token in 60s → retry once with stdin closed (`< /dev/null`). No first token in 5 min total → stuck, kill + fallback to critic agent.
-- If stdout produces no parseable JSON lines (whether stdout is empty OR non-empty but not JSON): treat as failure. Immediately `cat /tmp/codex-err.txt` and check `${PIPESTATUS[0]}`. Save an error stub to the verdict file (path per §Verdict file convention above: "codex exit <N>, stderr: <first 200 chars>, stdout: <first 200 chars if non-empty>") then fall back to `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=<same review prompt>)`.
+- No first token in 60s → kill + retry once. No output in 5 min total → stuck, kill + fallback to critic agent.
+- Empty stdout or non-zero exit: save error stub to verdict file ("codex exit <N>, stderr: <first 200 chars>") then fall back to `Agent(subagent_type="oh-my-claudecode:critic", prompt=<same review prompt>)` (model 생략 → 메인 opus 버전 상속).
 
 ## Cost / cadence
 

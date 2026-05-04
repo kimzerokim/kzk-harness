@@ -1,6 +1,6 @@
 # kzk-harness external dependencies
 
-Authoritative list of every external tool the 14 `kzk-*` skills depend on, why, and the fallback behavior when missing.
+Authoritative list of every external tool the 16 `kzk-*` skills depend on, why, and the fallback behavior when missing.
 
 `install/dependencies.sh` auto-installs what can be installed from a shell. The Claude Code plugin entries (oh-my-claudecode, playwright-mcp) must be installed inside a Claude Code session via `/plugin` — they cannot be installed from a shell script.
 
@@ -58,6 +58,14 @@ Detection sources:
   - Reviewer agents unavailable → no automatic critic; user must run reviews manually.
   - Codex fallback unavailable → if codex CLI is also missing, `kzk-spec-and-review` halts with "no reviewer available".
 
+### gstack (recommended)
+
+- **Purpose**: Project learnings storage (JSONL) for regression memory recall. The `/learn` skill manages learnings; the hook reads JSONL files directly.
+- **Used by**: `kzk-regression-memory` (recall hook reads `~/.gstack/projects/<slug>/learnings.jsonl`), `kzk-web-loop` (cycle retrospective via `/learn` skill).
+- **Install**: `/plugin` inside a Claude Code session — search for `gstack`.
+- **Fallback if missing**: `kzk-regression-memory` recall returns 0 results. Sidecar-only mode. Cycle retrospective entries are not persisted to gstack learnings.
+- **Detection**: `~/.gstack/projects/` directory existence.
+
 ### playwright-mcp — required for kzk-web-loop, recommended for Gate 4
 
 - **Purpose**: Browser automation MCP tools (`browser_navigate`, `browser_snapshot`, `browser_take_screenshot`, etc.).
@@ -83,8 +91,9 @@ Detection sources:
 | `kzk-test-coverage` | — | OMC (`verifier`) |
 | `kzk-tool-retry` | — | — |
 | `kzk-user-queue` | — | — |
-| `kzk-web-loop` | playwright-mcp | code-review-graph (via `kzk-codebase-survey`) |
+| `kzk-web-loop` | playwright-mcp | code-review-graph (via `kzk-codebase-survey`), gstack (cycle retro `/learn` skill) |
 | `kzk-codebase-survey` | — | code-review-graph |
+| `kzk-regression-memory` | — | gstack plugin (`~/.gstack/projects/` JSONL) |
 
 ## Manual smoke test — `--skip-project` flag
 

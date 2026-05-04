@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.9.0
+version: 1.10.0
 description: "Large tasks (3+ files / 200+ LoC / 5+ file read / multi-stage) dispatch to fresh subagents — main never executes. Top triggers: '큰 작업', '버그 전수조사', '사이클 자율', 'plan 쪼개', 'subagent dispatch', 'Stage 3', 'fresh-agent verifier', 'verifier dispatch', 'INVALID_VERDICT', 'Body §Anti-pattern Main direct-edit'. Body §Triggers for full list."
 ---
 
@@ -164,42 +164,39 @@ Session-level effort is set via the Claude Code CLI banner (`Opus 4.7 with xhigh
 
 Typical session: 50% sonnet (executor) + 30% haiku (mechanical) + 20% opus (plan / critic / opus-trigger). Pre-Cycle-29 default was 80% sonnet 20% opus; the haiku tier reclaims the mechanical share.
 
-`model` MUST be specified explicitly on every dispatch. Omitted = Opus default = cost blowup.
+`model` MUST be specified for **downgrade** dispatches (sonnet, haiku). **Opus-tier dispatches MUST omit `model`** — this inherits the parent (main) agent's exact version, avoiding version mismatch (e.g. main=4.6 but subagent=4.7).
 
-### Code examples (mandatory `model` param)
-
-`model` MUST be specified explicitly on every dispatch. Omitted = Opus default = cost blowup + slow.
+### Code examples (model inheritance rule)
 
 ```typescript
-// ✅ Implementation — sonnet
+// ✅ Implementation — sonnet (explicit downgrade)
 Agent({
   subagent_type: 'oh-my-claudecode:executor',
   model: 'sonnet',
   prompt: 'Add useViews hook ...',
 });
 
-// ✅ Plan / design — opus
+// ✅ Plan / design — opus (omit model → inherits main's version)
 Agent({
   subagent_type: 'oh-my-claudecode:planner',
-  model: 'opus',
   prompt: 'Design merge conflict detection algorithm ...',
 });
 
-// ✅ Critic / verify — opus
+// ✅ Critic / verify — opus (omit model → inherits main's version)
 Agent({
   subagent_type: 'oh-my-claudecode:code-reviewer',
-  model: 'opus',
   prompt: 'Review diff for SQL safety + RBAC ...',
 });
 
-// ✅ Quick lookup — haiku or default
+// ✅ Quick lookup — haiku (explicit downgrade)
 Agent({
   subagent_type: 'oh-my-claudecode:explore',
+  model: 'haiku',
   prompt: 'Locate every reference to <symbol> ...',
 });
 ```
 
-**Forbidden**: omitting `model`. Implicit Opus is expensive and slow.
+**Rule**: `model="opus"` 명시 금지 — 최신 opus로 resolve되어 메인 버전과 불일치 + 비용 증가. 생략 시 부모 버전 상속.
 
 ## Pre-implementation plan-critic loop (opus + codex)
 

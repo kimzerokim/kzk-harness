@@ -236,7 +236,7 @@ Staged diff = only `*.md` (skills / harness-share / CLAUDE / README / progress /
 
 자율실행 mode / large-task delegation 끝 / **메인 직접 commit 모든 case** / high-risk tag (auth/payment/migration/public API) / 3+ 파일 multi-file 의 commit 직전:
 - `oh-my-claudecode:verifier` (fallback `oh-my-claudecode:code-reviewer`) dispatch
-- model 분기: `git diff --cached --shortstat` → < 3 files && < 100 LoC → sonnet, 그 외 → opus. high-risk / 메인 직접 commit → opus 강제
+- model 분기: `git diff --cached --shortstat` → < 3 files && < 100 LoC → `model="sonnet"` 명시, 그 외 → model 생략 (메인 opus 상속). high-risk / 메인 직접 commit → model 생략 (opus 상속)
 - VERDICT enforcement: 첫 줄 `VERDICT: PASS|FAIL|PARTIAL` 강제. 정규식 위반 → INVALID_VERDICT → fail-closed BLOCK + Q-VERIFIER-INVALID
 - 메인 self-approve 금지. PASS 받기 전 commit BLOCK
 - 2 consecutive FAIL on same thread `(plan_path, acceptance_id, verification_round)` → halt + Q-VERIFIER-FAIL
@@ -771,8 +771,8 @@ Russian Judge Verdict:
 
 - 절차:
   1. `/writing-plans` skill 로 plan draft 작성
-  2. `codex exec` CLI 직접 호출 (full command: see `kzk-spec-and-review` §Codex execution shape) — codex가 fresh 시각 으로 review
-  3. **codex CLI parse fail 시 fallback** = `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=...)` (claude opus critic agent)
+  2. `codex exec` CLI 직접 호출 (full command: see `kzk-spec-and-review` §Codex execution shape (CLI best practice)) — codex가 fresh 시각 으로 review
+  3. **codex CLI parse fail 시 fallback** = `Agent(subagent_type="oh-my-claudecode:critic", prompt=...)` (model 생략 → 메인 opus 버전 상속)
   4. codex/critic feedback 수신 → critical issues 반영 (architecture / acceptance criteria gap / scope drift / risk 미고려)
   5. revised plan 으로 ralph autonomous 진입
 - codex/critic prompt 필수 포함:
@@ -1049,7 +1049,7 @@ Cycle 28 학습: `kzk-codebase-survey` 가 트리거됐는데 `kzk-large-task-de
 - Query normalization: `prompt.slice(0, 200)` + 키워드 추출 (raw prompt 전체 X)
 - Decay: `confidence_decayed = confidence * (0.85 ** dismiss_count)`
 - Filter: `archived: true` OR `confidence_decayed < 4` → 제외
-- Orphan cleanup: `allLearnKeys` (gstack learn list 전체) snapshot 기준만. `searchHits` 기준 X
+- Orphan cleanup: `allLearnKeys` (direct JSONL read from ~/.gstack/projects/*/learnings.jsonl) snapshot 기준만. `searchHits` 기준 X
 - Output: system-reminder inject (`🚨 [REGRESSION RECALL]`)
 - gstack 미설치 시: stderr WARN + `_warn` structured reason. silent skip 금지
 
@@ -1090,7 +1090,7 @@ node install/bin/kzk-regression-memory.mjs dismiss <key>
 | Who | cycle entry 작성 주체 (메인 또는 evaluator subagent) |
 | When | cycle commit 직후, harness-flow-progress 갱신 다음 |
 | What | 1 entry/cycle. key=`cycle-<N>-<axis>`, type=`pattern`, source=`retro` |
-| How | `gstack learn add ...` + sidecar atomic append (file_snapshot = `git rev-parse HEAD:<file>`) |
+| How | `Skill("learn") invocation (gstack /learn skill)` + sidecar atomic append (file_snapshot = `git rev-parse HEAD:<file>`) |
 | 실패시 | gstack 미설치 → stderr WARN + cycle entry 본문 표기 의무. silent skip 금지 |
 | Where | kzk-web-loop cycle 끝 evaluator paragraph |
 

@@ -5,7 +5,7 @@
 // Authoritative spec: docs/plans/regression-memory-and-fix-quality-spec.md (rev7).
 // Default DISABLED at Plan D commit. Auto-enabled by kzk-pre-merge-sync last step.
 
-import { execSync } from "node:child_process";
+import fs from "node:fs";
 import path from "node:path";
 import { mutateSidecar, readSidecar } from "../lib/sidecar-write.mjs";
 import { FIX_KEYWORDS, SELF_IMPROVE_VERBPHRASES, shouldSkip, detectFixIntent, normalizeQuery } from "../lib/hook-shared.mjs";
@@ -17,33 +17,51 @@ import { FIX_KEYWORDS, SELF_IMPROVE_VERBPHRASES, shouldSkip, detectFixIntent, no
 const DECAY_BASE = 0.85;
 const CONFIDENCE_THRESHOLD = 4;
 
-// rev2 codex #7 — gstack 미설치 시 stderr WARN + structured _warn
-function querylearn(query) {
+// rev3 — direct JSONL read from ~/.gstack/projects/*/learnings.jsonl (no CLI)
+function loadAllLearnEntries() {
+  const projectsDir = path.join(process.env.HOME ?? "", ".gstack", "projects");
+  if (!fs.existsSync(projectsDir)) return null;
+  let subdirs;
   try {
-    const out = execSync(`gstack learn search --query ${JSON.stringify(query)} --format jsonl`, {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: 5000,
-    });
-    return { entries: out.split("\n").filter(Boolean).map((l) => JSON.parse(l)), warn: null };
-  } catch (e) {
-    process.stderr.write(`[regression-recall] gstack search failed: ${e.message}\n`);
-    return { entries: null, warn: "gstack-not-installed-or-search-failed" };
+    subdirs = fs.readdirSync(projectsDir, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => d.name);
+  } catch {
+    return null;
   }
+  const entries = [];
+  for (const slug of subdirs) {
+    const jsonlPath = path.join(projectsDir, slug, "learnings.jsonl");
+    if (!fs.existsSync(jsonlPath)) continue;
+    try {
+      const lines = fs.readFileSync(jsonlPath, "utf8").split("\n").filter(Boolean);
+      for (const line of lines) {
+        try { entries.push(JSON.parse(line)); } catch { /* skip malformed line */ }
+      }
+    } catch { /* skip unreadable file */ }
+  }
+  return entries.length > 0 ? entries : null;
 }
 
-// rev2 codex #4 — full /learn snapshot for orphan cleanup
-function listAllLearnKeys() {
-  try {
-    const out = execSync(`gstack learn list --keys-only`, {
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: 5000,
-    });
-    return out.split("\n").map((s) => s.trim()).filter(Boolean);
-  } catch {
-    return null;  // gstack 미설치 → orphan cleanup skip (false-positive 삭제 차단)
+// rev3 — filter entries by query words against insight + key fields
+function querylearn(query) {
+  const allEntries = loadAllLearnEntries();
+  if (allEntries === null) {
+    return { entries: null, warn: "gstack-learnings-not-found" };
   }
+  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
+  const matched = allEntries.filter((e) => {
+    const haystack = `${e.insight ?? ""} ${e.key ?? ""}`.toLowerCase();
+    return words.some((w) => haystack.includes(w));
+  });
+  return { entries: matched, warn: null };
+}
+
+// rev3 — collect all key fields from all projects
+function listAllLearnKeys() {
+  const allEntries = loadAllLearnEntries();
+  if (allEntries === null) return null;  // no files → orphan cleanup skip (false-positive 삭제 차단)
+  return allEntries.map((e) => e.key).filter(Boolean);
 }
 
 function decay(confidence, dismissCount) {
