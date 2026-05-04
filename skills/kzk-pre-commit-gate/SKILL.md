@@ -1,7 +1,7 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.0.12
-description: "6-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / secrets-scan / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/1.5/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'secrets scan', 'autonomous commit', 'doc-only exception'."
+version: 1.0.13
+description: "Up-to-6-step Pre-commit Gate (Gate 0 conditional on AGENTS.md hierarchy; gates: AGENTS.md sync / ai-slop-cleaner / secrets-scan / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/1.5/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'secrets scan', 'autonomous commit', 'doc-only exception'."
 ---
 
 > Authoritative source: `harness-share.md` §3. On conflict, that wins.
