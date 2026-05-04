@@ -88,7 +88,7 @@ test_skill_files_landed() {
   count=$(find "$test_home/.claude/skills" -maxdepth 2 -name 'SKILL.md' \
     -path '*/kzk-*/*' 2>/dev/null | wc -l | tr -d ' ')
 
-  assert_eq "14 SKILL.md files landed" "14" "$count"
+  assert_eq "16 SKILL.md files landed" "16" "$count"
 
   rm -rf "$test_home"
 }
@@ -158,7 +158,7 @@ test_claude_md_marker() {
   local row_count
   row_count=$(awk '/<!-- BEGIN kzk-harness skills -->/,/<!-- END kzk-harness skills -->/' "$cfile" |
     grep -cE '^\| kzk-' || true)
-  assert_eq "14 kzk- rows in marker block" "14" "$row_count"
+  assert_eq "16 kzk- rows in marker block" "16" "$row_count"
 
   rm -rf "$test_home"
 }
@@ -598,6 +598,36 @@ test_keyword_detector_matches_test_add() {
 }
 
 # ---------------------------------------------------------------------------
+# Plan D — regression-recall.test.mjs
+# ---------------------------------------------------------------------------
+test_regression_recall() {
+  printf '\n[test_regression_recall]\n'
+  if node "$REPO_ROOT/install/test/regression-recall.test.mjs"; then
+    printf '  PASS: regression-recall.test.mjs\n'
+    PASS=$((PASS + 1))
+  else
+    printf '  FAIL: regression-recall.test.mjs\n'
+    FAIL=$((FAIL + 1))
+    ERRORS+=("test_regression_recall")
+  fi
+}
+
+# ---------------------------------------------------------------------------
+# Plan B — fix-scope-trigger.test.mjs
+# ---------------------------------------------------------------------------
+test_fix_scope_trigger() {
+  printf '\n[test_fix_scope_trigger]\n'
+  if node "$REPO_ROOT/install/test/fix-scope-trigger.test.mjs"; then
+    printf '  PASS: fix-scope-trigger.test.mjs\n'
+    PASS=$((PASS + 1))
+  else
+    printf '  FAIL: fix-scope-trigger.test.mjs\n'
+    FAIL=$((FAIL + 1))
+    ERRORS+=("test_fix_scope_trigger")
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Run all tests
 # ---------------------------------------------------------------------------
 printf 'kzk-harness install-global tests (pure-bash, repo: %s)\n' "$REPO_ROOT"
@@ -624,6 +654,38 @@ test_keyword_detector_no_match_passes_through
 test_keyword_detector_matches_tdd
 test_keyword_detector_matches_vague_large
 test_keyword_detector_matches_test_add
+test_regression_recall
+test_fix_scope_trigger
+
+# Plan C — verifier-routing
+printf '\n--- verifier-routing (Plan C rev2) ---\n'
+if bash "$REPO_ROOT/install/test/verifier-routing.test.sh"; then
+  PASS=$((PASS + 1))
+  printf '  PASS: verifier-routing.test.sh\n'
+else
+  FAIL=$((FAIL + 1))
+  ERRORS+=("verifier-routing.test.sh")
+fi
+
+# Plan A — skill-text-checks
+printf '\n--- skill-text-checks (Plan A) ---\n'
+if bash "$REPO_ROOT/install/test/skill-text-checks.sh"; then
+  PASS=$((PASS + 1))
+  printf '  PASS: skill-text-checks.sh\n'
+else
+  FAIL=$((FAIL + 1))
+  ERRORS+=("skill-text-checks.sh")
+fi
+
+# Plan E — Gate 1.6 fixture
+printf '\n--- Gate 1.6 fixture (Plan E) ---\n'
+if bash "$REPO_ROOT/install/test/fixtures/gate-1.6-adhoc-grep.sh"; then
+  PASS=$((PASS + 1))
+  printf '  PASS: gate-1.6-adhoc-grep.sh\n'
+else
+  FAIL=$((FAIL + 1))
+  ERRORS+=("gate-1.6-adhoc-grep.sh")
+fi
 
 printf '\n'
 printf '=%.0s' {1..60}

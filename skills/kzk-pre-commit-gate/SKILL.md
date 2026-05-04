@@ -1,7 +1,7 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.2.0
-description: "Up-to-6-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets / build / test / Playwright). Top triggers: 'commit', 'pre-commit', 'Gate 0', 'AGENTS.md sync', 'doc-only'. Body §Triggers for full list."
+version: 1.5.0
+description: "Up-to-9-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets / production code-first / build / test / Playwright / fix-scope sanity / fresh-agent verifier). Top triggers: 'commit', 'pre-commit', 'Gate 0', 'AGENTS.md sync', 'Gate 1.6', 'production code-first', 'staged-path trigger', 'env-exception', 'Gate 4.5', 'fix-scope-cache', 'callsite mismatch', 'KZK_GATE45_SKIP', 'doc-only', 'Gate 5', 'verifier', 'fresh-agent verification', 'INVALID_VERDICT'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §3. On conflict, that wins.
@@ -10,9 +10,9 @@ description: "Up-to-6-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets /
 
 ## Triggers
 
-`commit`, `pre-commit`, `Gate 0`, `Gate 1`, `Gate 1.5`, `Gate 2`, `Gate 3`, `Gate 4`, `AGENTS.md sync`, `ai-slop-cleaner`, `secrets scan`, `autonomous commit`, `doc-only exception`.
+`commit`, `pre-commit`, `Gate 0`, `Gate 1`, `Gate 1.5`, `Gate 2`, `Gate 3`, `Gate 4`, `Gate 4.5`, `AGENTS.md sync`, `ai-slop-cleaner`, `secrets scan`, `autonomous commit`, `doc-only exception`, `fix-scope-cache`, `callsite mismatch`, `KZK_GATE45_SKIP`, `Gate 5`, `verifier`, `fresh-agent verification`, `Stage 3 cite`, `Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `Q-VERIFIER-DISPATCH-FAIL`, `INVALID_VERDICT`.
 
-Every commit passes up to 6 gates in order (0, 1, 1.5, 2, 3, 4 — Gate 0 only when AGENTS.md hierarchy present, so 5 gates otherwise). One failure → commit blocked.
+Every commit passes up to 8 gates in order (0, 1, 1.5, 2, 3, 4, 4.5, 5 — Gate 0 only when AGENTS.md hierarchy present, so 7 gates otherwise). One failure → commit blocked.
 
 ## Gate 0 — Touched-files AGENTS.md sync
 
@@ -49,6 +49,45 @@ Also check for `AKIA`/`ASIA` prefixes (AWS key patterns) per `kzk-production-acc
 
 Trivial false positives (e.g. test fixture strings that are obviously fake) → commit body must say `secrets-scan: false positive — <reason>`.
 
+## Gate 1.6 — Production code-first 검증 (Plan E rev2)
+
+> Authoritative source: `kzk-production-access` §Production state changes (rev2). On conflict, that wins.
+
+**Trigger 조건** (cycle 1 #12 — staged path 기반, commit-message 기반 X):
+staged diff 의 추가/삭제 행 (`+`/`-`) 중 다음 패턴 발견 시 진입:
+- 변경 디렉토리: `migrations/`, `infra/`, `scripts/prod/`, `terraform/`, `cloudformation/`, `cdk/`, `serverless.yml`
+- 또는 staged 텍스트 라인이 shell command 형태로 production CLI 호출 흔적
+
+doc-only fast path (commit message `docs(`/`chore(`/`style(` prefix) 와 충돌 X — staged path 가 트리거.
+
+**검증 — FAIL 패턴 (직접 실행 흔적)**:
+
+| 패턴 | 의미 |
+|---|---|
+| staged diff `+` 라인의 `psql .* (ALTER TABLE\|DROP TABLE\|CREATE INDEX)` shell-command 흔적 | DB schema ad-hoc |
+| `aws iam create-policy` / `aws iam put-policy` / `aws iam attach-role-policy` shell 흔적 | IAM ad-hoc |
+| `aws s3api put-bucket-(lifecycle-configuration\|policy)` shell 흔적 | S3 ad-hoc |
+| `aws lambda update-function-configuration` shell 흔적 (단 IaC-managed Lambda 한정) | Lambda env ad-hoc |
+
+heredoc / `psql -f migration.sql` 같은 script-driven 호출은 **FAIL 아님** (script 화 = 의도). 정확 매칭은 fixture-based shell test (`install/test/fixtures/gate-1.6-adhoc-grep.sh`) 가 보장.
+
+**검증 — WARN 패턴 (멱등성 부재, cycle 1 #3)**:
+
+| 패턴 | 처리 |
+|---|---|
+| 새 `*.sql` 파일이 `IF NOT EXISTS` / `IF EXISTS` / `ON CONFLICT` 키워드 부재 | WARN (commit 차단 X). 사용자 review 권고. regex 한계로 false positive 다수 — human gate. |
+
+WARN = stderr 출력 + commit 진행. FAIL = commit halt.
+
+**FAIL 시 동작**:
+- commit halt + 사용자 출력: "Gate 1.6 — direct execution trace detected. Replace with migration / IaC."
+- user-queue `Q-PROD-CODE-FIRST-<COMMIT-HASH>` 자동 append.
+
+**Skip 조건**:
+- staged path 가 production-related 디렉토리 아님
+- doc-only fast path 충족 (Gate 1.6 trigger 조건과 별개로 평가)
+- 사용자 explicit `[env-exception]` tag commit message body 에 명시 (runtime-only 카테고리 인정)
+
 ## Gate 2 — build green
 
 Run the repo's build command (e.g. `npm run build`). Verify dist artifact exists (e.g. `dist/main.js`, `dist/index.html`). Exit code 0.
@@ -62,6 +101,73 @@ Run the repo's build command (e.g. `npm run build`). Verify dist artifact exists
 If any changed file matches `src/**/*.{tsx,ts,css}` (or your repo's equivalent frontend source glob), Gate 4 is mandatory. See `kzk-playwright-verification` skill for the full routine. Skipping / deferring / "do it later in the final sweep" is forbidden.
 
 Exception: change is solely under `src/**/*.test.{tsx,ts}` — Gate 4 may be skipped.
+
+## Gate 4.5 — Fix Scope Sanity Check (Plan B)
+
+> Authoritative source: harness-share.md §3.5. On conflict, that wins.
+
+**Trigger**: `.kzk-harness/fix-scope-cache.jsonl` 존재 시 (fix-scope-trigger hook 이 활성이고 fix intent commit 일 때).
+
+**Skip**: `KZK_GATE45_SKIP=1` env var 설정 시 N/A (사유 commit body 기재 권고).
+
+**Cache policy**: JSONL append/list — 현재 cycle commit SHA (`$(git rev-parse HEAD)`) key 의 모든 항목 union 체크. `last-fix-wins` 아님.
+
+**Sanity check**: callsite list ⊄ `git diff --cached --name-only` → BLOCK.
+
+BLOCK 시 메시지:
+```
+Gate 4.5: callsite N곳 중 M곳 미수정.
+누락 의도를 commit body 에 명시하거나 해당 callsite 도 수정.
+```
+
+**Cache 부재**: N/A (fix-scope-trigger hook 비활성 또는 fix intent 아닌 commit).
+
+See `kzk-fix-scope-expansion` for the full fix-scope rules and `harness-share.md §3.5` as canonical SoT.
+
+## Gate 5 — Fresh-agent verifier (Plan C rev2)
+
+Commit 직전 final check. `kzk-large-task-delegation` §Three-stage review §Stage 3 결과 PASS 확인 (cache hit) 또는 verifier 새 호출.
+
+### Trigger — ANY of (rev2 #12):
+
+(a) `git diff --cached --name-only` 결과 3+ 파일
+(b) high-risk tag (auth / payment / migration / public API) — plan 본문 명시 또는 commit body marker
+(c) **메인 직접 commit 모든 case** — 메인 self-approve hole 차단
+
+조건 만족 시 Gate 5 의무. 셋 다 false → Gate 5 N/A.
+
+### 절차
+
+1. **Stage 3 cache 조회** — key = `(staged_diff_hash, acceptance_hash, verifier_model)`. same turn 안에서 hit 이면 PASS 인용 + commit body 에 `Gate 5: Stage 3 cite (verifier <subagent_type> <model>) PASS — <verifier 인용 1줄>`. PASS.
+2. **Cache miss** → Gate 5 가 verifier 새 호출. dispatch 룰은 `kzk-large-task-delegation` §Three-stage review §Stage 3 §Verifier dispatch 와 동일.
+   - diff base = `git diff --cached` (Gate 5 단위)
+   - acceptance 발췌 = current plan §Acceptance Criteria SoT 우선 (없으면 raw user criteria)
+   - VERDICT 파싱 정규식 `^VERDICT: (PASS|FAIL|PARTIAL)$`
+3. **Verdict 처리**:
+   - PASS → commit 진행 + commit body 에 verifier 인용
+   - PARTIAL → commit BLOCK + 메인 추가 fix cycle. 같은 thread 2 consecutive PARTIAL → FAIL escalate
+   - FAIL → commit BLOCK + 메인 fix cycle. **2 consecutive FAIL on same thread → halt + `Q-VERIFIER-FAIL`**
+   - INVALID_VERDICT (첫 줄 형식 위반) → commit BLOCK + `Q-VERIFIER-INVALID` user-queue
+   - Dispatch fail (subagent 응답 없음 / timeout) → commit BLOCK + `Q-VERIFIER-DISPATCH-FAIL` user-queue. fallback: `oh-my-claudecode:code-reviewer` → 그것도 실패 시 사용자 직접 review
+
+### Stage 3 vs Gate 5 분리 (중복 호출 차단)
+
+- Stage 3: cycle 단위 ("이 cycle 결과가 spec 만족하는가"), diff base = `HEAD~1`
+- Gate 5: commit 단위 ("이 commit 의 diff 가 verifier PASS 받았는가"), diff base = `--cached`
+
+같은 cycle 끝 commit 에서 두 단계 동시 발동 시 verifier 1회만 호출 + 두 단계 모두 cache 결과 인용. cache 룰: `kzk-large-task-delegation` §Three-stage review §Stage 3 ↔ Gate 5 cache 규약.
+
+### Doc-only commit 예외
+
+source code 변경 없는 doc-only commit 은 Gate 5 N/A (Gate 0–4 의 doc-only 예외와 동일).
+
+### Plan C self-bootstrap N/A (rev2 #1)
+
+Plan C 자체 적용 첫 commit 은 N/A 1회만 — commit body 에 명시 의무: `Gate 5 N/A — Plan C self-bootstrap commit, applies from next commit.`
+
+### Autonomous mode
+
+Gate 5 PASS 시 사용자 confirm 없이 commit 허용 (다른 gate 와 동일). FAIL / BLOCK / INVALID / dispatch fail 시 halt + user-queue.
 
 ## Doc-only commit exception
 
@@ -119,6 +225,7 @@ Non-autonomous (default): every commit waits for user OK after gates pass. No au
 - 1st failure: fix root cause, re-stage, new commit
 - **Autonomous mode:** 3 consecutive build/test failures on the same area → halt, append user-queue entry (see `kzk-autonomous-boundary`). **Interactive mode:** surface failures to user, do not auto-halt.
 - Critic / verifier / Gate 4 visual reviewer 2 consecutive FAIL on the same change (Gate 4 Playwright visual review, plan reviewer, verifier agent) → halt + user-queue entry. See `kzk-autonomous-boundary` for the full halt condition list. Exception: `kzk-web-loop` overrides consecutive-FAIL halts with skip+next-issue (see `kzk-web-loop` §Failure Handling).
+- Gate 5 verifier 2 consecutive FAIL on same thread → halt + `Q-VERIFIER-FAIL`. INVALID_VERDICT → `Q-VERIFIER-INVALID`. dispatch fail → `Q-VERIFIER-DISPATCH-FAIL`. See `kzk-autonomous-boundary` §Halt conditions 표 (reason / action / resume schema).
 - Never `git commit --amend` after a hook failure (the commit didn't happen — amending hits the previous commit)
 
 ## Interaction with other kzk-*
@@ -126,6 +233,7 @@ Non-autonomous (default): every commit waits for user OK after gates pass. No au
 - **kzk-autonomous-boundary**: Owns the halt protocol invoked when ≥2 consecutive reviewer/critic FAILs (or ≥3 consecutive build/test FAILs) occur during gate runs.
 - **kzk-playwright-verification**: Implements Gate 4 (browser smoke + screenshot drop).
 - **kzk-test-coverage**: Gate 3 runs the same test command this skill owns at session close.
-- **kzk-large-task-delegation**: Subagent prompts must echo the gate sequence so delegated executors commit with full gate awareness.
+- **kzk-large-task-delegation**: Gate 5 verifier dispatch 는 본 skill 의 §Three-stage review §Stage 3 와 sibling. 같은 thread / 같은 cache key → verifier 호출 1회만 (cache hit citation 우선). Subagent prompts must echo the gate sequence so delegated executors commit with full gate awareness.
 - **kzk-web-loop**: Owns the override exception that lets the loop bypass full Gate 0–4 in indefinite-loop mode (see kzk-web-loop §Failure Handling).
 - **kzk-pre-merge-sync**: Consumes the gate-PASS line this skill emits in the PR footer.
+- **kzk-production-access** (Axis E): Gate 1.6 룰 본문은 kzk-production-access §Production state changes 가 SoT.

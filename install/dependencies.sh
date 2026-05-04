@@ -117,6 +117,36 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 2.5. gstack CLI — used by kzk-regression-memory (Plan D)
+# ---------------------------------------------------------------------------
+if command -v gstack >/dev/null 2>&1; then
+  record "gstack CLI: already installed ($(gstack --version 2>/dev/null || echo 'version unknown'))"
+else
+  emit "[2.5] gstack CLI not found — attempting install..."
+  installed=0
+
+  if command -v npm >/dev/null 2>&1; then
+    if npm install -g gstack 2>/tmp/kzk-gstack-npm.log; then
+      installed=1
+      record "gstack CLI: installed via 'npm install -g gstack'"
+    fi
+  fi
+
+  if [ "$installed" -eq 0 ] && command -v brew >/dev/null 2>&1; then
+    if brew install gstack 2>/tmp/kzk-gstack-brew.log; then
+      installed=1
+      record "gstack CLI: installed via 'brew install gstack'"
+    fi
+  fi
+
+  if [ "$installed" -eq 0 ]; then
+    # Silent skip 금지 — stderr WARN 의무 (spec rev6 §Cycle 회고 5W1H 실패시)
+    printf 'WARN: gstack CLI install failed — kzk-regression-memory recall will be limited to sidecar only. Manual install: npm i -g gstack OR brew install gstack.\n' >&2
+    record "gstack CLI: NOT INSTALLED (npm & brew both failed). kzk-regression-memory will run in sidecar-only mode. cycle commits will WARN until installed."
+  fi
+fi
+
+# ---------------------------------------------------------------------------
 # 3. gh CLI (GitHub) — used by kzk-pre-merge-sync (PR creation)
 # ---------------------------------------------------------------------------
 if command -v gh >/dev/null 2>&1; then

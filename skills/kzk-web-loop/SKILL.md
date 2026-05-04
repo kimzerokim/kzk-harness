@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.4.0
+version: 1.5.0
 description: "Autonomous web page improvement loop — indefinite self-directed cycles via fresh evaluator agent. Top triggers: 'web loop', '웹 루프', '무한 루프', '자율 개선', '계속 돌려'. Body §Triggers for full list."
 ---
 
@@ -70,6 +70,31 @@ Each cycle executes these steps in order:
 **5. Update `harness-flow-progress.md`** — append one line using the canonical format (see §State Persistence):
 - Completed: `Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue one-liner] — queue: N remaining — PW: ok|degraded`
 - Skipped: `Cycle N (YYYY-MM-DD HH:MM) — skipped — [issue one-liner] — [reason] — queue: N remaining — PW: ok|degraded`
+
+**5.5. Cycle 회고 → gstack learn add** (Plan D)
+
+cycle commit 직후, harness-flow-progress 갱신 다음 step 으로 회고 entry 자동 작성:
+
+```bash
+gstack learn add \
+  --key "cycle-N-<axis>" \
+  --type pattern \
+  --insight "<evaluator paragraph 한 줄 요약>" \
+  --confidence <verifier 결과 0-10> \
+  --source retro
+```
+
+동시에 sidecar (`.kzk-harness/regression-meta.jsonl`) 에 append. **file_snapshot canonical source** = cycle 끝 evaluator 가 cycle 내 첫 변경 파일에 대해 `git rev-parse HEAD:<file>` 로 sentinel SHA 캡처:
+
+```jsonl
+{"key":"cycle-N-<axis>","file_snapshot":"<path>:<line>@<git rev-parse HEAD:path>","related_cycles":[N],"dismiss_count":0,"last_dismissed_at":null,"archived":false,"stale":false}
+```
+
+sidecar append 는 `install/lib/sidecar-write.mjs` 의 `mutateSidecar()` 통과 의무 (atomic write).
+
+**gstack 미설치 시**: stderr WARN 출력 + `harness-flow-progress.md` cycle entry 본문에 `regression memory 비활성 (gstack 미설치)` 의무 표기. cycle 진행 자체는 계속 (회고 entry 만 누락).
+
+**참조**: `kzk-regression-memory` §Cycle 회고 통합 5W1H — Where 행이 본 step. file_snapshot canonical source 정의.
 
 **6. Back to step 1a.**
 
@@ -239,3 +264,4 @@ Anything else → keep going.
 - **kzk-pre-commit-gate**: All executor dispatches must run all applicable gates (6 if AGENTS.md hierarchy present; 5 otherwise) before committing.
 - **kzk-autonomous-boundary**: All boundary conditions apply normally. The reviewer FAIL halt (defined in `kzk-autonomous-loop`) is overridden by web-loop per `harness-share.md` §25 — skip+next-issue instead of halt.
 - **kzk-user-queue**: skipped issues and ambiguous decisions are appended here with Q-WEBLOOP-<N>-<TOPIC> prefix.
+- **kzk-regression-memory**: cycle 끝 step 5.5 에서 `gstack learn add` 호출 + sidecar atomic append. file_snapshot = `git rev-parse HEAD:<file>` (canonical, evaluator 가 cycle 끝에 캡처). 회고 entry 자동 작성.

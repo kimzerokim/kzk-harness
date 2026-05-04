@@ -71,6 +71,29 @@ multi-step sequence (cutover, migration) 이면 단계별 OK 사인: AI propose 
 
 명시 없이는 read-only 호출도 X. 명시 범위 = 지시된 task / sequence 완료 시점까지 — 그 이상은 새 명시 필요.
 
+> *Plan E rev2 (state mutation)*: 위 직접 실행 의무는 read-only inspection / runtime-only 환경 설정 / multi-step 배포 의 step 실행에 한정. **production state mutation (DB schema, IaC-managed config 등) 은 §Production state changes 의 code-first 룰이 우선**.
+
+### Production state changes — code-first + 멱등성 (Plan E rev2)
+
+`### Production / 외부 인프라 Access` 의 destructive direct-execution 룰을 좁힌다 — production **state mutation** 한정.
+
+- **코드 우선**: migration / IaC / shell script. git tracked.
+- **AI 직접 호출 금지** (state mutation): explicit instruction 있어도 AI 실행 X. script 작성 → 사용자 review → 사용자/CI 실행.
+- **read-only inspection** (`aws s3 ls`, `describe-*`, `\dt`) 도 explicit instruction 필요 — instruction 있으면 AI 직접 실행 OK.
+- **멱등성 의무**: `IF NOT EXISTS` / `--if-not-exists` / `ON CONFLICT DO NOTHING`.
+- **Drift forward-only (state 기준)**: production state rollback 금지. code commit `git revert` 는 OK.
+- **Environment exceptions**: IaC-managed env → code-first. runtime-only (콘솔 수동 갱신, secret 회전, OAuth refresh) → 기존 §Production / 외부 인프라 Access 룰만 적용.
+
+**룰 SoT**: `kzk-production-access` §Production state changes.
+
+**Cross-axis**:
+- **Axis B** (`kzk-fix-scope-expansion`): production state mutation 의 impacted schema / query / ORM model / API contract artifact 전수.
+- **Axis D** (`kzk-regression-memory`): production change 회고 entry key=`prod-<change-slug>`, recall hook 매칭.
+
+**Enforcement**:
+- (a) `kzk-large-task-delegation` §Production-code-first boilerplate (Plan E) — sonnet/opus dispatch Rules block 자동 inject.
+- (b) `kzk-pre-commit-gate` Gate 1.6 — staged path 기반 trigger, direct-execution 흔적 FAIL / 멱등성 WARN.
+
 ### Credential Handling
 
 사용자가 채팅에 인프라 자격증명 (AWS / GCP / DB 등) 을 붙여 넣은 경우:
@@ -209,6 +232,19 @@ source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `doc
 
 Staged diff = only `*.md` (skills / harness-share / CLAUDE / README / progress / docs/) + no source file → run only Gate 1.5 (secrets) + verify-install AC2 (marker row count). Full gate set runs once at cycle close. See `kzk-pre-commit-gate §Doc-only patch policy`.
 
+### Gate 5 — Fresh-agent verifier (Plan C rev2)
+
+자율실행 mode / large-task delegation 끝 / **메인 직접 commit 모든 case** / high-risk tag (auth/payment/migration/public API) / 3+ 파일 multi-file 의 commit 직전:
+- `oh-my-claudecode:verifier` (fallback `oh-my-claudecode:code-reviewer`) dispatch
+- model 분기: `git diff --cached --shortstat` → < 3 files && < 100 LoC → sonnet, 그 외 → opus. high-risk / 메인 직접 commit → opus 강제
+- VERDICT enforcement: 첫 줄 `VERDICT: PASS|FAIL|PARTIAL` 강제. 정규식 위반 → INVALID_VERDICT → fail-closed BLOCK + Q-VERIFIER-INVALID
+- 메인 self-approve 금지. PASS 받기 전 commit BLOCK
+- 2 consecutive FAIL on same thread `(plan_path, acceptance_id, verification_round)` → halt + Q-VERIFIER-FAIL
+- Stage 3 cache 같은 turn 내 hit 이면 인용 (key = staged_diff_hash + acceptance_hash + verifier_model)
+- Plan C self-bootstrap commit 1회만 N/A
+
+룰 본문: `kzk-pre-commit-gate` §Gate 5, `kzk-large-task-delegation` §Three-stage review §Stage 3.
+
 ### Token migration — shadcn + Tailwind v4 bridge requirement
 
 Official shadcn new-york blocks use prefix-less tokens (`--background`, `--primary`, `--sidebar`). When the host project uses Tailwind v4 `@theme { --color-* }`, a bridge is required:
@@ -279,6 +315,8 @@ Race condition 회피:
 3. spec 의 acceptance criteria 충족 확인
 
 agent summary 만 신뢰 X — implementation 차원 검증 의무.
+
+4. **Stage 3 — Fresh-agent verification (Plan C rev2)** — 자율실행 cycle 끝 / large-task delegation 끝 / 메인 직접 commit 모든 case / high-risk tag / 3+ 파일 multi-file 의 commit 직전 fresh `oh-my-claudecode:verifier` dispatch. VERDICT 첫 줄 강제. 메인 self-approve 금지. 2 consecutive FAIL on same thread → halt + `Q-VERIFIER-FAIL`. INVALID_VERDICT → fail-closed BLOCK + `Q-VERIFIER-INVALID`. 룰 본문: `kzk-large-task-delegation` §Three-stage review §Stage 3.
 
 ---
 
@@ -474,6 +512,14 @@ autonomous 세션 = 변경한 파일의 라인·브랜치 커버리지 100%.
 - 미커버 영역 = 추가 unit/integration/e2e 테스트로 커버
 - 시간 제약 시 명시적 user-queue entry + 이유 기록
 - 경계: boot 파일 (main.ts), pure type declaration, ORM entity decorator-only file 은 논리 없음으로 coverage 공식 대상 외 (PR description 명시)
+
+### 11.1 Anti-Self-Verification (TDD)
+
+TDD red 단계에서 implementation 본 후 거기에 맞춘 test 작성하는 자기검증 루프 차단.
+
+- **Layer (a)** — sonnet executor dispatch prompt 에 anti-self-verification boilerplate 자동 inject. 룰 본문: `kzk-large-task-delegation` §Sonnet executor — Anti-self-verification boilerplate.
+- **Layer (b)** — 자율 mode (`KZK_AUTONOMOUS=1` 또는 동사구 키워드 매칭) 에서 메인 직접 TDD 진입 금지 — 반드시 fresh sonnet dispatch. 메인 직접 진입 시 halt + `Q-TDD-MAIN` user-queue entry. 룰 본문: `kzk-test-coverage` §Anti-pattern — Test-from-implementation.
+- 비-자율 mode 의 메인 self-check + user ACK 게이트 — 사용자 명시 confirm 받은 후 red 진입.
 
 ---
 
@@ -969,3 +1015,87 @@ Cycle 28 학습: `kzk-codebase-survey` 가 트리거됐는데 `kzk-large-task-de
 2. 메인 turn 시작 전 점검 — 사용자 prompt 가 다음 phrase 포함 시 large-task hop 강제: '플랜 쪼개', '사이클 자율', '버그들 모두', '모두 개선', '사용성 버그', '구현 검증', '전수조사', '마무리'.
 3. 점검 자동화: `install/hooks/keyword-detector.mjs` UserPromptSubmit hook (`install-global.sh --enable-hooks`). 매칭 시 system-reminder 로 강제 skill-load 명시.
 4. Survey 단독 로드 + 메인 직접 large execute = §Session-28 anti-pattern. `kzk-large-task-delegation §Operational checks 1–4` 으로 매 turn 점검.
+
+---
+
+## 29. Regression Memory Protocol (kzk-regression-memory, Plan D)
+
+자율실행 cycle 의 regression 망각 차단. fix-start 시점 prompt 매칭 → 자동 recall + dismiss CLI mutation path.
+
+### Storage 모델 (5필드 + 7필드)
+
+- **Backend**: gstack `/learn` JSONL (project-scoped). 5필드: `key`, `type`, `insight`, `confidence`, `source`
+- **Sidecar**: `.kzk-harness/regression-meta.jsonl`. **7필드**: `key`, `file_snapshot`, `related_cycles`, `dismiss_count`, `last_dismissed_at`, `archived`, **`stale`**
+- Sidecar = metadata extension with **own SoT for dismiss + stale state** (derived view 아님 — dismiss_count 와 stale 둘 다 사용자/하드웨어 액션 source)
+- FK: sidecar `key` 는 `/learn` 에 반드시 존재. 부재 시 orphan cleanup
+- file_snapshot canonical source = `git rev-parse HEAD:<file>` (cycle 끝 evaluator 가 sentinel SHA 캡처)
+
+### Recall 룰
+
+- Trigger: `UserPromptSubmit` hook (`install/hooks/regression-recall.mjs`)
+- Query normalization: `prompt.slice(0, 200)` + 키워드 추출 (raw prompt 전체 X)
+- Decay: `confidence_decayed = confidence * (0.85 ** dismiss_count)`
+- Filter: `archived: true` OR `confidence_decayed < 4` → 제외
+- Orphan cleanup: `allLearnKeys` (gstack learn list 전체) snapshot 기준만. `searchHits` 기준 X
+- Output: system-reminder inject (`🚨 [REGRESSION RECALL]`)
+- gstack 미설치 시: stderr WARN + `_warn` structured reason. silent skip 금지
+
+### Dismiss/Archive CLI (mutation path)
+
+```bash
+node install/bin/kzk-regression-memory.mjs dismiss <key>
+```
+
+- `dismiss_count++`
+- `last_dismissed_at = ISO8601`
+- `archived = (dismiss_count >= 3)` (spec lock)
+- atomic write via `install/lib/sidecar-write.mjs`
+
+### 자가-skip guard (동사구만)
+
+자가개선 cycle 메인 prompt 자가오염 차단:
+- 환경변수 `KZK_HARNESS_SELF_IMPROVEMENT=1` 또는 `KZK_AUTONOMOUS=1` 우선
+- self-improvement **동사구** grep — 명사 단독 금지:
+  - `harness 개선 루프 시작`, `자가개선 cycle 진입`, `메타 cycle 진입`, `ralph 로 돌려` 등
+
+### Stale check
+
+`install/scripts/regression-stale-check.sh`:
+- cron 또는 cycle-end 단발
+- file_snapshot SHA vs HEAD 비교
+- sidecar 의 `stale` 7번째 필드 update (atomic via lockdir)
+- recall hook 은 cached `stale` 필드 read (라이브 git blame X)
+
+### Atomic sidecar writer (공용 utility)
+
+`install/lib/sidecar-write.mjs` — lockdir + tmp + atomic mv. hook + stale-check + dismiss CLI + cycle 회고 append 모두 본 utility 사용. 동시 실행 시 직렬화.
+
+### Cycle 회고 5W1H (kzk-web-loop step 5.5 진입)
+
+| W | Detail |
+|---|---|
+| Who | cycle entry 작성 주체 (메인 또는 evaluator subagent) |
+| When | cycle commit 직후, harness-flow-progress 갱신 다음 |
+| What | 1 entry/cycle. key=`cycle-<N>-<axis>`, type=`pattern`, source=`retro` |
+| How | `gstack learn add ...` + sidecar atomic append (file_snapshot = `git rev-parse HEAD:<file>`) |
+| 실패시 | gstack 미설치 → stderr WARN + cycle entry 본문 표기 의무. silent skip 금지 |
+| Where | kzk-web-loop cycle 끝 evaluator paragraph |
+
+### Default DISABLED at D commit, 자동 enable on main 머지 (5 plan 후, fail-closed)
+
+- D plan commit 시점: hook 파일 추가 but settings.json 등록 X
+- **5 plan (A→D→B→C→E)** 끝나고 `kzk-pre-merge-sync` step 3 가 `install-global.sh --enable-hooks --regression-recall` 자동 호출 (사용자 confirm 게이트)
+- `--regression-recall` 는 keyword-detector 도 explicit dependency 로 자동 enable
+- **fail-closed**: install-global.sh exit non-zero / duplicate entry / jq 부재 → merge block
+
+### Rollback (7 level — codex #10 답)
+
+| Level | 메커니즘 |
+|---|---|
+| 단일 plan revert | `git revert <Plan-D-sha>` |
+| Hook 즉시 비활성 | `OMC_SKIP_HOOKS=regression-recall` |
+| Skill 즉시 비활성 | `DISABLE_OMC=kzk-regression-memory` |
+| settings.json 수동 | hook entry 수동 제거 |
+| Sidecar 손실 | dismiss_count + stale reset 만 — /learn 보존 |
+| Plan D 자가오염 | default DISABLED 라 즉시 위협 X. enable 후 발견 시 OMC_SKIP_HOOKS |
+| **Global install 산출물 cleanup** | `~/.claude/skills/.kzk-harness-shared/hooks/regression-recall.mjs` + `lib/sidecar-write.mjs` + `bin/kzk-regression-memory.mjs` 제거 + 중복 settings.json `UserPromptSubmit` entry 정리 (`uninstall-global.sh --regression-recall` 또는 jq: `jq '.hooks.UserPromptSubmit \|= map(select(.hooks[0].command \| test("regression-recall") \| not))' ~/.claude/settings.json`) |

@@ -56,6 +56,7 @@ DO_UPDATE=0
 SYMLINK_MODE=0
 SYMLINK_MODE_FORCE=0
 ENABLE_HOOKS=0
+DO_REGRESSION_RECALL=0
 AUTO_YES=0
 AC8_ATTESTED=""
 SOURCE_REPO_DIR=""
@@ -78,6 +79,8 @@ Flags:
   --symlink-mode                   Dev mode: symlink harness-share.md only
   --symlink-mode-force             Skip multi-checkout refusal for --symlink-mode
   --enable-hooks                   Wire keyword-detector.mjs into settings.json (N3)
+  --regression-recall              Also wire regression-recall.mjs (implies --enable-hooks)
+  --fix-scope-trigger              Also wire fix-scope-trigger.mjs (Plan B, implies --enable-hooks)
   --yes                            Skip interactive marker-replace prompt
   --ac8-attested-by-user "<DATE>"  Manual AC8 attestation (CI / no claude CLI)
   -h, --help                       Show this help
@@ -115,6 +118,14 @@ parse_flags() {
         ;;
       --enable-hooks)
         ENABLE_HOOKS=1
+        shift
+        ;;
+      --regression-recall)
+        DO_REGRESSION_RECALL=1
+        shift
+        ;;
+      --fix-scope-trigger)
+        DO_FIX_SCOPE_TRIGGER=1
         shift
         ;;
       --yes)
@@ -428,7 +439,7 @@ _build_routing_block() {
   cat <<EOF
 ## kzk-harness skills (${ver} installed ${install_date})
 
-> Workflow skill layer. 14 markdown skills auto-load from ~/.claude/skills/kzk-*.
+> Workflow skill layer. 16 markdown skills auto-load from ~/.claude/skills/kzk-*.
 > Project artifacts (\`harness-flow-progress.md\`, \`docs/harness/\`, \`docs/plans/\`,
 > \`.web-loop/\`, \`.omc/\`, \`docs/research/codex-reviews/\`) stay in \`\$PWD\`.
 
@@ -567,8 +578,8 @@ verify_install() {
   # Count SKILL.md files under kzk-* dirs
   local count
   count=$(find "$skills_dst" -maxdepth 2 -name 'SKILL.md' -path '*/kzk-*/*' 2>/dev/null | wc -l | tr -d ' ')
-  if [ "${count:-0}" -ne 14 ]; then
-    emit "VERIFY FAIL: expected 14 kzk-*/SKILL.md, found ${count:-0}" >&2
+  if [ "${count:-0}" -ne 16 ]; then
+    emit "VERIFY FAIL: expected 16 kzk-*/SKILL.md, found ${count:-0}" >&2
     ok=0
   fi
 
@@ -599,15 +610,15 @@ verify_install() {
     local row_count
     row_count=$(awk -v b="$KZK_MARKER_BEGIN" -v e="$KZK_MARKER_END" \
       '$0==b{f=1;next} $0==e{f=0;next} f && /^\| kzk-/' "$claude_md" | wc -l | tr -d ' ')
-    if [ "${row_count:-0}" -ne 14 ]; then
-      emit "VERIFY FAIL: expected 14 '| kzk-' rows in marker block, found ${row_count:-0}" >&2
+    if [ "${row_count:-0}" -ne 16 ]; then
+      emit "VERIFY FAIL: expected 16 '| kzk-' rows in marker block, found ${row_count:-0}" >&2
       ok=0
     fi
   fi
 
   if [ "$ok" -eq 1 ]; then
-    emit "  all 14 skills + umbrella + CLAUDE.md marker verified"
-    record "verification: PASS (14 skills, umbrella, marker)"
+    emit "  all 16 skills + umbrella + CLAUDE.md marker verified"
+    record "verification: PASS (16 skills, umbrella, marker)"
     return 0
   else
     record "verification: FAIL — see errors above"
@@ -621,26 +632,91 @@ verify_install() {
 enable_hooks() {
   local src="$SOURCE_REPO_DIR"
   mkdir -p "$HOME/.claude/skills/.kzk-harness-shared/hooks"
+  mkdir -p "$HOME/.claude/skills/.kzk-harness-shared/lib"
+  mkdir -p "$HOME/.claude/skills/.kzk-harness-shared/bin"
+
   cp "$src/install/hooks/keyword-detector.mjs" \
     "$HOME/.claude/skills/.kzk-harness-shared/hooks/"
+
+  # Plan D: regression-recall hook + sidecar-write lib + dismiss bin
+  if [ "${DO_REGRESSION_RECALL:-0}" -eq 1 ]; then
+    cp "$src/install/hooks/regression-recall.mjs" \
+      "$HOME/.claude/skills/.kzk-harness-shared/hooks/"
+    cp "$src/install/lib/sidecar-write.mjs" \
+      "$HOME/.claude/skills/.kzk-harness-shared/lib/"
+    cp "$src/install/bin/kzk-regression-memory.mjs" \
+      "$HOME/.claude/skills/.kzk-harness-shared/bin/"
+  fi
 
   local settings="$HOME/.claude/settings.json"
   if [ ! -f "$settings" ]; then
     printf '{}' >"$settings"
   fi
 
-  if command -v jq >/dev/null 2>&1; then
-    local tmp
-    tmp=$(mktemp)
-    jq --arg cmd "node $HOME/.claude/skills/.kzk-harness-shared/hooks/keyword-detector.mjs" '
-      .hooks.UserPromptSubmit |= ((. // []) + [{matcher:"*", hooks:[{type:"command", command:$cmd}]}])
-    ' "$settings" >"$tmp" && mv "$tmp" "$settings"
-    emit "  hooks: keyword-detector.mjs registered in ~/.claude/settings.json"
-    record "hooks: UserPromptSubmit hook registered (--enable-hooks)"
-  else
+  if ! command -v jq >/dev/null 2>&1; then
     emit "  hooks: jq not found — cannot update settings.json. Install jq and re-run with --enable-hooks." >&2
     record "hooks: SKIPPED (jq not found)"
+    # rev2 codex #3 — fail-closed: jq 부재 시 enable 실패 → exit non-zero (called from kzk-pre-merge-sync step 3)
+    return 1
   fi
+
+  # Idempotent append: keyword-detector
+  local kd_cmd="node $HOME/.claude/skills/.kzk-harness-shared/hooks/keyword-detector.mjs"
+  local kd_already
+  kd_already=$(jq --arg cmd "$kd_cmd" '[.hooks.UserPromptSubmit[]?.hooks[]?.command // empty] | map(select(. == $cmd)) | length' "$settings")
+  if [ "${kd_already:-0}" -gt 0 ]; then
+    emit "  hooks: keyword-detector.mjs already registered — skip"
+    record "hooks: keyword-detector skip (already registered)"
+  else
+    local tmp
+    tmp=$(mktemp)
+    jq --arg cmd "$kd_cmd" '
+      .hooks.UserPromptSubmit |= ((. // []) + [{matcher:"*", hooks:[{type:"command", command:$cmd}]}])
+    ' "$settings" >"$tmp" && mv "$tmp" "$settings" || return 1
+    emit "  hooks: keyword-detector.mjs registered in ~/.claude/settings.json"
+    record "hooks: UserPromptSubmit hook registered (--enable-hooks)"
+  fi
+
+  # Plan D: regression-recall idempotent append
+  if [ "${DO_REGRESSION_RECALL:-0}" -eq 1 ]; then
+    cp "$src/install/hooks/regression-recall.mjs" \
+      "$HOME/.claude/skills/.kzk-harness-shared/hooks/" 2>/dev/null || true
+    local rr_cmd="node $HOME/.claude/skills/.kzk-harness-shared/hooks/regression-recall.mjs"
+    local rr_already
+    rr_already=$(jq --arg cmd "$rr_cmd" '[.hooks.UserPromptSubmit[]?.hooks[]?.command // empty] | map(select(. == $cmd)) | length' "$settings")
+    if [ "${rr_already:-0}" -gt 0 ]; then
+      emit "  hooks: regression-recall.mjs already registered — skip"
+      record "hooks: regression-recall skip (already registered)"
+    else
+      tmp=$(mktemp)
+      jq --arg cmd "$rr_cmd" '
+        .hooks.UserPromptSubmit |= ((. // []) + [{matcher:"*", hooks:[{type:"command", command:$cmd}]}])
+      ' "$settings" >"$tmp" && mv "$tmp" "$settings" || return 1
+      emit "  hooks: regression-recall.mjs registered (--regression-recall)"
+      record "hooks: regression-recall hook registered (--regression-recall, depends on --enable-hooks)"
+    fi
+  fi
+
+  # Plan B: fix-scope-trigger idempotent append
+  if [ "${DO_FIX_SCOPE_TRIGGER:-0}" -eq 1 ]; then
+    cp "$src/install/hooks/fix-scope-trigger.mjs" \
+      "$HOME/.claude/skills/.kzk-harness-shared/hooks/" 2>/dev/null || true
+    local fst_cmd="node $HOME/.claude/skills/.kzk-harness-shared/hooks/fix-scope-trigger.mjs"
+    local fst_already
+    fst_already=$(jq --arg cmd "$fst_cmd" '[.hooks.UserPromptSubmit[]?.hooks[]?.command // empty] | map(select(. == $cmd)) | length' "$settings")
+    if [ "${fst_already:-0}" -gt 0 ]; then
+      emit "  hooks: fix-scope-trigger.mjs already registered — skip"
+      record "hooks: fix-scope-trigger skip (already registered)"
+    else
+      tmp=$(mktemp)
+      jq --arg cmd "$fst_cmd" '
+        .hooks.UserPromptSubmit |= ((. // []) + [{matcher:"*", hooks:[{type:"command", command:$cmd}]}])
+      ' "$settings" >"$tmp" && mv "$tmp" "$settings" || return 1
+      emit "  hooks: fix-scope-trigger.mjs registered (--fix-scope-trigger)"
+      record "hooks: fix-scope-trigger hook registered (--fix-scope-trigger, depends on --enable-hooks)"
+    fi
+  fi
+  return 0
 }
 
 # ---------------------------------------------------------------------------
@@ -710,8 +786,23 @@ main() {
     exit 1
   fi
 
+  # Plan D: --regression-recall 는 --enable-hooks 의 explicit dependency
+  if [ "${DO_REGRESSION_RECALL:-0}" -eq 1 ] && [ "${ENABLE_HOOKS:-0}" -eq 0 ]; then
+    emit "  --regression-recall implies --enable-hooks (explicit dependency)"
+    ENABLE_HOOKS=1
+  fi
+
+  # Plan B: --fix-scope-trigger 는 --enable-hooks 의 explicit dependency
+  if [ "${DO_FIX_SCOPE_TRIGGER:-0}" -eq 1 ] && [ "${ENABLE_HOOKS:-0}" -eq 0 ]; then
+    emit "  --fix-scope-trigger implies --enable-hooks (explicit dependency)"
+    ENABLE_HOOKS=1
+  fi
+
   if [ "$ENABLE_HOOKS" -eq 1 ]; then
-    enable_hooks
+    if ! enable_hooks; then
+      emit "  ERROR: enable_hooks failed — aborting (fail-closed for kzk-pre-merge-sync step 3)" >&2
+      exit 1
+    fi
   fi
 
   print_summary

@@ -1,7 +1,7 @@
 ---
 name: kzk-large-task-delegation
-version: 1.4.0
-description: "Large tasks (3+ files / 200+ LoC / 5+ file read / multi-stage) dispatch to fresh subagents — main never executes. Top triggers: '큰 작업', '버그 전수조사', '사이클 자율', 'plan 쪼개', 'subagent dispatch'. Body §Triggers for full list."
+version: 1.8.0
+description: "Large tasks (3+ files / 200+ LoC / 5+ file read / multi-stage) dispatch to fresh subagents — main never executes. Top triggers: '큰 작업', '버그 전수조사', '사이클 자율', 'plan 쪼개', 'subagent dispatch', 'Stage 3', 'fresh-agent verifier', 'verifier dispatch', 'INVALID_VERDICT'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §4. On conflict, that wins.
@@ -10,7 +10,7 @@ description: "Large tasks (3+ files / 200+ LoC / 5+ file read / multi-stage) dis
 
 ## Triggers
 
-`large task`, `subagent dispatch`, `3+ file edits`, `200+ LoC`, `opus/sonnet routing`, `subagent-driven`, `큰 작업`, `fresh subagent`, `메인 컨텍스트`, `여러 파일 동시 편집`, `Plan scope 전체`, `read-heavy audit`, `spec verification`, `구현 검증`, `버그 전수조사`, `implementation audit`, `5+ file read`, `마무리 해줘`, `전수 검토`, `끝내줘`, `사용성 버그`, `사용성 회귀`, `QA scan`, `여러 plan 으로 쪼개`, `플랜 여러개로 쪼개`, `plan 쪼개`, `사이클 자율`, `사이클로 자율`, `사이클 돌면서`, `버그들 모두`, `모두 잡아줘`.
+`large task`, `subagent dispatch`, `3+ file edits`, `200+ LoC`, `opus/sonnet routing`, `subagent-driven`, `큰 작업`, `fresh subagent`, `메인 컨텍스트`, `여러 파일 동시 편집`, `Plan scope 전체`, `read-heavy audit`, `spec verification`, `구현 검증`, `버그 전수조사`, `implementation audit`, `5+ file read`, `마무리 해줘`, `전수 검토`, `끝내줘`, `사용성 버그`, `사용성 회귀`, `QA scan`, `여러 plan 으로 쪼개`, `플랜 여러개로 쪼개`, `plan 쪼개`, `사이클 자율`, `사이클로 자율`, `사이클 돌면서`, `버그들 모두`, `모두 잡아줘`, `Stage 3`, `fresh-agent verifier`, `verifier dispatch`, `verifier model routing`, `PASS FAIL PARTIAL`, `Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `INVALID_VERDICT`, `verification thread`.
 
 Large work runs in fresh subagents via `/superpowers:subagent-driven-development`. Main context = dispatch + review + commit. Main never holds the implementation.
 
@@ -221,12 +221,13 @@ Every dispatch prompt must include:
 - Scope (file paths, line ranges)
 - Plan file path (which task within) — **frozen plan only when dispatching to sonnet**
 - Required reading list (CLAUDE.md, the spec doc, sister files)
-- Rules block: TDD sequence (red-green-refactor — see kzk-test-coverage §TDD sequence; failing test BEFORE impl is non-negotiable in autonomous mode) + context7 mandate + `kzk-pre-commit-gate` (incl. **Gate 0 AGENTS.md sync** — touched-files AGENTS.md goes in the SAME commit) + DO-NOT-MODIFY paths + branch boundary (the session **branch contract** locked by `kzk-autonomous-boundary` — verify the current branch matches the contract via `git branch --show-current` before dispatch; `main` is allowed only if the contract authorized direct-main flow this session)
+- Rules block: TDD sequence (red-green-refactor — see kzk-test-coverage §TDD sequence; failing test BEFORE impl is non-negotiable in autonomous mode) + **§Sonnet executor — Anti-self-verification boilerplate 의 literal boilerplate 텍스트를 dispatch prompt 의 Rules block 에 그대로 포함 (참조만 X — fresh agent 는 SKILL.md 를 자동으로 읽지 않음)** + context7 mandate + `kzk-pre-commit-gate` (incl. **Gate 0 AGENTS.md sync** — touched-files AGENTS.md goes in the SAME commit) + DO-NOT-MODIFY paths + branch boundary (the session **branch contract** locked by `kzk-autonomous-boundary` — verify the current branch matches the contract via `git branch --show-current` before dispatch; `main` is allowed only if the contract authorized direct-main flow this session)
 - Commit message convention (English conventional commits, no Co-Authored-By)
 - Working directory absolute path
 - Race-condition awareness (file scopes vs other parallel subagents)
 - Return format on success
 - Halt condition (blocked → user-queue entry)
+- **Recall 결과 inject** (Plan D): subagent dispatch prompt 의 Rules block 에 메인이 받은 [REGRESSION RECALL] system-reminder 가 있으면, 해당 텍스트를 verbatim 으로 dispatch prompt 에 inject. **size cap 200 char** — reminder 가 200 char 초과 시 truncate (hits 우선순위 high → low confidence_decayed 로 정렬 후 cumulative length 200 도달까지) + warning footer (`[truncated: <N> more hits]`). subagent 가 fix 작업 시 recall 결과 read. 매칭 정확성은 subagent 가 검토.
 
 ### Sonnet executor — extra plan-detail requirements
 
@@ -245,6 +246,41 @@ If the plan cannot be made this detailed, the task is not yet ready for sonnet �
 
 Typical prompt = 60-150 lines for opus, 100-220 lines for sonnet. Terse prompt = shallow work.
 
+### Production-code-first boilerplate (Plan E)
+
+Sonnet/opus dispatch prompt 의 Rules block 에 다음 boilerplate 자동 inject (production state mutation 차단):
+
+```
+[PRODUCTION-CODE-FIRST RULE — kzk-production-access §Production state changes (rev2)]
+이 task 가 production state mutation (DB schema / IAM policy / S3 lifecycle / IaC-managed Lambda env / CloudFront 등) 을 포함한다면:
+- AI 직접 실행 금지 (사용자 explicit instruction 있어도). script (migration / IaC) 작성 → 사용자 review (Three-stage review, Plan C) → 사용자/CI 실행
+- read-only inspection (aws s3 ls, describe-*, \dt) 만 AI 직접 실행 OK — 단 사용자 explicit instruction 필요
+- 멱등성 의무: IF NOT EXISTS / ON CONFLICT DO NOTHING / --if-not-exists
+- Drift 발견 시 forward-only migration (production state rollback X. code commit git revert 는 OK)
+- 환경 설정 예외 (runtime-only) 만 기존 explicit-instruction rule 적용. IaC-managed 는 code-first 의무
+위반 시 task BLOCKED 반환 + plan revision 요청.
+```
+
+**Trigger 키워드** (메인이 dispatch prompt 작성 시 자동 inject 대상):
+`production`, `prod`, `migration`, `schema change`, `ALTER TABLE`, `IaC`, `Terraform`, `CloudFormation`, `IAM`, `S3 lifecycle`, `Lambda env`, `RDS`, `aws-vault`.
+
+본 boilerplate 누락 = §Three-stage review (Plan C) FAIL.
+
+### Anti-self-verification boilerplate (Plan A)
+
+Sonnet executor dispatch prompt 에 다음 boilerplate 자동 inject (TDD red 단계 진입 시 implementation read 차단):
+
+```
+[ANTI-SELF-VERIFICATION RULE — kzk-test-coverage §Anti-pattern]
+TDD red 단계 (failing test 작성) 진입 시점:
+- 허용 read: spec / acceptance criteria / 사용자 prompt / public API 시그니처 / hook·install 인프라 코드
+- 금지 read: 지금 작성하려는 함수 본문, 같은 파일 sibling 함수 본문, 기존 test 파일
+- 자가 점검: "이 test 가 spec 에서 도출됐는가? implementation 의 현재 모양에서 추론한 것 아닌가?"
+위반 시 task BLOCKED 반환 + plan revision 요청.
+```
+
+이 boilerplate 는 sonnet dispatch prompt 의 Rules block 에 의무 inject. 메인이 dispatch prompt 작성 시 boilerplate 누락 = §Three-stage review FAIL.
+
 ## Parallel dispatch
 
 File-scope-disjoint tasks fire simultaneously: multiple `Agent` tool calls in one response, `run_in_background: true` so main can continue work and gets auto-notified.
@@ -254,16 +290,124 @@ Race avoidance:
 - Same file region = sequential (one subagent owns it)
 - git push race → subagent auto-handles with `git fetch && rebase && push`
 
-## Two-stage review (mandatory after each subagent finishes)
+## Three-stage review (mandatory after each subagent finishes)
 
-Main verifies:
+### Stage 1 — Trust-but-verify
 
-1. Trust-but-verify — `git log` + `git diff` + dist artifact directly
-2. Build / test / Playwright (if applicable) result
-3. Spec acceptance criteria
-4. Coverage on touched files (per `kzk-test-coverage` — 100% line + branch on changed files; exemption only with explicit Q-COV-* entry in `docs/harness/user-queue.md`)
+`git log` + `git diff` + dist artifact 직접 확인. agent summary 만 신뢰 X.
 
-Trusting only the agent's summary text = forbidden.
+### Stage 2 — Gate 통합 (build/test/Playwright + spec acceptance + coverage)
+
+1. Build / test / Playwright (if applicable) result
+2. Spec acceptance criteria 충족 확인
+3. Coverage on touched files (per `kzk-test-coverage` — 100% line + branch on changed files; exemption only with explicit Q-COV-* entry in `docs/harness/user-queue.md`)
+
+### Stage 3 — Fresh-agent verification (Plan C rev2)
+
+#### Trigger — ANY of:
+
+(a) `git diff --name-only HEAD~1` (post-commit) 또는 `git diff --cached --name-only` (pre-commit) 결과 **3+ 파일**
+(b) **High-risk tag**: spec/plan task 가 auth / payment / migration / public API 영역 변경 (plan 본문 명시 또는 commit message body 의 high-risk marker)
+(c) **메인 직접 commit 모든 case** (메인이 author 한 commit 인 경우, 파일 수와 무관 — 메인 self-approve hole 차단)
+
+조건 (a) 단독 충족 시: §Verifier dispatch §Model 분기 적용
+조건 (b) 또는 (c): opus 강제 (file size 기반 분기 무시)
+
+**메인 self-approve 금지** — Stage 1/2 만으로 commit 진행 X. Stage 3 PASS 받기 전 commit 금지 (Gate 5 와 동시 enforcement).
+
+#### Verifier dispatch
+
+```typescript
+// model 분기 — git diff --shortstat 결과 기준
+//   < 3 files && < 100 LoC → sonnet
+//   그 외 → opus
+//   empty diff (HEAD~1 부재 등) → opus default safe
+//   high-risk tag 또는 메인 직접 commit → opus 강제 (size 무시)
+
+Agent({
+  subagent_type: 'oh-my-claudecode:verifier',  // 선호
+  // fallback: 'oh-my-claudecode:code-reviewer'
+  model: '<branch result>',
+  prompt: '<Verifier prompt — 아래 구조>',
+});
+```
+
+#### Verifier prompt 구조 (SoT — Plan §Acceptance Criteria 우선)
+
+세 블록 필수, 그 외 inline 금지:
+
+1. **변경 파일 목록** — Stage 3 = `git diff --name-only HEAD~1` verbatim. Gate 5 = `git diff --cached --name-only` verbatim.
+2. **Acceptance criteria SoT 발췌**:
+   - **우선순위 1**: current plan 의 `## Acceptance Criteria` 헤더 다음 텍스트 — `## Variables` 또는 다음 `## ` 헤더 직전까지 grep 추출 후 verbatim inline. 전체 spec read 금지.
+   - **우선순위 2** (plan 부재 또는 §Acceptance Criteria 헤더 부재 시만): raw user request criteria.
+   - **혼합 금지**: 우선순위 1 또는 2 단독 — 섞으면 SoT 흐려짐.
+3. **질문 블록 + VERDICT enforcement** — verbatim:
+   ```
+   1. 이 diff 가 acceptance criteria 를 만족하는가?
+   2. missing edge case 있는가?
+   3. regression 가능성 있는가? (인접 callsite, 인접 모듈, 같은 패턴 재사용)
+   4. scope 누수 있는가? (acceptance 에 없는 추가 변경)
+
+   응답 형식 (강제):
+   - 첫 줄 = `VERDICT: PASS` 또는 `VERDICT: FAIL` 또는 `VERDICT: PARTIAL`
+   - 둘째 줄 이후 = 이유 3-5 줄
+   - 첫 줄이 위 정확 형식 아니면 INVALID_VERDICT 처리됨
+   ```
+
+#### VERDICT 파싱 (rev2 #5)
+
+메인이 verifier 응답 받은 직후:
+- 정규식 `^VERDICT: (PASS|FAIL|PARTIAL)$` 으로 첫 줄 매칭
+- 실패 (prose only, 형식 위반, empty 등) → `INVALID_VERDICT` 처리
+- `INVALID_VERDICT` → **fail-closed BLOCK** + user-queue entry `Q-VERIFIER-INVALID — verifier 응답 형식 위반 (PASS/FAIL/PARTIAL 첫 줄 부재), 사용자 결정 필요 (manual verify / retry / plan revision)`
+
+#### PASS / FAIL / PARTIAL 처리
+
+| Verdict | 처리 |
+|---|---|
+| PASS | Stage 3 통과 → Gate 5 가 cache 인용. commit 진행 OK |
+| PARTIAL | 추가 fix cycle 1회 (메인이 verifier 지적사항 수렴 → 추가 subagent dispatch → 새 diff → Stage 3 재호출). PARTIAL 2 consecutive (같은 thread) → FAIL 로 escalate |
+| FAIL | 메인이 verifier 지적사항 수렴 → fix dispatch → 재호출. **2 consecutive FAIL on same thread** → halt + `Q-VERIFIER-FAIL` user-queue entry |
+| INVALID_VERDICT | fail-closed BLOCK + `Q-VERIFIER-INVALID` user-queue entry. retry / manual verify / plan revision 사용자 결정 |
+| Dispatch fail (no response / timeout) | BLOCK + `Q-VERIFIER-DISPATCH-FAIL` user-queue entry. fallback path: `oh-my-claudecode:code-reviewer` → 그것도 실패 시 사용자 직접 review |
+
+#### 2 consecutive FAIL halt thread 정의 (rev2 #6)
+
+thread = `(plan_path, acceptance_id, verification_round)` triple.
+- `plan_path` = current plan 의 파일 경로 (예: `docs/plans/plan-C-fresh-agent-verification.md`)
+- `acceptance_id` = §Acceptance Criteria 의 항목 번호 (예: `4`)
+- `verification_round` = 같은 acceptance 에 대한 verifier 호출 횟수 카운터
+
+같은 thread (= 같은 plan + 같은 acceptance + 같은 round) 안에서 2 consecutive FAIL → halt.
+
+reset 조건 — **둘 중 하나만**:
+- PASS — thread counter 0 reset
+- user-approved plan revision (rev bump 명시 — 예: rev1 → rev2 frozen) — thread counter 0 reset, round 1 증가
+
+fix 후 diff 변경만으로는 reset X (rev2 #6 의 핵심 — 단순 diff hash 비교는 halt 우회 위험).
+
+#### Stage 3 ↔ Gate 5 cache 규약 (rev2 #2)
+
+cache key = `(staged_diff_hash, acceptance_hash, verifier_model)` triple.
+- `staged_diff_hash`:
+  - Stage 3 = `git diff HEAD~1 | sha256sum` (cycle 단위, post-commit)
+  - Gate 5 = `git diff --cached | sha256sum` (commit 단위, pre-commit)
+- `acceptance_hash` = current plan 의 §Acceptance Criteria 발췌 텍스트 sha256
+- `verifier_model` = `sonnet` 또는 `opus`
+
+cache hit 룰:
+- 같은 turn (대화 내 메인 컨텍스트 살아있음) 안에서 같은 key 면 hit → 기존 PASS 인용
+- 다른 turn (사용자 응답 후 컨텍스트 reset) = miss → re-verify
+
+**메모리 only** — sidecar persistence 부재. Plan E fast-follow 후보 (별도 issue 등록 의무).
+
+**diff base 단일화**: Stage 3 = HEAD~1, Gate 5 = --cached. 두 시점 SHA 가 다르면 두 호출 — 보통 cycle 끝 commit 의 commit-then-Stage-3 흐름이면 동일 (HEAD~1 = 직전 commit, --cached = staged = 곧 commit 될 diff).
+
+#### Plan C self-bootstrap N/A 예외 (rev2 #1)
+
+Plan C 자체를 적용한 첫 commit (= 본 plan 의 task 7 commit) 은 Stage 3 / Gate 5 가 *적용되기 전* commit 이라 self-reference paradox. 1회만 N/A 허용:
+- commit body 에 명시: `Gate 5 N/A — Plan C self-bootstrap commit, applies from next commit.`
+- 사용자 명시 OK 받은 1회만 — 그 후 모든 commit 은 trigger 충족 시 의무 적용
 
 ## Session-6 lesson (do not repeat)
 
@@ -295,6 +439,8 @@ Root cause: trigger keyword gap — '사용성 버그', '여러 plan 으로 쪼�
 
 - **kzk-spec-and-review**: This skill's "Pre-implementation plan-critic loop" is the narrower, in-skill version of `kzk-spec-and-review`'s broader spec/plan/architecture authoring + cross-vendor review. Use this skill's plan-critic when a single executor task needs a plan critic inline; use `kzk-spec-and-review` when the artifact is a standalone spec/plan/architecture doc that needs Step 0 codebase survey + 3-pass review.
 - **kzk-codebase-survey**: Step 0 of any task ≥3 files / ≥200 LoC. Survey runs BEFORE this skill's planner dispatch.
-- **kzk-test-coverage**: Step 4 of large-task delegation runs the same coverage check that test-coverage owns at session close.
-- **kzk-pre-commit-gate**: Subagent prompt MUST echo the gate sequence so the executor commits with full Gate 0–4 awareness.
-- **kzk-autonomous-boundary**: Halt protocol mirror — if a delegated subagent halts, this skill's caller must propagate to autonomous-boundary's halt rules.
+- **kzk-test-coverage**: Stage 2 of Three-stage review runs the same coverage check that test-coverage owns at session close.
+- **kzk-pre-commit-gate**: Subagent prompt MUST echo the gate sequence so the executor commits with full Gate 0–5 awareness. Gate 5 가 본 skill 의 Stage 3 결과를 cache 인용 (key = staged_diff_hash + acceptance_hash + verifier_model, same turn only). 같은 diff 의 verifier 호출 1회만.
+- **kzk-autonomous-boundary**: Stage 3 verifier 2 consecutive FAIL on same thread → `Q-VERIFIER-FAIL`. INVALID_VERDICT → `Q-VERIFIER-INVALID`. dispatch fail → `Q-VERIFIER-DISPATCH-FAIL`. autonomous-boundary §Halt conditions 표가 모두 등록.
+- **kzk-regression-memory**: 메인이 받은 [REGRESSION RECALL] reminder 를 subagent dispatch prompt 에 inject (size cap 200 char, truncate + warning). fix subagent 도 recall 결과 read.
+- **kzk-test-coverage**: Plan A 의 Q-TDD-MAIN 흡수 종료 — 본 Plan C task 3 에서 kzk-autonomous-boundary 의 halt 표에 entry 추가 완료. 별도 follow-up 없음.

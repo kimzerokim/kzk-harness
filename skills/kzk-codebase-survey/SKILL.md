@@ -1,7 +1,7 @@
 ---
 name: kzk-codebase-survey
-version: 1.5.0
-description: "Mandatory pre-planning deep codebase read — full import scope, context7 docs, TypeScript contracts. Top triggers: 'codebase survey', '코드베이스 탐색', 'spec 검증', '하나하나 확인', 'before planning'. Body §Triggers for full list."
+version: 1.6.0
+description: "Mandatory pre-planning deep codebase read — full import scope, context7 docs, TypeScript contracts, fix-time callsite expansion. Top triggers: 'codebase survey', '코드베이스 탐색', 'spec 검증', '하나하나 확인', 'before planning', 'fix 시작', 'callsite 전수'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §26. On conflict, that wins.
@@ -10,7 +10,7 @@ description: "Mandatory pre-planning deep codebase read — full import scope, c
 
 ## Triggers
 
-`codebase survey`, `코드베이스 탐색`, `deep explore`, `survey first`, `before planning`, `spec 검증`, `spec verification`, `구현 확인`, `구현 검증`, `버그 전수조사`, `implementation audit`, `spec vs implementation`, `spec 체크`, `스펙 체크`, `하나하나 확인`, `ralph로 체크`.
+`codebase survey`, `코드베이스 탐색`, `deep explore`, `survey first`, `before planning`, `spec 검증`, `spec verification`, `구현 확인`, `구현 검증`, `버그 전수조사`, `implementation audit`, `spec vs implementation`, `spec 체크`, `스펙 체크`, `하나하나 확인`, `ralph로 체크`, `fix 시작`, `버그 수정`, `에러 fix`, `regression fix`, `callsite 전수`, `함수 수정 영향`.
 
 Mandatory pre-brainstorming and pre-planning deep read. Solves the root cause of feature gaps in plans: the planner only sees a short file list, not the full codebase context, external library APIs, or TypeScript type contracts.
 
@@ -249,3 +249,4 @@ Fallback order: MCP → CLI → grep. Skill never halts on missing MCP server. A
 - **kzk-spec-and-review §"Step 0 — Codebase survey precondition"**: This skill is the precondition for any spec / plan / major design draft. The codex review skill blocks Step 1 (Draft) until a survey report exists. Survey report path is then cited in the draft prompt's CONTEXT block as "Required reading", and the same path is appended to the Codex CLI prompt's DESIGN UNDER REVIEW section.
 - **kzk-background-monitoring**: EXPLORER dispatch is a long-running subagent; narrate after completion per result-narration mandate.
 - **kzk-tool-retry**: If any EXPLORER Edit/Write/Bash call fails mid-survey, apply the 1-retry policy before halting — do not abort the entire survey on a single tool failure.
+- **kzk-fix-scope-expansion (Plan B)**: fix 시작 시 CRG callsite 전수 조회 트리거 (`fix 시작`, `버그 수정`, `callsite 전수` 등). SoT = harness-share §3.5. fix-start hook 발동 시 자동 invoke 관계.

@@ -1,6 +1,6 @@
 ---
 name: kzk-spec-and-review
-version: 2.2.0
+version: 2.3.0
 description: "Spec/plan/major-design authoring with mandatory codex CLI cross-vendor review (Step 0 codebase-survey precondition). Top triggers: 'spec 잡자', 'plan draft', 'codex review', '여러 plan', '메타 plan'. Body §Triggers for full list."
 ---
 
@@ -111,6 +111,23 @@ codex exec "$PROMPT" -C <repo-root> -s read-only \
 - Per round: ~2-3 min wall, ~25-30k tokens
 - 1 spec = 1 round. 1 major plan = 1 round.
 - **User explicit OFF only** ("이번엔 codex 빼고") skips the loop. No silent skip.
+
+## Prompt size guideline (codex CLI timeout 차단)
+
+큰 prompt = codex stdin 대기 또는 5min stuck 위험. timeout 빈도 줄이는 룰:
+
+- **Read 의무 = 검토 대상 plan/spec 본문 + cycle N-1 verdict 정제 file 만**. sister plan / spec 다른 본문은 *context only* (인용 / locked decision 만 prompt 안에 박음, full read 안 시킴).
+- **prompt 본문 < 500 lines**. 12 카테고리 → 6-8 max.
+- **응답 형식 < 700 단어**. "각 항목 짧은 진단 + 권고" 명시.
+- **plan 본문 자체가 1500+ LoC** 면 codex 가 read 만 5+ 분 → 미리 핵심 변경 부분만 발췌해서 prompt 에 inline. plan 전체 read 시키지 않음.
+- timeout (60s no first token, 5min total) 발생 시 fallback critic opus.
+
+지표: codex prompt 가 다음 중 하나 trigger 면 size 줄임 후 재시도:
+- prompt 자체 > 800 lines
+- "Read 의무" 가 4+ 파일
+- 검증 카테고리 12+
+
+본 룰은 사용자 명시 (cycle 33) — codex 에 plan 넘길 때 작게.
 
 ## Artifact retention
 

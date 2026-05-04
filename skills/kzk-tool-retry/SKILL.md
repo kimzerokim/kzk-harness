@@ -1,6 +1,6 @@
 ---
 name: kzk-tool-retry
-version: 1.1.0
+version: 1.2.0
 description: "One automatic retry on every Edit/Write/Bash failure before user prompt — 'File has not been read yet' always fixed by re-read + retry. Top triggers: 'Edit failed', 'File has not been read yet', 'String to replace not found', 'Write failed', 'polite-stop'. Body §Triggers for full list."
 ---
 
@@ -47,6 +47,14 @@ The Edit tool requires a Read of the file in the *same effective session window*
 | > 5 turns since last Read of a frequently-edited file | That file | Re-Read before next Edit |
 
 A 1-line `Read` (offset=1, limit=5) is enough to refresh the tracker — cost is trivial vs. the round-trip cost of a failed Edit.
+
+**Default — Re-Read on doubt**: 위 표 어느 row 라도 hit 모호 시, 무조건 1-line Re-Read 먼저. cost = 1 tool call vs. failed Edit 의 round-trip (1 error reminder + 1 retry Edit + 메인 컨텍스트 흐름 끊김). 모든 Edit / Write 직전 다음 self-check 의무:
+
+> "이 파일 마지막 Read 가 *이번 turn 안에* 일어났는가? 그 사이 invalidator (위 표) 발생했는가?"
+
+답이 "확실히 yes" 이 아니면 → 1-line Re-Read 먼저. Edit 호출 직전 매 cycle.
+
+**자율실행 cycle 진입 시 강제**: subagent dispatch 끝나고 메인이 Edit 시작할 때 — 그 turn 의 첫 Edit 은 *반드시* 1-line Read 선행. agent return 이 row 4 invalidator 라 추정만 하지 말고 즉시 Re-Read.
 
 **Recovery if the protocol slipped (failure already occurred)**:
 1. Same path → call `Read` once.

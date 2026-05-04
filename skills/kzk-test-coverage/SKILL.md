@@ -1,7 +1,7 @@
 ---
 name: kzk-test-coverage
-version: 1.2.0
-description: "TDD-strict + 100% line+branch coverage on changed files — failing test FIRST (red), impl (green), refactor, commit. Top triggers: 'TDD', 'test first', '테스트 먼저', 'test coverage', 'coverage exemption'. Body §Triggers for full list."
+version: 1.3.0
+description: "TDD-strict + 100% line+branch coverage on changed files — failing test FIRST (red), impl (green), refactor, commit. Top triggers: 'TDD', 'test first', '테스트 먼저', 'test coverage', 'coverage exemption', '자율 mode TDD', 'test-from-implementation', 'self-verification'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §11. On conflict, that wins.
@@ -10,7 +10,7 @@ description: "TDD-strict + 100% line+branch coverage on changed files — failin
 
 ## Triggers
 
-`test coverage`, `test:cov`, `100% coverage`, `변경 파일 cov`, `coverage exemption`, `tdd`, `TDD`, `test first`, `테스트 먼저`, `테스트부터`, `failing test`, `red-green`, `테스트 추가`, `테스트 추가해줘`, `test 추가`, `coverage 추가`.
+`test coverage`, `test:cov`, `100% coverage`, `변경 파일 cov`, `coverage exemption`, `tdd`, `TDD`, `test first`, `테스트 먼저`, `테스트부터`, `failing test`, `red-green`, `테스트 추가`, `테스트 추가해줘`, `test 추가`, `coverage 추가`, `test-from-implementation`, `자율 mode TDD`, `self-verification`, `자기검증 차단`, `anti-self-verification`.
 
 Autonomous session = 100% line + branch coverage on the files the session changed. Legacy code in those files counts too — touched = raised.
 
@@ -32,6 +32,46 @@ For any new feature or bugfix in autonomous mode (or any large-task dispatch), t
 Skipping step 1 (going straight to impl) violates this skill in autonomous mode. Interactive mode: user may waive TDD per task with explicit "skip TDD" — log in commit body.
 
 For bug fixes specifically: failing test reproducing the bug is the FIRST artifact. Bug-fix without a regression test = incomplete fix.
+
+## Anti-pattern — Test-from-implementation
+
+Red 단계 (failing test 작성) 진입 시점에 implementation read 금지. 자기검증 루프 차단.
+
+**Red 단계 허용 read**:
+- spec / acceptance criteria / 사용자 prompt / 이슈 본문
+- 외부 인터페이스 (public API 시그니처만)
+- hook/install 인프라 코드 (예: `install/hooks/regression-recall.mjs`) — red 단계 중에도 harness/hook debugging 필요 시 예외 허용. 단 *디버깅 목적 한정* — 그 코드의 인터페이스를 test 의 가정으로 베끼는 행위 여전히 금지
+
+**Red 단계 금지 read**:
+- 지금 작성하려는 함수의 implementation 본문
+- 같은 파일의 sibling 함수 본문 (public 인터페이스 시그니처는 OK)
+- 기존 test 파일 (이미 있는 테스트 가정 복사 차단)
+
+**자가 점검** (red 진입 직전):
+> "이 test 가 검증할 동작이 spec / acceptance criteria 에 명시되어 있는가? implementation 의 현재 모양에서 추론한 것이 아닌가?"
+
+### 자율 mode 메인 직접 TDD 금지 (Layer b)
+
+자율실행 mode (`kzk-autonomous-boundary` 진입, `kzk-web-loop`, `kzk-autonomous-loop`, harness 자가개선 cycle) 에서:
+
+- 메인 컨텍스트가 직접 TDD red 단계 진입 금지 — 반드시 fresh sonnet dispatch (`kzk-large-task-delegation`)
+- 메인이 직접 진입 시도 시 halt + user-queue entry: `Q-TDD-MAIN — 자율 cycle 의 메인 직접 TDD 시도, fresh dispatch 재시작 필요`
+- 비-자율 mode (사용자가 직접 prompt 로 TDD task 부여) 에서는 메인 self-check + user ACK 게이트 (사용자 명시 confirm 받은 후 진행). **ACK 허용 문구 예시 (다른 표현 모호 → 재요청)**:
+  - "이 task TDD 직접 진입 OK"
+  - "test-from-spec 준수 확인했음"
+  - "메인 직접 TDD 허락"
+  - "anti-self-verification 룰 인지하고 진행"
+
+**자율 mode 판별** (spec rev6 wording 그대로 — `=0 override` 없음):
+1. 환경변수 `KZK_AUTONOMOUS=1` → 자율 mode (가장 신뢰)
+2. **환경변수 unset 시** 보조 키워드 매칭 — **동사구만**:
+   - "ralph 로 돌려", "web-loop 진입", "autonomous-loop 시작"
+   - "harness 개선 루프 시작", "자가개선 cycle 진입", "끝까지 끝내줘"
+   - **명사 단독** ("자가개선" 만, "ralph" 만) 매칭 금지 — 일반 prompt false positive 차단
+
+**enforcement layer**:
+- Layer (a) sonnet dispatch prompt 룰 — `kzk-large-task-delegation` 의 §Subagent prompt requirements 의 Rules block 에 자동 주입 (boilerplate 텍스트 본 SKILL.md 참조)
+- Layer (b) 메인 self-check — 본 섹션의 자율 mode 판별 + halt 룰
 
 ## Exemptions (declare in PR description)
 
@@ -56,3 +96,4 @@ Required PR description line format per exemption: `Coverage exemption: <file> �
 - **kzk-user-queue**: when a coverage gap is queued due to time constraint, use the entry template from that skill (`Q-COV-<FILE>` prefix).
 - **kzk-pre-commit-gate**: Gate 3 (module test pass) is the execution; this skill is the coverage threshold applied to that same test run on touched files.
 - **kzk-large-task-delegation**: two-stage review step 4 (coverage on touched files) references this skill's exemption rules.
+- **kzk-autonomous-boundary**: 자율 mode 판별 키워드 / 환경변수 룰을 본 skill §Anti-pattern Layer b 에서 정의. autonomous-boundary 의 halt 룰과 통합 (`Q-TDD-MAIN` 큐 entry). **본 Plan A 는 contract only — kzk-autonomous-boundary skill 본문 수정은 Plan A 범위 밖. autonomous-boundary skill 의 halt 룰 표 / Q-TDD-MAIN cross-ref update 는 별도 follow-up 작업 (Plan C 통합 또는 fast-follow). split-brain 위험 인지 — Plan A frozen 시 follow-up issue 등록 의무.**
