@@ -209,6 +209,19 @@ source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `doc
 
 Staged diff = only `*.md` (skills / harness-share / CLAUDE / README / progress / docs/) + no source file → run only Gate 1.5 (secrets) + verify-install AC2 (marker row count). Full gate set runs once at cycle close. See `kzk-pre-commit-gate §Doc-only patch policy`.
 
+### Gate 5 — Fresh-agent verifier (Plan C rev2)
+
+자율실행 mode / large-task delegation 끝 / **메인 직접 commit 모든 case** / high-risk tag (auth/payment/migration/public API) / 3+ 파일 multi-file 의 commit 직전:
+- `oh-my-claudecode:verifier` (fallback `oh-my-claudecode:code-reviewer`) dispatch
+- model 분기: `git diff --cached --shortstat` → < 3 files && < 100 LoC → sonnet, 그 외 → opus. high-risk / 메인 직접 commit → opus 강제
+- VERDICT enforcement: 첫 줄 `VERDICT: PASS|FAIL|PARTIAL` 강제. 정규식 위반 → INVALID_VERDICT → fail-closed BLOCK + Q-VERIFIER-INVALID
+- 메인 self-approve 금지. PASS 받기 전 commit BLOCK
+- 2 consecutive FAIL on same thread `(plan_path, acceptance_id, verification_round)` → halt + Q-VERIFIER-FAIL
+- Stage 3 cache 같은 turn 내 hit 이면 인용 (key = staged_diff_hash + acceptance_hash + verifier_model)
+- Plan C self-bootstrap commit 1회만 N/A
+
+룰 본문: `kzk-pre-commit-gate` §Gate 5, `kzk-large-task-delegation` §Three-stage review §Stage 3.
+
 ### Token migration — shadcn + Tailwind v4 bridge requirement
 
 Official shadcn new-york blocks use prefix-less tokens (`--background`, `--primary`, `--sidebar`). When the host project uses Tailwind v4 `@theme { --color-* }`, a bridge is required:
@@ -279,6 +292,8 @@ Race condition 회피:
 3. spec 의 acceptance criteria 충족 확인
 
 agent summary 만 신뢰 X — implementation 차원 검증 의무.
+
+4. **Stage 3 — Fresh-agent verification (Plan C rev2)** — 자율실행 cycle 끝 / large-task delegation 끝 / 메인 직접 commit 모든 case / high-risk tag / 3+ 파일 multi-file 의 commit 직전 fresh `oh-my-claudecode:verifier` dispatch. VERDICT 첫 줄 강제. 메인 self-approve 금지. 2 consecutive FAIL on same thread → halt + `Q-VERIFIER-FAIL`. INVALID_VERDICT → fail-closed BLOCK + `Q-VERIFIER-INVALID`. 룰 본문: `kzk-large-task-delegation` §Three-stage review §Stage 3.
 
 ---
 

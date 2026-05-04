@@ -1,7 +1,7 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.3.0
-description: "Up-to-7-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets / build / test / Playwright / fix-scope sanity). Top triggers: 'commit', 'pre-commit', 'Gate 0', 'AGENTS.md sync', 'Gate 4.5', 'fix-scope-cache', 'callsite mismatch', 'KZK_GATE45_SKIP', 'doc-only'. Body §Triggers for full list."
+version: 1.4.0
+description: "Up-to-8-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets / build / test / Playwright / fix-scope sanity / fresh-agent verifier). Top triggers: 'commit', 'pre-commit', 'Gate 0', 'AGENTS.md sync', 'Gate 4.5', 'fix-scope-cache', 'callsite mismatch', 'KZK_GATE45_SKIP', 'doc-only', 'Gate 5', 'verifier', 'fresh-agent verification', 'INVALID_VERDICT'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §3. On conflict, that wins.
@@ -10,9 +10,9 @@ description: "Up-to-7-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets /
 
 ## Triggers
 
-`commit`, `pre-commit`, `Gate 0`, `Gate 1`, `Gate 1.5`, `Gate 2`, `Gate 3`, `Gate 4`, `Gate 4.5`, `AGENTS.md sync`, `ai-slop-cleaner`, `secrets scan`, `autonomous commit`, `doc-only exception`, `fix-scope-cache`, `callsite mismatch`, `KZK_GATE45_SKIP`.
+`commit`, `pre-commit`, `Gate 0`, `Gate 1`, `Gate 1.5`, `Gate 2`, `Gate 3`, `Gate 4`, `Gate 4.5`, `AGENTS.md sync`, `ai-slop-cleaner`, `secrets scan`, `autonomous commit`, `doc-only exception`, `fix-scope-cache`, `callsite mismatch`, `KZK_GATE45_SKIP`, `Gate 5`, `verifier`, `fresh-agent verification`, `Stage 3 cite`, `Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `Q-VERIFIER-DISPATCH-FAIL`, `INVALID_VERDICT`.
 
-Every commit passes up to 7 gates in order (0, 1, 1.5, 2, 3, 4, 4.5 — Gate 0 only when AGENTS.md hierarchy present, so 6 gates otherwise). One failure → commit blocked.
+Every commit passes up to 8 gates in order (0, 1, 1.5, 2, 3, 4, 4.5, 5 — Gate 0 only when AGENTS.md hierarchy present, so 7 gates otherwise). One failure → commit blocked.
 
 ## Gate 0 — Touched-files AGENTS.md sync
 
@@ -85,6 +85,51 @@ Gate 4.5: callsite N곳 중 M곳 미수정.
 
 See `kzk-fix-scope-expansion` for the full fix-scope rules and `harness-share.md §3.5` as canonical SoT.
 
+## Gate 5 — Fresh-agent verifier (Plan C rev2)
+
+Commit 직전 final check. `kzk-large-task-delegation` §Three-stage review §Stage 3 결과 PASS 확인 (cache hit) 또는 verifier 새 호출.
+
+### Trigger — ANY of (rev2 #12):
+
+(a) `git diff --cached --name-only` 결과 3+ 파일
+(b) high-risk tag (auth / payment / migration / public API) — plan 본문 명시 또는 commit body marker
+(c) **메인 직접 commit 모든 case** — 메인 self-approve hole 차단
+
+조건 만족 시 Gate 5 의무. 셋 다 false → Gate 5 N/A.
+
+### 절차
+
+1. **Stage 3 cache 조회** — key = `(staged_diff_hash, acceptance_hash, verifier_model)`. same turn 안에서 hit 이면 PASS 인용 + commit body 에 `Gate 5: Stage 3 cite (verifier <subagent_type> <model>) PASS — <verifier 인용 1줄>`. PASS.
+2. **Cache miss** → Gate 5 가 verifier 새 호출. dispatch 룰은 `kzk-large-task-delegation` §Three-stage review §Stage 3 §Verifier dispatch 와 동일.
+   - diff base = `git diff --cached` (Gate 5 단위)
+   - acceptance 발췌 = current plan §Acceptance Criteria SoT 우선 (없으면 raw user criteria)
+   - VERDICT 파싱 정규식 `^VERDICT: (PASS|FAIL|PARTIAL)$`
+3. **Verdict 처리**:
+   - PASS → commit 진행 + commit body 에 verifier 인용
+   - PARTIAL → commit BLOCK + 메인 추가 fix cycle. 같은 thread 2 consecutive PARTIAL → FAIL escalate
+   - FAIL → commit BLOCK + 메인 fix cycle. **2 consecutive FAIL on same thread → halt + `Q-VERIFIER-FAIL`**
+   - INVALID_VERDICT (첫 줄 형식 위반) → commit BLOCK + `Q-VERIFIER-INVALID` user-queue
+   - Dispatch fail (subagent 응답 없음 / timeout) → commit BLOCK + `Q-VERIFIER-DISPATCH-FAIL` user-queue. fallback: `oh-my-claudecode:code-reviewer` → 그것도 실패 시 사용자 직접 review
+
+### Stage 3 vs Gate 5 분리 (중복 호출 차단)
+
+- Stage 3: cycle 단위 ("이 cycle 결과가 spec 만족하는가"), diff base = `HEAD~1`
+- Gate 5: commit 단위 ("이 commit 의 diff 가 verifier PASS 받았는가"), diff base = `--cached`
+
+같은 cycle 끝 commit 에서 두 단계 동시 발동 시 verifier 1회만 호출 + 두 단계 모두 cache 결과 인용. cache 룰: `kzk-large-task-delegation` §Three-stage review §Stage 3 ↔ Gate 5 cache 규약.
+
+### Doc-only commit 예외
+
+source code 변경 없는 doc-only commit 은 Gate 5 N/A (Gate 0–4 의 doc-only 예외와 동일).
+
+### Plan C self-bootstrap N/A (rev2 #1)
+
+Plan C 자체 적용 첫 commit 은 N/A 1회만 — commit body 에 명시 의무: `Gate 5 N/A — Plan C self-bootstrap commit, applies from next commit.`
+
+### Autonomous mode
+
+Gate 5 PASS 시 사용자 confirm 없이 commit 허용 (다른 gate 와 동일). FAIL / BLOCK / INVALID / dispatch fail 시 halt + user-queue.
+
 ## Doc-only commit exception
 
 If the commit touches **no** source code — only docs/configs/screenshots (`*.md`, `docs/**`, `CLAUDE.md`, `DESIGN.md`, `harness-flow-progress.md`, `skills/**/*.md`, `.claude/skills/**/*.md`, `docs/screenshots/**`) — then:
@@ -141,6 +186,7 @@ Non-autonomous (default): every commit waits for user OK after gates pass. No au
 - 1st failure: fix root cause, re-stage, new commit
 - **Autonomous mode:** 3 consecutive build/test failures on the same area → halt, append user-queue entry (see `kzk-autonomous-boundary`). **Interactive mode:** surface failures to user, do not auto-halt.
 - Critic / verifier / Gate 4 visual reviewer 2 consecutive FAIL on the same change (Gate 4 Playwright visual review, plan reviewer, verifier agent) → halt + user-queue entry. See `kzk-autonomous-boundary` for the full halt condition list. Exception: `kzk-web-loop` overrides consecutive-FAIL halts with skip+next-issue (see `kzk-web-loop` §Failure Handling).
+- Gate 5 verifier 2 consecutive FAIL on same thread → halt + `Q-VERIFIER-FAIL`. INVALID_VERDICT → `Q-VERIFIER-INVALID`. dispatch fail → `Q-VERIFIER-DISPATCH-FAIL`. See `kzk-autonomous-boundary` §Halt conditions 표 (reason / action / resume schema).
 - Never `git commit --amend` after a hook failure (the commit didn't happen — amending hits the previous commit)
 
 ## Interaction with other kzk-*
@@ -148,6 +194,6 @@ Non-autonomous (default): every commit waits for user OK after gates pass. No au
 - **kzk-autonomous-boundary**: Owns the halt protocol invoked when ≥2 consecutive reviewer/critic FAILs (or ≥3 consecutive build/test FAILs) occur during gate runs.
 - **kzk-playwright-verification**: Implements Gate 4 (browser smoke + screenshot drop).
 - **kzk-test-coverage**: Gate 3 runs the same test command this skill owns at session close.
-- **kzk-large-task-delegation**: Subagent prompts must echo the gate sequence so delegated executors commit with full gate awareness.
+- **kzk-large-task-delegation**: Gate 5 verifier dispatch 는 본 skill 의 §Three-stage review §Stage 3 와 sibling. 같은 thread / 같은 cache key → verifier 호출 1회만 (cache hit citation 우선). Subagent prompts must echo the gate sequence so delegated executors commit with full gate awareness.
 - **kzk-web-loop**: Owns the override exception that lets the loop bypass full Gate 0–4 in indefinite-loop mode (see kzk-web-loop §Failure Handling).
 - **kzk-pre-merge-sync**: Consumes the gate-PASS line this skill emits in the PR footer.

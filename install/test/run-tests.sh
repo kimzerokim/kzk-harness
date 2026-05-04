@@ -657,6 +657,16 @@ test_keyword_detector_matches_test_add
 test_regression_recall
 test_fix_scope_trigger
 
+# Plan C — verifier-routing
+printf '\n--- verifier-routing (Plan C rev2) ---\n'
+if bash "$REPO_ROOT/install/test/verifier-routing.test.sh"; then
+  PASS=$((PASS + 1))
+  printf '  PASS: verifier-routing.test.sh\n'
+else
+  FAIL=$((FAIL + 1))
+  ERRORS+=("verifier-routing.test.sh")
+fi
+
 # Plan A — skill-text-checks
 printf '\n--- skill-text-checks (Plan A) ---\n'
 if bash "$REPO_ROOT/install/test/skill-text-checks.sh"; then
