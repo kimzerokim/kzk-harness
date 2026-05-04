@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.0.11
+version: 1.0.12
 description: "6-step Pre-commit Gate (AGENTS.md sync / ai-slop-cleaner / secrets-scan / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/1.5/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'secrets scan', 'autonomous commit', 'doc-only exception'."
 ---
 
@@ -75,7 +75,7 @@ Any single source-code line in the same commit revokes this exception → run al
 
 **AGENTS.md / README.md classification**: these are `.md` files but follow this rule — standalone update (no source file add/delete in the same commit) = doc-only OK, Gate 0 not triggered. Same commit as a Gate 0 trigger (source file add/delete) = doc-only exception revoked by the source change, run all applicable gates.
 
-Note: skill files (`skills/**/*.md`) count as doc-only ONLY when modifying an existing skill. ADDING a new skill triggers full Gate 0 + the README.md / CLAUDE.md skill-count update flow described in CLAUDE.md "Skill Development Rules". `.claude/skills/**/*.md` is the legacy OMC path — same rules apply.
+Note: skill files (`skills/**/*.md`) count as doc-only ONLY when modifying an existing skill. ADDING a new skill triggers Gate 0 **only when an AGENTS.md hierarchy is present** (same conditional as §Gate 0), plus the README.md / CLAUDE.md skill-count update flow described in CLAUDE.md "Skill Development Rules". `.claude/skills/**/*.md` is the legacy OMC path — same rules apply.
 
 ## Autonomous-mode commit policy
 

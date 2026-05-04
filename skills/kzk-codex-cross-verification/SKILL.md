@@ -1,6 +1,6 @@
 ---
 name: kzk-codex-cross-verification
-version: 1.0.11
+version: 1.0.12
 description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'codex consult', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
 ---
 
@@ -8,7 +8,7 @@ description: "Codex cross-verification mandate — every spec / plan / major des
 
 # kzk-codex-cross-verification
 
-Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable.
+Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable or produces no parseable output (parse fail — see §Codex execution shape).
 
 Every meaningful design artifact gets a second opinion from a different model before it ships. Self-review and codex catch different classes of issue — both are needed.
 

@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.0.9
+version: 1.0.10
 description: "Autonomous-mode boundary — what the agent may and may NOT do without per-step user confirmation. Covers main-branch ban, halt conditions, and when autonomous mode is even allowed. Required triggers: 'autonomous', 'ralph로 돌려', '자는 동안 진행', 'feature branch boundary', 'main 직접 접근', 'reviewer FAIL'."
 ---
 
@@ -35,7 +35,6 @@ Halt and append a user-queue entry when:
 - build / test 3 consecutive FAIL
 - `main` access required for the next step
 - A user-queue decision is required to proceed
-- Pre-PR `/deepinit` fails at PR-creation time (runs on feature branch tip before `gh pr create`; see `kzk-pre-merge-sync`)
 - Crossing into a code/plan area pre-dating a current rule (e.g. plan written before PRD v1.13) — halt, do NOT retroactively rewrite policy via subagent guess
 
 Anything else → keep going (see `kzk-autonomous-loop` for polite-stop ban).

@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.3.10
+version: 1.3.11
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
@@ -233,5 +233,5 @@ Anything else → keep going.
 
 - **kzk-tool-retry**: Any Edit/Write/Bash failure within a cycle gets 1 auto-retry before the failure is counted toward the 3× skip threshold. Do not count the first failure as a cycle failure.
 - **kzk-pre-commit-gate**: All executor dispatches must run all applicable gates (6 if AGENTS.md hierarchy present; 5 otherwise) before committing.
-- **kzk-autonomous-boundary**: web-loop overrides the reviewer FAIL halt condition (skip+next-issue instead of halt). All other boundary conditions apply normally.
+- **kzk-autonomous-boundary**: All boundary conditions apply normally. The reviewer FAIL halt (defined in `kzk-autonomous-loop`) is overridden by web-loop per `harness-share.md` §25 — skip+next-issue instead of halt.
 - **kzk-user-queue**: skipped issues and ambiguous decisions are appended here with Q-WEBLOOP-<N>-<TOPIC> prefix.
