@@ -1,7 +1,7 @@
 # Design: Brainstorm Flow 자동 체이닝 + Freshness Guard
 
 > Date: 2026-05-05
-> Status: Draft
+> Status: Frozen (codex review rev1 applied)
 > Author: brainstorming session (Opus 4.6 + user)
 
 ---
@@ -82,17 +82,24 @@ Step 1-3: 기존 flow
 - **fallback**: 파일명 grep + `git diff --cached -U0` hunk header에서 함수명 추출
 - **silent skip 금지**: 항상 WARN 표시하여 사용자가 CRG 설치 필요성 인지
 
-### 3.3. 자동 호출 지점 (7곳)
+### 3.3. 자동 호출 지점 (6곳)
 
 | 시점 | 트리거 | 입력 | 동작 |
 |---|---|---|---|
-| SessionStart hook | 자동 | `git diff HEAD~5 --name-only` | system-reminder로 stale 목록 경고 |
-| kzk-spec-and-review Step 0 전 | survey/spec 작성 직전 | 참조할 기존 spec/survey | stale이면 갱신 후 진행 |
-| kzk-codebase-survey 시작 전 | survey 진입 시 | 기존 survey 리포트 | line reference 유효성 CRG 체크 |
+| kzk-spec-and-review Step 0 전 | survey/spec 작성 직전 | 참조할 기존 spec/survey | stale이면 갱신 후 진행 + recursion guard 적용 |
+| kzk-codebase-survey 시작 전 | survey 진입 시 | 기존 survey 리포트 | line reference 유효성 CRG 체크 + recursion guard 적용 |
 | Plan execution 직전 | frozen plan 읽을 때 | plan이 참조하는 코드 | plan 작성 이후 코드 변경 감지 |
 | Pre-commit Gate 0.5 | staged diff 기준 | staged 코드 파일 | BLOCK + auto-fix + 재커밋 |
 | kzk-pre-merge-sync | merge 직전 | 전체 메타 문서 | CLAUDE.md + AGENTS.md + 전체 최종 점검 |
 | 수동 트리거 | "stale 체크", "freshness", "문서 신선도" | 전체 | 전체 스캔 |
+
+### 3.3.1. Edge case 가드
+
+- **no-git repo**: `.git` 디렉토리 없으면 freshness guard 전체 skip + WARN
+- **unborn HEAD**: `git rev-parse HEAD` 실패 시 skip + WARN (초기 커밋 전)
+- **shallow history**: `git diff HEAD~5` 실패 시 `git diff --cached` 로 fallback
+- **renamed/deleted files**: `git diff --diff-filter=R` + `--diff-filter=D` 감지, 삭제된 파일 참조는 stale 확정
+- **recursion guard**: freshness check 실행 중 다른 freshness check 호출 금지. 전역 플래그 `_FRESHNESS_GUARD_RUNNING=true` 설정, 재진입 시 즉시 skip. depth=1 cap.
 
 ### 3.4. Auto-fix 전략 (문서 종류별 분기)
 
@@ -117,6 +124,10 @@ Gate 0.5: Freshness guard (신규)
     2. auto-fix dispatch (문서 종류별 전략)
     3. fix 완료 후 갱신된 메타 문서를 같은 커밋에 stage
   → stale 없음: PASS
+  → partial failure (일부 fix 성공, 일부 실패):
+    1. 성공한 fix만 stage
+    2. 실패한 fix는 WARN 출력 + user-queue entry 추가
+    3. Gate 판정: WARN (commit 허용, 단 user-queue에 미해결 stale 기록)
 Gate 1: ai-slop-cleaner (기존)
 ```
 
@@ -125,21 +136,39 @@ Gate 1: ai-slop-cleaner (기존)
 `install/lib/crg-utils.mjs` — 모든 스킬이 공유:
 
 ```javascript
-// 변경 파일 → exported 심볼 목록
-export function getChangedSymbols(files) { ... }
+// --- Types ---
+// DiffContext: 'staged' | 'base' | 'recent' (HEAD~5)
+// SymbolInfo: { name: string, file: string, line: number, kind: 'function'|'class'|'export'|'type' }
+// ReverseRef: { symbol: string, referencedIn: string, line: number, kind: string }
+// StaleDoc: { path: string, reason: string, severity: 'BLOCK'|'WARN', symbols: string[] }
+// LineRef: { docPath: string, targetFile: string, line: number, valid: boolean, currentLine?: number }
 
-// 심볼 → 역참조 파일 목록 (CRG query)
-export function reverseRefs(symbols) { ... }
+// 변경 파일 수집 (diff context별)
+export function getChangedFiles(context: DiffContext): string[] { ... }
 
-// 변경 파일 → stale 메타 문서 목록 + 이유
-export function findStaleMetaDocs(changedFiles, metaGlobs) { ... }
+// 변경 파일 → exported 심볼 목록 (CRG query)
+export function getChangedSymbols(files: string[]): SymbolInfo[] { ... }
 
-// 문서 내 file:line 참조 → 현재 코드와 대조
-export function validateLineRefs(docPath) { ... }
+// 심볼 → 역참조 파일+라인 목록 (CRG query)
+export function reverseRefs(symbols: SymbolInfo[]): ReverseRef[] { ... }
 
-// CRG 미설치 체크 + WARN
-export function ensureCRG() { ... }
+// 변경 파일 → stale 메타 문서 목록 + 이유 + severity
+export function findStaleMetaDocs(changedFiles: string[], metaGlobs: string[]): StaleDoc[] { ... }
+
+// 문서 내 file:line 참조 → 현재 코드와 대조 + 수정 제안
+export function validateLineRefs(docPath: string): LineRef[] { ... }
+
+// CRG 설치 여부 체크 + WARN (미설치 시 false 반환)
+export function ensureCRG(): boolean { ... }
+
+// CRG DB 빌드/리빌드 (인덱스 없거나 stale 시)
+export function ensureCRGIndex(rootDir: string): void { ... }
+
+// 메타 문서에서 코드 참조 추출 (file paths, function names, line refs)
+export function extractDocRefs(docPath: string): { files: string[], symbols: string[], lineRefs: LineRef[] } { ... }
 ```
+
+**Canonical contract**: crg-utils.mjs가 CRG 사용의 단일 진입점. 다른 스킬은 직접 `code-review-graph` CLI를 호출하지 않고 이 라이브러리를 통해 접근.
 
 #### CRG 활용 확산 (기존 스킬 강화)
 
@@ -157,7 +186,6 @@ export function ensureCRG() { ... }
 - hook과 스킬 모두 `$PWD` 기반 — kzk-harness 전용 경로 참조 없음
 - CRG 미설치 시 grep degraded mode + WARN (silent skip 금지)
 - `memory/` 경로는 `~/.claude/projects/<project-hash>/memory/` (Claude Code 표준)
-- `install-global.sh`에서 SessionStart hook 자동 등록
 - 메타 문서 glob 패턴 기본값: `CLAUDE.md`, `AGENTS.md`, `docs/**/*.md`, `~/.claude/projects/*/memory/**/*.md`
 - 프로젝트별 override: `.claude/settings.local.json`의 `freshness_guard.meta_globs` 키
 
@@ -168,8 +196,8 @@ export function ensureCRG() { ... }
 | 파일 | 유형 | 설명 |
 |---|---|---|
 | skills/kzk-freshness-guard/SKILL.md | 신규 스킬 | 17번째 kzk 스킬 |
-| install/lib/crg-utils.mjs | 공유 라이브러리 | CRG 래퍼 함수 |
-| install/hooks/freshness-guard.mjs | hook | SessionStart + Pre-commit 감지 |
+| install/lib/crg-utils.mjs | 공유 라이브러리 | CRG 래퍼 + stale 감지 core logic (순수 라이브러리, hook 무관) |
+| install/hooks/freshness-guard.mjs | hook | hook adapter — crg-utils 호출 + Claude Code hook I/O 변환 (system-reminder 텍스트 생성) |
 | install/test/freshness-guard.test.mjs | 테스트 | 감지 로직 단위 테스트 |
 | install/test/crg-utils.test.mjs | 테스트 | CRG 유틸 단위 테스트 |
 
@@ -204,22 +232,27 @@ export function ensureCRG() { ... }
 - [ ] AC6: staged diff → CRG 심볼 역참조 → stale 메타 문서 감지 동작
 - [ ] AC7: CRG 미설치 시 WARN 출력 + grep degraded mode (silent skip 금지)
 - [ ] AC8: Pre-commit Gate 0.5에서 stale 감지 시 BLOCK + 사용자에게 목록 표시 + auto-fix
-- [ ] AC9: SessionStart hook에서 최근 변경 기반 stale 경고
+- [ ] AC9: 수동 트리거 `stale 체크` / `freshness` / `문서 신선도` 입력 시 전체 스캔 동작
 - [ ] AC10: auto-fix가 문서 종류별 분기 (AGENTS.md 행단위, spec line ref 갱신, memory 삭제/갱신, plan WARN only)
 - [ ] AC11: kzk-harness 외 다른 프로젝트에서도 동작 ($PWD 기반)
 - [ ] AC12: install/test/freshness-guard.test.mjs 전체 PASS
 - [ ] AC13: crg-utils.mjs의 getChangedSymbols, reverseRefs, findStaleMetaDocs, validateLineRefs, ensureCRG 함수 동작
-- [ ] AC14: 기존 스킬 6개에 CRG 활용 cross-ref 추가
 
-## 7. 구현 순서 (권장)
+## 7. 구현 순서 (3-Phase)
 
-1. `install/lib/crg-utils.mjs` + 테스트 (기반 라이브러리)
-2. `kzk-freshness-guard/SKILL.md` (스킬 정의)
-3. `install/hooks/freshness-guard.mjs` + 테스트 (hook 구현)
+### Phase 1: CRG 유틸 + 읽기 전용 감지 (이 스펙의 핵심)
+1. `install/lib/crg-utils.mjs` + `install/test/crg-utils.test.mjs` (기반 라이브러리)
+2. `kzk-freshness-guard/SKILL.md` (스킬 정의 — 감지 + WARN 동작만)
+3. `install/hooks/freshness-guard.mjs` + `install/test/freshness-guard.test.mjs` (hook adapter — 감지 결과 → system-reminder)
+
+### Phase 2: Pre-commit 통합 + hook wiring
 4. `kzk-pre-commit-gate` Gate 0.5 통합
-5. `kzk-spec-and-review` Step -1 brainstorming + CRG spec reference
-6. `keyword-detector.mjs` 탐색적 키워드 추가
-7. 나머지 스킬 CRG cross-ref 추가 (codebase-survey, fix-scope, large-task, pre-merge-sync)
-8. `harness-share.md` + `CLAUDE.md` + `README.md` + `dependencies.md` 갱신
-9. install-global.sh hook 등록 + manifest
-10. 전체 테스트 + install 검증
+5. `install/hooks/keyword-detector.mjs` 탐색적 키워드 추가
+6. `install/hooks/dispatcher.mjs` freshness-guard hook 등록
+7. `install/install-global.sh` hook copy + manifest entry
+
+### Phase 3: Auto-fix + cross-skill 확산
+8. `kzk-spec-and-review` Step -1 brainstorming + CRG spec reference
+9. 나머지 스킬 CRG cross-ref 추가 (codebase-survey, fix-scope, large-task, pre-merge-sync)
+10. `harness-share.md` + `CLAUDE.md` + `README.md` + `dependencies.md` 갱신
+11. 전체 테스트 + install 검증
