@@ -1,4 +1,4 @@
-# Spec — Regression Memory + Fix Quality + Production-Code-First 통합 (rev7)
+# Spec — Regression Memory + Fix Quality + Production-Code-First 통합 (rev8)
 
 > Date: 2026-05-04. Branch: `feature/memory` (already created on this session).
 > Codex/critic reviews: `docs/research/codex-reviews/regression-memory-hypothesis.md`,
@@ -38,6 +38,7 @@
 | Axis E (production code-first + 멱등성): production state 변경은 코드 (script/migration/IaC) 우선. 직접 호출 (psql/aws cli/SSM 즉시 실행) 금지. 멱등성 의무 (`IF NOT EXISTS`, idempotent script). git tracked 트래킹. | 사용자 명시 — DB 직접 변경 시 마이그레이션 drift 빈번 |
 | gstack auto-install = dependencies.sh 기존 분기 패턴 (npm-first → brew-fallback) 따름. **미설치 환경 → cycle commit 시 stderr WARN + harness-flow-progress entry 에 "gstack 미설치, regression memory 비활성" 의무 표기**. silent skip 금지 | cycle 2 #12.1 + cycle 3 #5 — 침묵 실패 = 메타갭 자체 |
 | Branch: `feature/memory` (이미 생성). PR 없음. 끝나면 `git merge --no-ff` to main. | 사용자 명시 |
+| **Codex prompt size cap** (timeout 차단): prompt < 500 lines / Read 의무 ≤ 4 파일 / 카테고리 ≤ 8 / 응답 < 700 단어. plan 1500+ LoC 면 핵심 변경부만 발췌 inline. sister plan 은 context only (full read X). | 사용자 명시 (cycle 33) — codex 에 plan 넘길 때 작게. `kzk-spec-and-review` v2.3 §Prompt size guideline lock. |
 
 ## Non-goals
 
