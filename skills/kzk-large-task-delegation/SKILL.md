@@ -246,6 +246,26 @@ If the plan cannot be made this detailed, the task is not yet ready for sonnet �
 
 Typical prompt = 60-150 lines for opus, 100-220 lines for sonnet. Terse prompt = shallow work.
 
+### Production-code-first boilerplate (Plan E)
+
+Sonnet/opus dispatch prompt 의 Rules block 에 다음 boilerplate 자동 inject (production state mutation 차단):
+
+```
+[PRODUCTION-CODE-FIRST RULE — kzk-production-access §Production state changes (rev2)]
+이 task 가 production state mutation (DB schema / IAM policy / S3 lifecycle / IaC-managed Lambda env / CloudFront 등) 을 포함한다면:
+- AI 직접 실행 금지 (사용자 explicit instruction 있어도). script (migration / IaC) 작성 → 사용자 review (Three-stage review, Plan C) → 사용자/CI 실행
+- read-only inspection (aws s3 ls, describe-*, \dt) 만 AI 직접 실행 OK — 단 사용자 explicit instruction 필요
+- 멱등성 의무: IF NOT EXISTS / ON CONFLICT DO NOTHING / --if-not-exists
+- Drift 발견 시 forward-only migration (production state rollback X. code commit git revert 는 OK)
+- 환경 설정 예외 (runtime-only) 만 기존 explicit-instruction rule 적용. IaC-managed 는 code-first 의무
+위반 시 task BLOCKED 반환 + plan revision 요청.
+```
+
+**Trigger 키워드** (메인이 dispatch prompt 작성 시 자동 inject 대상):
+`production`, `prod`, `migration`, `schema change`, `ALTER TABLE`, `IaC`, `Terraform`, `CloudFormation`, `IAM`, `S3 lifecycle`, `Lambda env`, `RDS`, `aws-vault`.
+
+본 boilerplate 누락 = §Three-stage review (Plan C) FAIL.
+
 ### Anti-self-verification boilerplate (Plan A)
 
 Sonnet executor dispatch prompt 에 다음 boilerplate 자동 inject (TDD red 단계 진입 시 implementation read 차단):

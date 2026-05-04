@@ -677,6 +677,16 @@ else
   ERRORS+=("skill-text-checks.sh")
 fi
 
+# Plan E — Gate 1.6 fixture
+printf '\n--- Gate 1.6 fixture (Plan E) ---\n'
+if bash "$REPO_ROOT/install/test/fixtures/gate-1.6-adhoc-grep.sh"; then
+  PASS=$((PASS + 1))
+  printf '  PASS: gate-1.6-adhoc-grep.sh\n'
+else
+  FAIL=$((FAIL + 1))
+  ERRORS+=("gate-1.6-adhoc-grep.sh")
+fi
+
 printf '\n'
 printf '=%.0s' {1..60}
 printf '\n'

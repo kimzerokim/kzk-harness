@@ -49,6 +49,45 @@ Also check for `AKIA`/`ASIA` prefixes (AWS key patterns) per `kzk-production-acc
 
 Trivial false positives (e.g. test fixture strings that are obviously fake) → commit body must say `secrets-scan: false positive — <reason>`.
 
+## Gate 1.6 — Production code-first 검증 (Plan E rev2)
+
+> Authoritative source: `kzk-production-access` §Production state changes (rev2). On conflict, that wins.
+
+**Trigger 조건** (cycle 1 #12 — staged path 기반, commit-message 기반 X):
+staged diff 의 추가/삭제 행 (`+`/`-`) 중 다음 패턴 발견 시 진입:
+- 변경 디렉토리: `migrations/`, `infra/`, `scripts/prod/`, `terraform/`, `cloudformation/`, `cdk/`, `serverless.yml`
+- 또는 staged 텍스트 라인이 shell command 형태로 production CLI 호출 흔적
+
+doc-only fast path (commit message `docs(`/`chore(`/`style(` prefix) 와 충돌 X — staged path 가 트리거.
+
+**검증 — FAIL 패턴 (직접 실행 흔적)**:
+
+| 패턴 | 의미 |
+|---|---|
+| staged diff `+` 라인의 `psql .* (ALTER TABLE\|DROP TABLE\|CREATE INDEX)` shell-command 흔적 | DB schema ad-hoc |
+| `aws iam create-policy` / `aws iam put-policy` / `aws iam attach-role-policy` shell 흔적 | IAM ad-hoc |
+| `aws s3api put-bucket-(lifecycle-configuration\|policy)` shell 흔적 | S3 ad-hoc |
+| `aws lambda update-function-configuration` shell 흔적 (단 IaC-managed Lambda 한정) | Lambda env ad-hoc |
+
+heredoc / `psql -f migration.sql` 같은 script-driven 호출은 **FAIL 아님** (script 화 = 의도). 정확 매칭은 fixture-based shell test (`install/test/fixtures/gate-1.6-adhoc-grep.sh`) 가 보장.
+
+**검증 — WARN 패턴 (멱등성 부재, cycle 1 #3)**:
+
+| 패턴 | 처리 |
+|---|---|
+| 새 `*.sql` 파일이 `IF NOT EXISTS` / `IF EXISTS` / `ON CONFLICT` 키워드 부재 | WARN (commit 차단 X). 사용자 review 권고. regex 한계로 false positive 다수 — human gate. |
+
+WARN = stderr 출력 + commit 진행. FAIL = commit halt.
+
+**FAIL 시 동작**:
+- commit halt + 사용자 출력: "Gate 1.6 — direct execution trace detected. Replace with migration / IaC."
+- user-queue `Q-PROD-CODE-FIRST-<COMMIT-HASH>` 자동 append.
+
+**Skip 조건**:
+- staged path 가 production-related 디렉토리 아님
+- doc-only fast path 충족 (Gate 1.6 trigger 조건과 별개로 평가)
+- 사용자 explicit `[env-exception]` tag commit message body 에 명시 (runtime-only 카테고리 인정)
+
 ## Gate 2 — build green
 
 Run the repo's build command (e.g. `npm run build`). Verify dist artifact exists (e.g. `dist/main.js`, `dist/index.html`). Exit code 0.
@@ -197,3 +236,4 @@ Non-autonomous (default): every commit waits for user OK after gates pass. No au
 - **kzk-large-task-delegation**: Gate 5 verifier dispatch 는 본 skill 의 §Three-stage review §Stage 3 와 sibling. 같은 thread / 같은 cache key → verifier 호출 1회만 (cache hit citation 우선). Subagent prompts must echo the gate sequence so delegated executors commit with full gate awareness.
 - **kzk-web-loop**: Owns the override exception that lets the loop bypass full Gate 0–4 in indefinite-loop mode (see kzk-web-loop §Failure Handling).
 - **kzk-pre-merge-sync**: Consumes the gate-PASS line this skill emits in the PR footer.
+- **kzk-production-access** (Axis E): Gate 1.6 룰 본문은 kzk-production-access §Production state changes 가 SoT.

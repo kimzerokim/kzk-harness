@@ -71,6 +71,29 @@ multi-step sequence (cutover, migration) 이면 단계별 OK 사인: AI propose 
 
 명시 없이는 read-only 호출도 X. 명시 범위 = 지시된 task / sequence 완료 시점까지 — 그 이상은 새 명시 필요.
 
+> *Plan E rev2 (state mutation)*: 위 직접 실행 의무는 read-only inspection / runtime-only 환경 설정 / multi-step 배포 의 step 실행에 한정. **production state mutation (DB schema, IaC-managed config 등) 은 §Production state changes 의 code-first 룰이 우선**.
+
+### Production state changes — code-first + 멱등성 (Plan E rev2)
+
+`### Production / 외부 인프라 Access` 의 destructive direct-execution 룰을 좁힌다 — production **state mutation** 한정.
+
+- **코드 우선**: migration / IaC / shell script. git tracked.
+- **AI 직접 호출 금지** (state mutation): explicit instruction 있어도 AI 실행 X. script 작성 → 사용자 review → 사용자/CI 실행.
+- **read-only inspection** (`aws s3 ls`, `describe-*`, `\dt`) 도 explicit instruction 필요 — instruction 있으면 AI 직접 실행 OK.
+- **멱등성 의무**: `IF NOT EXISTS` / `--if-not-exists` / `ON CONFLICT DO NOTHING`.
+- **Drift forward-only (state 기준)**: production state rollback 금지. code commit `git revert` 는 OK.
+- **Environment exceptions**: IaC-managed env → code-first. runtime-only (콘솔 수동 갱신, secret 회전, OAuth refresh) → 기존 §Production / 외부 인프라 Access 룰만 적용.
+
+**룰 SoT**: `kzk-production-access` §Production state changes.
+
+**Cross-axis**:
+- **Axis B** (`kzk-fix-scope-expansion`): production state mutation 의 impacted schema / query / ORM model / API contract artifact 전수.
+- **Axis D** (`kzk-regression-memory`): production change 회고 entry key=`prod-<change-slug>`, recall hook 매칭.
+
+**Enforcement**:
+- (a) `kzk-large-task-delegation` §Production-code-first boilerplate (Plan E) — sonnet/opus dispatch Rules block 자동 inject.
+- (b) `kzk-pre-commit-gate` Gate 1.6 — staged path 기반 trigger, direct-execution 흔적 FAIL / 멱등성 WARN.
+
 ### Credential Handling
 
 사용자가 채팅에 인프라 자격증명 (AWS / GCP / DB 등) 을 붙여 넣은 경우:
