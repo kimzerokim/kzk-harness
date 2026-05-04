@@ -6,7 +6,27 @@ Each skill is a markdown file loaded by Claude when you mention its trigger keyw
 
 ## Install
 
-Open Claude Code in your project root and paste:
+### Recommended: global install
+
+Run once to make all 14 kzk-\* skills available in every Claude Code repo:
+
+```
+git clone --depth 1 https://github.com/kimzerokim/kzk-harness.git /tmp/kzk-harness
+bash /tmp/kzk-harness/install/install-global.sh
+rm -rf /tmp/kzk-harness
+```
+
+This writes:
+
+- `~/.claude/skills/kzk-*/SKILL.md` — 14 skill files, auto-loaded by Claude Code.
+- `~/.claude/skills/.kzk-harness-shared/` — `harness-share.md`, `VERSION`, `README.md` (umbrella; the dotfile prefix prevents Claude from treating it as an invocable skill).
+- `~/.claude/CLAUDE.md` — adds (or refreshes) a `<!-- BEGIN kzk-harness skills --> ... <!-- END kzk-harness skills -->` block with the routing table + self-trigger matrix. Outside the marker block, your existing CLAUDE.md content is left byte-for-byte identical.
+
+Project artifacts (`harness-flow-progress.md`, `docs/harness/`, `docs/plans/`, `.web-loop/`, `.omc/`, `docs/research/codex-reviews/`) stay in `$PWD` per spec §6.2 — the global install never writes outside `~/.claude/`.
+
+### Project-only install (legacy / fallback)
+
+If you do not want a global install, open Claude Code in your project root and paste:
 
 ```
 Install kzk-harness: first verify the current directory is a project (has CLAUDE.md or is a git repository) — if not, abort with "kzk-harness must be installed from a project root directory."
@@ -24,12 +44,22 @@ Then:
 
 ## Update
 
-Re-paste the install command. On re-run:
-- Skills with a higher source version overwrite existing ones; locally bumped versions are preserved.
-- `harness-share.md` is always overwritten with the source version.
-- The `## Active Skills (kzk-harness)` section in CLAUDE.md is replaced with a fresh table reflecting renames and trigger updates.
-- Stale `kzk-*` skills (renamed-away or removed-upstream) are listed for confirmation and deleted on yes.
-- External dependencies (`install/dependencies.sh`) re-run is idempotent — already-installed deps are detected only.
+Re-run the install one-liner above (`install-global.sh` is idempotent — version-aware overwrite).
+Or, from a permanent checkout:
+
+```
+cd /path/to/kzk-harness && git pull && bash install/install-global.sh --update
+```
+
+## Uninstall
+
+```
+bash ~/.claude/skills/.kzk-harness-shared/install/uninstall-global.sh
+```
+
+Removes the marker block from `~/.claude/CLAUDE.md`, deletes `~/.claude/skills/kzk-*` and `~/.claude/skills/.kzk-harness-shared/`. Per-project artifacts (`harness-flow-progress.md`, `.web-loop/`, etc.) are left untouched — pass `--purge-project-artifacts <path>` to opt-in clean a specific repo.
+
+External dependencies (codex CLI, code-review-graph) are not auto-removed since other tools may use them. Manual removal: `pip uninstall code-review-graph`, `npm uninstall -g @openai/codex`.
 
 ## Usage — starting a new feature
 
