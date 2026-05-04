@@ -1,6 +1,6 @@
 ---
 name: kzk-codex-cross-verification
-version: 1.0.13
+version: 1.0.14
 description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'codex consult', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
 ---
 
@@ -77,15 +77,15 @@ Cite sections. Terse. No compliments. If category fine, say "none".
 
 ```bash
 PROMPT=$(cat /tmp/<topic>-review-prompt.txt)
-# Note: check ${PIPESTATUS[0]} not $? — the pipe exit is Python's exit, not codex's
+# Note: check ${PIPESTATUS[0]} not $? — the pipe exit is jq's, not codex's
 codex exec "$PROMPT" -C <repo-root> -s read-only \
   -c 'model_reasoning_effort="high"' --enable web_search_cached --json \
-  2>/tmp/codex-err.txt | PYTHONUNBUFFERED=1 python3 -u -c "import sys,json; [print(json.loads(l).get('text', json.loads(l).get('error',''))) for l in sys.stdin if l.strip().startswith('{')]"
+  2>/tmp/codex-err.txt | jq -rR 'fromjson? | select(.text != null or .error != null) | .text // .error // ""'
 ```
 
 - `timeout: 300000` (5 min). Background-monitor per `kzk-background-monitoring`.
 - No first token in 60s → retry once with stdin closed (`< /dev/null`). No first token in 5 min total → stuck, kill + fallback to critic agent.
-- If stdout produces no parseable JSON lines (whether stdout is empty OR non-empty but not JSON): treat as failure. Immediately `cat /tmp/codex-err.txt` and check `${PIPESTATUS[0]}`. Save an error stub to the verdict file (path per §Verdict file convention above: "codex exit <N>, stderr: <first 200 chars>, stdout: <first 200 chars if non-empty>") then fall back to `Agent(subagent_type="oh-my-claudecode:critic", model="opus")`.
+- If stdout produces no parseable JSON lines (whether stdout is empty OR non-empty but not JSON): treat as failure. Immediately `cat /tmp/codex-err.txt` and check `${PIPESTATUS[0]}`. Save an error stub to the verdict file (path per §Verdict file convention above: "codex exit <N>, stderr: <first 200 chars>, stdout: <first 200 chars if non-empty>") then fall back to `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=<same review prompt>)`.
 
 ## Cost / cadence
 

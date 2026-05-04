@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.0.9
+version: 1.0.10
 description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'large task', 'subagent dispatch', '3+ file edits', '200+ LoC', 'opus/sonnet routing', 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체'."
 ---
 
@@ -157,3 +157,11 @@ Re-prevention:
 3. Fresh subagent dispatch = `Agent` tool + `subagent_type="oh-my-claudecode:executor"` + `model="sonnet"` (default for implementation; see Model routing table) + frozen plan path + context7 mandate + Pre-commit Gates 0, 1, 1.5, 2, 3, 4 all in prompt
 4. Main reviews subagent return → gate check → commit+push, OR re-dispatch fresh subagent on failure
 5. 2 consecutive subagent failures → halt + user-queue entry. Main does NOT take over.
+
+## Interaction with other kzk-*
+
+- **kzk-codex-cross-verification**: This skill's "Pre-implementation plan-critic loop" is the smaller, in-skill version of codex-cross-verification's broader plan/spec/arch review. Use this skill when a single executor task needs a plan critic; use codex-cross-verification when the artifact is a standalone plan/spec/architecture doc.
+- **kzk-codebase-survey**: Step 0 of any task ≥3 files / ≥200 LoC. Survey runs BEFORE this skill's planner dispatch.
+- **kzk-test-coverage**: Step 4 of large-task delegation runs the same coverage check that test-coverage owns at session close.
+- **kzk-pre-commit-gate**: Subagent prompt MUST echo the gate sequence so the executor commits with full Gate 0–4 awareness.
+- **kzk-autonomous-boundary**: Halt protocol mirror — if a delegated subagent halts, this skill's caller must propagate to autonomous-boundary's halt rules.

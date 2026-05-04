@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.2.9
+version: 1.2.11
 description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning'."
 ---
 
@@ -37,7 +37,15 @@ Cache result for this session as `CRG_AVAILABLE=true/false`. When auto-install s
 
 If Step 0.5 ran and set `CRG_AVAILABLE=true`, skip the version check and proceed directly to the "If available" path. If Step 0.5 ran and set `CRG_AVAILABLE=false`, skip the version check and go to the Fallback path. If Step 0.5 was skipped (interactive mode), check: first add `$HOME/.local/bin` to PATH then run `code-review-graph --version 2>/dev/null`.
 
-**If available (exit 0):**
+**Path priority: MCP tools → CLI → grep.** When `code-review-graph install` runs it auto-registers as an MCP server (in `.mcp.json`, `.claude/`, `.cursor/`, etc.). Probe with `ToolSearch(query="+code-review-graph")` once per session — if MCP tools surface, use them in preference to the CLI form below. See `## MCP tool surface` near the bottom of this file for the tool→use-case mapping.
+
+**If MCP tools available (preferred):**
+1. `semantic_search_nodes` — find related symbols by name/keyword
+2. `query_graph(pattern="callers_of"|"callees_of"|"imports_of"|"tests_for", target=<file or symbol>)` — replaces `code-review-graph query/blast-radius`
+3. `get_impact_radius(target=<file>)` — blast-radius scoring
+4. Same feature-dir + test-file inclusion rules as below
+
+**If CLI available (exit 0) but no MCP:**
 1. `code-review-graph query --file <target>` — forward dependency graph
 2. `code-review-graph blast-radius --file <target>` — reverse deps (who imports target)
 3. Include all files in the same feature directory (closest named folder boundary — defined as the nearest ancestor directory whose name is not a generic structural folder such as `src/`, `lib/`, `app/`, `components/`, `pages/`)
@@ -193,9 +201,26 @@ If any step is blocked, note the reason in the report and continue.`,
 - Reading beyond one transitive hop → over-reading on large codebases (v1 scope limit)
 - Reusing a survey report from a previous cycle without re-running → stale context
 
+## MCP tool surface (preferred when registered)
+
+When `code-review-graph install` ran (per `install/dependencies.sh`), the tool registers itself as an MCP server in the project (`.mcp.json` and editor-specific files). Detect via `ToolSearch(query="+code-review-graph")` once per session and load the surfaced tool names with `select:`.
+
+| MCP tool | Use for |
+|---|---|
+| `semantic_search_nodes` | Step 1 — find functions/classes/files by name or keyword (faster + more semantic than grep) |
+| `query_graph` (patterns: `callers_of`, `callees_of`, `imports_of`, `tests_for`) | Step 1 — trace deps in either direction; replaces `code-review-graph query` / `blast-radius` |
+| `get_impact_radius` | Step 1 — blast-radius scoring for a target file or symbol |
+| `get_affected_flows` | Step 1 — which execution paths a change touches |
+| `detect_changes` | kzk-pre-commit-gate Gate 4 / kzk-codex-cross-verification — risk-scored diff analysis |
+| `get_review_context` | Step 2 alt — token-efficient source snippets when scope is too large for full Read |
+| `get_architecture_overview` | Step 1 alt — high-level structure pass before deep read |
+| `refactor_tool` | Out-of-scope of this skill (planning renames / dead-code detection) |
+
+Fallback order: MCP → CLI → grep. Skill never halts on missing MCP server. Adopting projects who don't want the MCP registration can delete the per-editor artifacts and `.mcp.json` after install — the CLI form in Step 1 still works.
+
 ## Interaction with other kzk-*
 
-- **kzk-large-task-delegation**: This skill is Step 0 of the plan-critic loop. Report path must be in planner + critic prompts.
+- **kzk-large-task-delegation §"Pre-implementation plan-critic loop (opus + codex)"**: This skill is Step 0 of that loop. Report path must be in planner + critic prompts.
 - **kzk-web-loop P1/P2**: Survey runs before `writing-plans`. Report path passed as "Required reading".
 - **kzk-codex-cross-verification**: Survey report appended to Codex CLI prompt DESIGN UNDER REVIEW section.
 - **kzk-background-monitoring**: EXPLORER dispatch is a long-running subagent; narrate after completion per result-narration mandate.

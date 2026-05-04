@@ -1,6 +1,6 @@
 ---
 name: kzk-user-queue
-version: 1.0.3
+version: 1.0.4
 description: "user-queue protocol — append entries with tentative defaults during autonomous runs, parametrize so user can override cheaply, then run interactive 1-by-1 review (Stage 1/2/3) when user returns. Required triggers: 'user-queue', 'Q-COV', 'Q-TOOL', 'Q-WEBLOOP', 'Q-SUBAGENT', 'Q-INSTALL', 'Q-PLUGIN', 'Pending', 'Resolved', 'DECISION', 'Interactive Queue Review', 'Stage 3', '모호 결정'."
 ---
 
@@ -72,3 +72,15 @@ User commit appends DECISIONs → kick a Stage-3 iteration:
 - Hardcoding the tentative default (no flag) — user override = expensive rollback
 - Not appending the entry but proceeding silently — user has no record of the call
 - Re-asking the same Q-* across sessions — already in `## Resolved`
+
+## Interaction with other kzk-*
+
+Queue producers — skills that append entries to `docs/harness/user-queue.md`:
+
+- **kzk-tool-retry**: Q-TOOL entries (Edit/Write retry exhaustion).
+- **kzk-test-coverage**: Q-COV entries (coverage exemption requests).
+- **kzk-web-loop**: Q-WEBLOOP and Q-PLUGIN entries.
+- **kzk-codebase-survey**: Q-INSTALL entries (code-review-graph install failures).
+- **kzk-production-access**: Q-PROD entries (destructive AWS/DB operations).
+- **kzk-background-monitoring**: Q-SUBAGENT entries (subagent stuck-or-empty).
+- **kzk-autonomous-boundary**: Halts append here when autonomous mode pauses.

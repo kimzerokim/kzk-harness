@@ -20,7 +20,7 @@ All 14 skills are active in this repo. Load one by mentioning its trigger keywor
 | `kzk-test-coverage` | session close, coverage gap, touched files |
 | `kzk-tool-retry` | Edit fail, Write fail, File has not been read yet |
 | `kzk-user-queue` | ambiguous decision, user returns, queue review |
-| `kzk-web-loop` | web loop, 웹 루프, 12시간, 자율 개선, loop forever, 무한 개선 |
+| `kzk-web-loop` | web loop, 웹 루프, 자율 개선, loop forever, 무한 개선, 무한 루프, 계속 돌려 |
 | `kzk-codebase-survey` | codebase survey, 코드베이스 탐색, deep explore, survey first, before planning |
 
 ## Autonomous Execution Boundary
@@ -59,7 +59,16 @@ No-halt policy applies (same as `kzk-web-loop`). Ambiguous decisions → `docs/h
 
 ## External Tools
 
-`code-review-graph` — installed globally via the kzk-harness install command. Builds a Tree-sitter + SQLite knowledge graph of the codebase for blast radius analysis and scope expansion. Used by `kzk-codebase-survey` Steps 1–2 when available (grep fallback if not). Install: `python3 -m pip install --user code-review-graph && code-review-graph install && code-review-graph build`. PEP 668 fallback: `pipx install code-review-graph`.
+All external dependencies are installed by `install/dependencies.sh` (run automatically by the README install command). The authoritative list with per-skill fallback behavior lives in `install/dependencies.md`.
+
+Quick reference:
+- `code-review-graph` (auto, pip --user → pipx) — Tree-sitter + SQLite knowledge graph. Used by `kzk-codebase-survey` Steps 0.5/1/2. Fallback: grep-based scope expansion.
+- `codex` CLI (auto, npm → brew) — cross-vendor second opinion. Used by `kzk-codex-cross-verification`, `kzk-large-task-delegation`. Fallback: `oh-my-claudecode:critic` opus.
+- `gh` CLI (detected only) — required for PR workflow. Install: `brew install gh`.
+- `aws-vault` (detected only, optional) — STS-backed AWS credentials. Used by `kzk-production-access`.
+- Claude Code plugins (`/plugin` inside a session): `oh-my-claudecode` (subagents, deepinit_manifest), `playwright-mcp` (Gate 4 + web-loop browser MCP).
+
+Re-run after install: `bash /path/to/kzk-harness/install/dependencies.sh "$(pwd)"`.
 
 ## Skill Development Rules
 

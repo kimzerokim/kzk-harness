@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-loop
-version: 1.0.8
+version: 1.0.9
 description: "The autonomous loop never stops politely. Combines rate-limit polling (Anthropic 5h), context-budget /compact at 80%, and multi-Plan auto-continuation. Required triggers: 'rate limit', '5h window', 'ScheduleWakeup', '/compact', 'context budget', 'polite stop', 'next Plan', 'Plan auto-continuation'."
 ---
 
@@ -63,3 +63,10 @@ Anything else → continue.
 ## Visibility (Session-12 lesson)
 
 If a turn ends without progress narration, the user perceives stuck-state. Always include at least one of: progress update (file count / commit / phase) | latest background-agent text snippet | explicit "next signal: <X complete notification>" line. See `kzk-playwright-verification` "Result narration" section — same rule.
+
+## Interaction with other kzk-*
+
+- **kzk-autonomous-boundary**: Canonical halt-condition owner. This skill's wakeup sequence MUST honor those halts.
+- **kzk-background-monitoring**: Rate-limit polling discipline — wakeup after rate-limit reset must use background-monitoring's stuck-threshold rules.
+- **kzk-web-loop**: Reviewer-FAIL override — web loop overrides this skill's halt-on-3-FAILs rule per harness-share §25.
+- **kzk-user-queue**: Halts that pause the loop append a Q-AUTOLOOP entry here for the user to resolve.

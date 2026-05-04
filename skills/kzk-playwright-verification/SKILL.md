@@ -1,6 +1,6 @@
 ---
 name: kzk-playwright-verification
-version: 1.0.2
+version: 1.0.4
 description: "Playwright MCP-based UI Gate 4 verification routine, debug cheatsheet, and result-narration mandate (also applies to any long-running tool ≥ 2s). Use whenever a commit touches frontend source files or whenever the agent calls a Playwright MCP tool or any long-running tool. Required triggers: 'Playwright', 'Gate 4', 'browser_navigate', 'browser_take_screenshot', 'screenshot 검수', 'MCP drop', 'visual verification', 'Result narration', 'long-running tool', 'Cooked for Nm', 'silence', 'stuck', 'Bash background', 'Agent dispatch progress'."
 ---
 
@@ -26,7 +26,7 @@ Exception: `kzk-web-loop` overrides this — see `kzk-web-loop` §Playwright Res
 
 ## Authentication (Playwright profile is persistent)
 
-1. First run per session: `browser_navigate('http://localhost:<PORT>/auth/...')` → user logs in via the Chrome window. Replace `<PORT>` with your app's actual port.
+1. First run per session: `browser_navigate('<your-app-login-url>')` → user logs in via the Chrome window. Examples: `http://localhost:3000/auth/google`, `https://staging.example.com/login`, `http://auth.local.example.com/` (subdomain auth). Match your app's actual login route — kzk-harness does not assume a specific path shape.
 2. Subsequent `browser_navigate` calls inherit the session cookie automatically
 3. 24h expiry / logout → repeat step 1
 
@@ -57,7 +57,7 @@ The user otherwise sees only "Cooked for Nm" otherwise — that reads as stuck a
 | Symptom | Cause | Fix |
 |---|---|---|
 | `Target page, context or browser has been closed` | MCP session drop | Ask user to run `/mcp` to reconnect, then retry navigate |
-| Empty page after login / `/your-protected-route` redirects to `/login` | JWT 24h expiry or cookie drop | `browser_navigate http://localhost:<PORT>/auth/...`, user re-logs in |
+| Empty page after login / `<your-protected-route>` redirects to `/login` | JWT 24h expiry or cookie drop | `browser_navigate <your-app-login-url>`, user re-logs in |
 | `Cannot GET <path>` | Backend redirect mismatch or SPA fallback missing | Check auth controller redirect path or frontend route config |
 | `--no-sandbox` / Chromium launch error | Chrome-for-Testing launch arg | `/mcp` reconnect first; if recurring, fix MCP config browser args |
 | Screenshot saved to repo root | Filename had no path | `ls *.png` pre-commit, move to `.playwright-mcp/` |
@@ -87,3 +87,9 @@ Official shadcn new-york blocks use **prefix-less** tokens (`--background / --pr
 - snapshot only, no screenshot — accessibility tree misses color/spacing/font regressions
 - Reading the screenshot but stating "looks good" without an explicit visual claim. Build/test green ≠ visual PASS. Mandatory format: name elements + name tokens (e.g. "Card has shadow, padding looks correct, primary CTA blue is the brand token")
 - "I'll bypass via dev token" when MCP drops — see `harness-share.md` §19 MCP Reconnect Protocol
+
+## Interaction with other kzk-*
+
+- **kzk-pre-commit-gate**: This skill implements Gate 4 (browser smoke + screenshot).
+- **kzk-background-monitoring**: Reuses the narration table this skill defines for long-running browser actions.
+- **kzk-web-loop**: Cascade-recovery override — web loop's playwright resilience rule overrides this skill's hard-stop when MCP repeatedly fails.
