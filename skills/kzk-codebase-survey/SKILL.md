@@ -1,12 +1,16 @@
 ---
 name: kzk-codebase-survey
-version: 1.4.1
-description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning', 'spec 검증', 'spec verification', '구현 확인', '구현 검증', '버그 전수조사', 'implementation audit', 'spec vs implementation', 'spec 체크', '스펙 체크', '하나하나 확인', 'ralph로 체크'."
+version: 1.5.0
+description: "Mandatory pre-planning deep codebase read — full import scope, context7 docs, TypeScript contracts. Top triggers: 'codebase survey', '코드베이스 탐색', 'spec 검증', '하나하나 확인', 'before planning'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §26. On conflict, that wins.
 
 # kzk-codebase-survey
+
+## Triggers
+
+`codebase survey`, `코드베이스 탐색`, `deep explore`, `survey first`, `before planning`, `spec 검증`, `spec verification`, `구현 확인`, `구현 검증`, `버그 전수조사`, `implementation audit`, `spec vs implementation`, `spec 체크`, `스펙 체크`, `하나하나 확인`, `ralph로 체크`.
 
 Mandatory pre-brainstorming and pre-planning deep read. Solves the root cause of feature gaps in plans: the planner only sees a short file list, not the full codebase context, external library APIs, or TypeScript type contracts.
 

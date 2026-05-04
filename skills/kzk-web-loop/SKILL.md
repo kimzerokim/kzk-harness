@@ -1,12 +1,16 @@
 ---
 name: kzk-web-loop
-version: 1.3.14
-description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '자율 개선', 'loop forever', '무한 개선', '무한 루프', '계속 돌려'."
+version: 1.4.0
+description: "Autonomous web page improvement loop — indefinite self-directed cycles via fresh evaluator agent. Top triggers: 'web loop', '웹 루프', '무한 루프', '자율 개선', '계속 돌려'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §25. On conflict, that wins.
 
 # kzk-web-loop
+
+## Triggers
+
+`web loop`, `웹 루프`, `자율 개선`, `loop forever`, `무한 개선`, `무한 루프`, `계속 돌려`.
 
 Runs a self-directed improvement cycle on a web project until the user explicitly stops it. Solves two problems: (1) Claude lacks a self-directed task source and stops to ask for direction, (2) Playwright MCP calls frequently hang and stall the loop. This skill generates its own task queue from a built-in evaluation checklist and treats Playwright as an optional enhancement with cascade recovery.
 

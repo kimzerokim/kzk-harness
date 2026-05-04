@@ -1,12 +1,16 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.1.0
-description: "Autonomous-mode boundary — what the agent may and may NOT do without per-step user confirmation. Covers the ASK-FIRST branch / PR contract, halt conditions, destructive-op guardrails, and when autonomous mode is even allowed. Required triggers: 'autonomous', 'ralph로 돌려', 'ralph로 체크', 'ralph로 확인', '자는 동안 진행', '실행해놔야 queue 보지', '끝까지 끝내줘', 'branch contract', 'feature branch boundary', 'main 직접 접근', 'main에 바로 커밋', 'reviewer FAIL'."
+version: 1.2.0
+description: "Autonomous-mode boundary — ASK-FIRST 3-slot branch/PR contract, halt conditions, destructive-op guardrails. Top triggers: 'ralph로 돌려', '자율실행', 'main 직접', '끝까지 끝내줘', 'branch contract'. Body §Triggers for full list."
 ---
 
 > Authoritative source: repo `CLAUDE.md` "Autonomous Execution Boundary" + `harness-share.md` §2. On conflict, those win.
 
 # kzk-autonomous-boundary
+
+## Triggers
+
+`autonomous`, `ralph로 돌려`, `ralph로 체크`, `ralph로 확인`, `자는 동안 진행`, `실행해놔야 queue 보지`, `끝까지 끝내줘`, `branch contract`, `feature branch boundary`, `main 직접 접근`, `main에 바로 커밋`, `reviewer FAIL`, `자율실행`, `자율 실행`, `자율로 돌려`.
 
 Autonomous mode = explicit user permission only. Triggers: "ralph로 돌려", "자는 동안 진행해", "실행해놔야 queue 보지", "끝까지 끝내줘". No autonomous mode = no auto-commits, no agent dispatch chains.
 

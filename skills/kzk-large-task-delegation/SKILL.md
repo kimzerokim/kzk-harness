@@ -1,12 +1,16 @@
 ---
 name: kzk-large-task-delegation
-version: 1.2.0
-description: "Large tasks dispatch to fresh subagents — main never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, anti-pattern worked examples (Session-6 + Session-28), and the skill-load chain that must follow `kzk-codebase-survey`. Required triggers: 'large task', 'subagent dispatch', '3+ file edits', '200+ LoC', 'opus/sonnet routing', 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체', 'read-heavy audit', 'spec verification', '구현 검증', '버그 전수조사', 'implementation audit', '5+ file read', '마무리 해줘', '전수 검토', '끝내줘', '사용성 버그', '사용성 회귀', 'QA scan', '여러 plan 으로 쪼개', '플랜 여러개로 쪼개', 'plan 쪼개', '사이클 자율', '사이클로 자율', '사이클 돌면서', '버그들 모두', '모두 잡아줘'."
+version: 1.3.0
+description: "Large tasks (3+ files / 200+ LoC / 5+ file read / multi-stage) dispatch to fresh subagents — main never executes. Top triggers: '큰 작업', '버그 전수조사', '사이클 자율', 'plan 쪼개', 'subagent dispatch'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §4. On conflict, that wins.
 
 # kzk-large-task-delegation
+
+## Triggers
+
+`large task`, `subagent dispatch`, `3+ file edits`, `200+ LoC`, `opus/sonnet routing`, `subagent-driven`, `큰 작업`, `fresh subagent`, `메인 컨텍스트`, `여러 파일 동시 편집`, `Plan scope 전체`, `read-heavy audit`, `spec verification`, `구현 검증`, `버그 전수조사`, `implementation audit`, `5+ file read`, `마무리 해줘`, `전수 검토`, `끝내줘`, `사용성 버그`, `사용성 회귀`, `QA scan`, `여러 plan 으로 쪼개`, `플랜 여러개로 쪼개`, `plan 쪼개`, `사이클 자율`, `사이클로 자율`, `사이클 돌면서`, `버그들 모두`, `모두 잡아줘`.
 
 Large work runs in fresh subagents via `/superpowers:subagent-driven-development`. Main context = dispatch + review + commit. Main never holds the implementation.
 
@@ -44,23 +48,66 @@ This is the read-only counterpart to the implementation dispatch above — same 
 
 ## Model routing (mandatory split for subagent dispatch)
 
-Subagent dispatches are split by phase, not by topic. Reasoning-heavy phases get the strong model + a second-opinion consult; mechanical phases get the fast model.
+Three tiers. Pick by the cost-of-bad-output × token-cost trade-off, not by topic.
 
 | Phase | Subagent type | Model | Cross-check |
 |---|---|---|---|
-| Plan authoring | `oh-my-claudecode:planner` / `oh-my-claudecode:architect` | **opus** | Mandatory Codex CLI consult on draft plan before freezing (see `kzk-spec-and-review`). For deep requirements elicitation before planning, use `Skill("oh-my-claudecode:deep-interview")` — it is a Skill invocation, not an Agent subagent_type. |
-| Critic / review | `oh-my-claudecode:critic` / `oh-my-claudecode:code-reviewer` | **opus** | Codex CLI review parallel pass (see `kzk-spec-and-review`) |
-| Verify | `oh-my-claudecode:verifier` | **opus** | Codex CLI consult on uncertain assertions (see `kzk-spec-and-review`) |
-| Implementation | `oh-my-claudecode:executor` | **sonnet** | none — plan must already be detailed enough |
-| Quick research / file search | `oh-my-claudecode:explore` | **sonnet** (survey/deep reads); **haiku** (quick targeted lookups) | none |
+| Plan authoring | `oh-my-claudecode:planner` / `oh-my-claudecode:architect` | **opus** | Mandatory Codex CLI consult on draft plan before freezing (see `kzk-spec-and-review`). For deep requirements elicitation, use `Skill("oh-my-claudecode:deep-interview")` (Skill, not Agent). |
+| Critic / code review | `oh-my-claudecode:critic` / `oh-my-claudecode:code-reviewer` | **opus** | Codex CLI parallel review (see `kzk-spec-and-review`) |
+| Semantic verify | `oh-my-claudecode:verifier` | **opus** | Codex CLI consult on uncertain assertions |
+| Implementation (substantive) | `oh-my-claudecode:executor` | **sonnet** | none — plan must be detailed enough |
+| Mechanical implementation | `oh-my-claudecode:executor` | **haiku** | none |
+| Quick research / file search | `oh-my-claudecode:explore` | **sonnet** (deep reads) / **haiku** (targeted lookups) | none |
 
-Reason: heavy reasoning where it changes the outcome, cheap execution where the plan already determined every move. Override: if sonnet returns BLOCKED or main reviews the diff and finds plan-vs-code drift, re-dispatch the same task with `model="opus"` and root-cause whether the plan was insufficient (fix the plan policy) or the model failed (record once, do not generalize from a single failure).
+### Tier triggers — when to drop to haiku
 
-Codex is invoked via CLI: `codex exec "$PROMPT" -C <repo-root> -s read-only` (see `kzk-spec-and-review §Codex execution shape`). CLI unavailable → `Agent(subagent_type="oh-my-claudecode:critic", model="opus")`. Codex disagreement on plan ≠ veto — main reconciles; persistent disagreement → user-queue entry, do not silently override one model with the other.
+Haiku tier (new — Cycle 29) for mechanical work where the change is pattern-application with zero design judgment:
 
-### Default split — 80% sonnet
+- Version bump (`version: X.Y.Z` → `X.Y+1.0`)
+- Frontmatter description rewrite to a frozen template
+- Single-line config flag toggle (e.g., `tsconfig.json` single option, env var add)
+- Lint / formatter follow-up (typed by linter — 1-line fix)
+- Progress log entry append (frozen one-line format)
+- Atomic file rename across N files (rename + import path update only, no logic change)
+- Trivial test scaffolding when the assertion list is fully spec'd
 
-In a typical session 80%+ of subagent dispatches should be `sonnet`. Only plan / architecture / deep debug get `opus`. Main thread receives the user prompt, splits the task by phase, and chooses model. Terse → sonnet. Heavy reasoning → opus.
+Anything where the executor must *infer* what to write (variable name, error message wording, conditional branch logic, type definition shape) → sonnet, not haiku.
+
+### Tier triggers — when to escalate to opus
+
+Default = sonnet. Escalate to opus only when:
+
+- Plan authoring (always)
+- Critic on plan / on substantive code diff (always)
+- Architecture-changing refactor (DI container, ORM swap, schema migration, public API contract)
+- Security / auth / payment / IAM / credential handling code
+- Data migration with non-reversible destination
+- Spec ambiguity discovered mid-execution (sonnet returns BLOCKED — re-dispatch with opus, root-cause whether plan was insufficient)
+
+Codex CLI consult is mandatory on opus-tier plans + critic. Sonnet-tier dispatches: codex optional. Haiku-tier dispatches: skip codex.
+
+### Opus thinking-level (effort) guidance
+
+Opus dispatches default to **xhigh** effort. Drop to **high** when:
+
+- Plan authoring on a well-scoped extension (≤ 3 known modules, no architecture decision)
+- Critic on a small / mechanical diff (≤ 200 LoC, no architecture / security / auth / payment / data-migration implications)
+- Verify on pre-spec'd assertions (build green, test list, screenshot count) — not semantic intent
+
+Stay **xhigh** when:
+
+- Plan authoring with ambiguous requirements or new sub-system
+- Critic on architecture-changing or security-sensitive code
+- Verify on non-trivial spec compliance ("does this actually achieve what the user asked")
+- Any time `oh-my-claudecode:critic` returned REVISE on the previous round (signal that more thought is needed, not less)
+
+Session-level effort is set via the Claude Code CLI banner (`Opus 4.7 with xhigh effort`). Drop the banner to `high` for cycles consisting mostly of mechanical work; bump back to `xhigh` before opening a plan / critic dispatch. Sonnet executor and haiku mechanical: thinking is implicit in session default; do not tune separately.
+
+### Default split — target distribution
+
+Typical session: 50% sonnet (executor) + 30% haiku (mechanical) + 20% opus (plan / critic / opus-trigger). Pre-Cycle-29 default was 80% sonnet 20% opus; the haiku tier reclaims the mechanical share.
+
+`model` MUST be specified explicitly on every dispatch. Omitted = Opus default = cost blowup.
 
 ### Code examples (mandatory `model` param)
 

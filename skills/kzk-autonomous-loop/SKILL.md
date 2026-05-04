@@ -1,12 +1,16 @@
 ---
 name: kzk-autonomous-loop
-version: 1.0.9
-description: "The autonomous loop never stops politely. Combines rate-limit polling (Anthropic 5h), context-budget /compact at 80%, and multi-Plan auto-continuation. Required triggers: 'rate limit', '5h window', 'ScheduleWakeup', '/compact', 'context budget', 'polite stop', 'next Plan', 'Plan auto-continuation'."
+version: 1.1.0
+description: "Autonomous loop never stops politely — rate-limit polling (5h), context /compact at 80%, multi-Plan auto-continuation. Top triggers: 'rate limit', 'ScheduleWakeup', 'context budget', 'polite stop', 'Plan auto-continuation'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §12 / §13 / §14. On conflict, that wins.
 
 # kzk-autonomous-loop
+
+## Triggers
+
+`rate limit`, `5h window`, `ScheduleWakeup`, `/compact`, `context budget`, `polite stop`, `next Plan`, `Plan auto-continuation`.
 
 The autonomous loop continues until all tasks done OR a halt condition fires (see `kzk-autonomous-boundary`). Polite stops are forbidden.
 

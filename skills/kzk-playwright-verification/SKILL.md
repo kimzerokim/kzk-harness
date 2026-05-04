@@ -1,12 +1,16 @@
 ---
 name: kzk-playwright-verification
-version: 1.1.0
-description: "Playwright MCP-based UI Gate 4 verification routine, debug cheatsheet, OAuth click-through protocol, and result-narration mandate (also applies to any long-running tool ≥ 2s). Use whenever a commit touches frontend source files or whenever the agent calls a Playwright MCP tool or any long-running tool. Required triggers: 'Playwright', 'Gate 4', 'browser_navigate', 'browser_take_screenshot', 'screenshot 검수', 'MCP drop', 'visual verification', 'Result narration', 'long-running tool', 'Cooked for Nm', 'silence', 'stuck', 'Bash background', 'Agent dispatch progress', 'Google 로그인', 'OAuth 막힘', 'login 화면', '로그인 버튼', 'sign in with google'."
+version: 1.2.0
+description: "Playwright MCP Gate 4 routine + OAuth click-through protocol + result-narration mandate. Top triggers: 'Playwright', 'Gate 4', '로그인 버튼', 'browser_navigate', 'Google 로그인'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §3 Gate 4. On conflict, that wins.
 
 # kzk-playwright-verification
+
+## Triggers
+
+`Playwright`, `Gate 4`, `browser_navigate`, `browser_take_screenshot`, `screenshot 검수`, `MCP drop`, `visual verification`, `Result narration`, `long-running tool`, `Cooked for Nm`, `silence`, `stuck`, `Bash background`, `Agent dispatch progress`, `Google 로그인`, `OAuth 막힘`, `login 화면`, `로그인 버튼`, `sign in with google`.
 
 Build/test green ≠ visual PASS. Session-6 ui-migration-shadcn lesson: every M-milestone passed build+vitest, but sidebar links rendered as bare blue underlines, Cards as border-only, Badges unstyled. Gate 4 catches this.
 

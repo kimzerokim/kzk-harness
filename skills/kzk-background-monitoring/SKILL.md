@@ -1,12 +1,16 @@
 ---
 name: kzk-background-monitoring
-version: 1.0.4
-description: "Background process active monitoring mandate — agent owns every long-running task it spawns and never lets the user have to ask 'is it done?'. Applies to Bash run_in_background, Monitor, codex exec, npm install, docker build, subagent dispatch, anything ≥ 5s. Required triggers: 'background', 'monitor', 'long-running', 'stuck', 'codex consult', 'is it done', 'background task hung'."
+version: 1.1.0
+description: "Agent owns every background task it spawns — active monitoring until completion, stuck detection, never waits for user to ask. Top triggers: 'background', 'run_in_background', 'stuck', 'is it done', 'background task hung'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §23. On conflict, that wins.
 
 # kzk-background-monitoring
+
+## Triggers
+
+`background`, `monitor`, `long-running`, `stuck`, `codex consult`, `is it done`, `background task hung`, `run_in_background`, `Monitor tool`.
 
 Once you spawn a background task, you own it until it terminates (success, failure, or kill). The user asking "어떻게 됐어?" is a violation, not a check-in.
 

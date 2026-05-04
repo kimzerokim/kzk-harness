@@ -1,12 +1,16 @@
 ---
 name: kzk-test-coverage
-version: 1.0.7
-description: "Autonomous-mode test coverage goal: 100% line + branch on changed files. Touched legacy raised too. Best-effort excuses forbidden. Required triggers: 'test coverage', 'test:cov', '100% coverage', '변경 파일 cov', 'coverage exemption'."
+version: 1.1.0
+description: "100% line + branch coverage on changed files — autonomous mode, no best-effort excuses. Top triggers: 'test coverage', 'test:cov', '100% coverage', '변경 파일 cov', 'coverage exemption'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §11. On conflict, that wins.
 
 # kzk-test-coverage
+
+## Triggers
+
+`test coverage`, `test:cov`, `100% coverage`, `변경 파일 cov`, `coverage exemption`.
 
 Autonomous session = 100% line + branch coverage on the files the session changed. Legacy code in those files counts too — touched = raised.
 

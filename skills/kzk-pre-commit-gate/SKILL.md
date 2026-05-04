@@ -1,12 +1,16 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.1.0
-description: "Up-to-6-step Pre-commit Gate (Gate 0 conditional on AGENTS.md hierarchy; gates: AGENTS.md sync / ai-slop-cleaner / secrets-scan / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/1.5/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'secrets scan', 'autonomous commit', 'doc-only exception'."
+version: 1.2.0
+description: "Up-to-6-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets / build / test / Playwright). Top triggers: 'commit', 'pre-commit', 'Gate 0', 'AGENTS.md sync', 'doc-only'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §3. On conflict, that wins.
 
 # kzk-pre-commit-gate
+
+## Triggers
+
+`commit`, `pre-commit`, `Gate 0`, `Gate 1`, `Gate 1.5`, `Gate 2`, `Gate 3`, `Gate 4`, `AGENTS.md sync`, `ai-slop-cleaner`, `secrets scan`, `autonomous commit`, `doc-only exception`.
 
 Every commit passes up to 6 gates in order (0, 1, 1.5, 2, 3, 4 — Gate 0 only when AGENTS.md hierarchy present, so 5 gates otherwise). One failure → commit blocked.
 
@@ -76,6 +80,21 @@ Any single source-code line in the same commit revokes this exception → run al
 **AGENTS.md / README.md classification**: these are `.md` files but follow this rule — standalone update (no source file add/delete in the same commit) = doc-only OK, Gate 0 not triggered. Same commit as a Gate 0 trigger (source file add/delete) = doc-only exception revoked by the source change, run all applicable gates.
 
 Note: skill files (`skills/**/*.md`) count as doc-only ONLY when modifying an existing skill. ADDING a new skill triggers Gate 0 **only when an AGENTS.md hierarchy is present** (same conditional as §Gate 0), plus the README.md / CLAUDE.md skill-count update flow described in CLAUDE.md "Skill Development Rules". `.claude/skills/**/*.md` is the legacy OMC path — same rules apply.
+
+## Doc-only patch policy
+
+When the staged diff touches ONLY the following paths, gate down to a minimal verification set:
+
+- `skills/kzk-*/SKILL.md`, `harness-share.md`, `CLAUDE.md`, `README.md`, `harness-flow-progress.md`, `docs/**/*.md`
+- AND no source file (`*.ts`, `*.tsx`, `*.js`, `*.mjs`, `*.py`, `*.sh`) added or modified
+
+Minimal set:
+1. Gate 1.5 secrets scan — always required
+2. `bash install/verify-install.sh --ac 2` — kzk marker block row count (≤ 5s)
+
+Skip the install/test full suite + AC3/6/7 + Gate 2/3/4. The full suite runs once at cycle close (last commit before global update).
+
+Doc-only commits go straight to commit after Gate 1.5 + AC2. Save token + wall-clock cost (~30s × cycle-close commits saved).
 
 ## Autonomous-mode commit policy
 

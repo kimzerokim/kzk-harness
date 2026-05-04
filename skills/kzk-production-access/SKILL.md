@@ -1,12 +1,16 @@
 ---
 name: kzk-production-access
-version: 1.0.2
-description: "Production / external-infra access boundary plus credential-handling protocol. Covers explicit-instruction rule, multi-step OK-sign pattern, destructive operations, AWS STS-vs-permanent IAM key triage. Required triggers: 'AWS', 'AWS 접속', 'SSM', 'SSM Session Manager', 'production', 'destructive', 'DB drop', 'snapshot', 'credential', 'ASIA prefix', 'AKIA prefix', 'aws-vault'."
+version: 1.1.0
+description: "Production/external-infra access boundary + credential-handling — explicit-instruction rule, destructive-op guardrails, AWS STS triage. Top triggers: 'AWS', 'SSM', 'production', 'aws-vault', 'credential'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §2. On conflict, that wins.
 
 # kzk-production-access
+
+## Triggers
+
+`AWS`, `AWS 접속`, `SSM`, `SSM Session Manager`, `production`, `destructive`, `DB drop`, `snapshot`, `credential`, `ASIA prefix`, `AKIA prefix`, `aws-vault`.
 
 Default = forbidden. Read-only included.
 

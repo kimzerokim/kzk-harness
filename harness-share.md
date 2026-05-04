@@ -205,6 +205,10 @@ source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `doc
 - 단독 수정 (파일 구조 변경 없는 routine 갱신) → doc-only 적용 O. Gate 0 트리거 안 됨 (source file add/delete 없음).
 - Gate 0 트리거 commit 에 동승 (source 파일 추가/삭제와 같은 commit) → doc-only 적용 X. source 변경이 예외 자동 해제.
 
+### Doc-only fast path
+
+Staged diff = only `*.md` (skills / harness-share / CLAUDE / README / progress / docs/) + no source file → run only Gate 1.5 (secrets) + verify-install AC2 (marker row count). Full gate set runs once at cycle close. See `kzk-pre-commit-gate §Doc-only patch policy`.
+
 ### Token migration — shadcn + Tailwind v4 bridge requirement
 
 Official shadcn new-york blocks use prefix-less tokens (`--background`, `--primary`, `--sidebar`). When the host project uses Tailwind v4 `@theme { --color-* }`, a bridge is required:
