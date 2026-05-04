@@ -232,6 +232,7 @@ Renaming variables but moving values does NOT make shadcn utility classes work. 
 - design system / token 전면 재작성 (CSS, tokens)
 - 단일 plan scope 전체
 - 빌드·테스트·Playwright·code-reviewer 여러 단계 동반
+- 5개 이상 파일 read 가 필요한 검증·audit (스펙 ↔ 구현 매칭, 버그 전수조사, 기존 시스템 review) — read-only 도 메인 직접 read 금지, EXPLORER subagent 가 담당
 
 ### 메인 컨텍스트 허용 영역
 
@@ -899,6 +900,7 @@ Run before any brainstorming or planning phase. Reads the full codebase scope (d
 - Before `superpowers:brainstorming` — report injected into brainstorming context
 - `kzk-large-task-delegation` Step 0 — before any planner dispatch
 - `kzk-web-loop` P1/P2 — survey → writing-plans order
+- Implementation verification (spec ↔ 코드 매칭, 버그 전수조사, 기존 시스템 audit) — 메인 컨텍스트는 dispatch + synthesize 만, EXPLORER 가 광범위 read 담당
 
 ### code-review-graph (optional, recommended)
 

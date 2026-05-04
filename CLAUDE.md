@@ -9,9 +9,9 @@ All 14 skills are active in this repo. Load one by mentioning its trigger keywor
 | Skill | Trigger keywords |
 |---|---|
 | `kzk-pre-commit-gate` | commit, pre-commit, Gate 0/1/1.5/2/3/4, AGENTS.md sync, secrets scan, doc-only |
-| `kzk-large-task-delegation` | 3+ file edits, 200+ LoC, subagent dispatch, opus/sonnet routing |
+| `kzk-large-task-delegation` | 3+ file edits, 200+ LoC, subagent dispatch, opus/sonnet routing, read-heavy audit, spec 검증, 버그 전수조사, 마무리 해줘, 전수 검토, 끝내줘 |
 | `kzk-playwright-verification` | Playwright, Gate 4, browser_navigate, screenshot, MCP drop |
-| `kzk-autonomous-boundary` | ralph, autonomous mode, halt condition, main branch boundary |
+| `kzk-autonomous-boundary` | ralph, ralph로 체크, ralph로 확인, autonomous mode, halt condition, main branch boundary |
 | `kzk-autonomous-loop` | rate limit, context 80%, multi-plan continuation |
 | `kzk-background-monitoring` | run_in_background, Monitor, long-running, build, install |
 | `kzk-spec-and-review` | spec 잡자/작성, plan 작성, spec/plan/design draft, major design, architecture review, codex review, cross-verify |
@@ -21,7 +21,7 @@ All 14 skills are active in this repo. Load one by mentioning its trigger keywor
 | `kzk-tool-retry` | Edit fail, Write fail, File has not been read yet |
 | `kzk-user-queue` | ambiguous decision, user returns, queue review |
 | `kzk-web-loop` | web loop, 웹 루프, 자율 개선, loop forever, 무한 개선, 무한 루프, 계속 돌려 |
-| `kzk-codebase-survey` | codebase survey, 코드베이스 탐색, deep explore, survey first, before planning |
+| `kzk-codebase-survey` | codebase survey, 코드베이스 탐색, deep explore, survey first, before planning, 구현 검증, spec verification, 버그 전수조사, spec 체크, 스펙 체크, 하나하나 확인, ralph로 체크 |
 
 ## Autonomous Execution Boundary
 
@@ -33,7 +33,7 @@ All edits happen on `feature/<topic>` branches. `main` merge requires explicit u
 
 This repo can run its own improvement loop — not web usability, but skill quality.
 
-Trigger: "harness 개선 루프", "스킬 개선해줘", "harness loop"
+Trigger: "harness 개선 루프", "스킬 개선해줘", "harness loop", "자가개선", "자가개선 돌려줘"
 
 ### Loop structure
 
@@ -45,6 +45,18 @@ Each cycle:
 2. Pick top issue → **EXECUTOR** (sonnet) implements the fix
 3. Update `harness-flow-progress.md` with cycle entry
 4. Back to step 1
+
+### Self-trigger reminder (메타 갭 방지)
+
+자가개선 루프 진입 시 메인 컨텍스트는 자체 kzk-* 스킬을 적극 호출한다. 다음 매핑이 default:
+
+- **EVALUATOR / EXECUTOR dispatch** = `kzk-large-task-delegation §Model routing` (critic opus, executor sonnet)
+- **메인이 검증 차원에서 5+ 파일 read 필요 시** = `kzk-large-task-delegation §Read-heavy audit dispatch shape` (메인 직접 read 금지, EXPLORER subagent 위임)
+- **새 스킬 추가 / 큰 구조 변경 / 글로벌 install 등 메타 작업** = `kzk-spec-and-review` Step 0 (codebase survey 선행) → Step 1–3 (spec → codex 리뷰 → frozen plan)
+- **Cycle 끝에서 변경 commit** = `kzk-pre-commit-gate` (Gate 0 conditional + Gate 1.5 secrets) + `kzk-pre-merge-sync` (PR / merge 단계)
+- **다중 cycle 자율 실행** = `kzk-autonomous-loop` + `kzk-autonomous-boundary` (rate limit / context 80% / halt 조건)
+
+자가개선 루프가 자기 스킬을 안 쓰는 패턴은 메타 갭 — 즉시 다음 cycle 의 P0 로 처리한다.
 
 No-halt policy applies (same as `kzk-web-loop`). Ambiguous decisions → `docs/harness/user-queue.md`.
 

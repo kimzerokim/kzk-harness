@@ -1,10 +1,10 @@
 ---
 name: kzk-spec-and-review
-version: 2.0.0
+version: 2.0.1
 description: "Spec / plan / major-design authoring + cross-vendor review loop. Step 0: kzk-codebase-survey precondition (no draft without code context). Steps 1–3: main controller drafts the artifact → codex CLI cross-vendor consult (or oh-my-claudecode:critic opus fallback) → synthesize. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'spec 잡자', 'spec 작성', 'spec draft', 'plan draft', 'plan 작성', 'design draft', 'major design', 'architecture review', 'codex review', 'codex consult', 'cross-verify'."
 ---
 
-> Authoritative source: `harness-share.md` §22. On conflict, that wins.
+> Authoritative source: `harness-share.md` §22 + §22.5 (Step 0 survey precondition references §26). On conflict, that wins.
 
 # kzk-spec-and-review
 
@@ -111,7 +111,7 @@ codex exec "$PROMPT" -C <repo-root> -s read-only \
 ## Artifact retention
 
 - Codex output appears verbatim in main context during brainstorm / spec phase
-- Persist meaningful reasoning to `docs/research/codex-reviews/{topic}-{YYYY-MM-DD}.md`
+- Persist meaningful reasoning to the verdict file path defined in §Verdict file convention (`docs/research/codex-reviews/<topic>-critic-review.md` for non-plan reviews; plan reviews land alongside the plan)
 - Future "왜 이렇게 결정했나" questions fall back on these files
 
 ## Anti-patterns

@@ -62,7 +62,7 @@ Detection sources:
 
 - **Purpose**: Browser automation MCP tools (`browser_navigate`, `browser_snapshot`, `browser_take_screenshot`, etc.).
 - **Used by**: `kzk-playwright-verification` (Gate 4 browser smoke), `kzk-web-loop` (loop core navigation + screenshot drop).
-- **Install**: in a Claude Code session, run `/plugin` and install `playwright-mcp`. Or run `claude plugin add @playwright/mcp@latest`.
+- **Install**: in a Claude Code session, run `/plugin` and install `playwright-mcp`. Or run `claude mcp add playwright -- npx -y @playwright/mcp@latest`.
 - **Fallback if missing**: 
   - `kzk-playwright-verification` Gate 4: skipped with a logged note. Gate 4 is conditional on UI-touching changes; non-UI commits still pass.
   - `kzk-web-loop`: cannot run. Loop start halts with "playwright MCP unavailable — install via /plugin".
