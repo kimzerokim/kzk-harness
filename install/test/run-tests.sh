@@ -507,6 +507,65 @@ test_precedence_probe_clean_up() {
 }
 
 # ---------------------------------------------------------------------------
+# keyword-detector.mjs unit tests (Cycle 28 — meta-gap prevention)
+# ---------------------------------------------------------------------------
+test_keyword_detector_matches_large_task_phrase() {
+  printf '\n[test_keyword_detector_matches_large_task_phrase]\n'
+  local out
+  out=$(printf '%s' '{"prompt":"버그 전수조사 해줘"}' | node "$REPO_ROOT/install/hooks/keyword-detector.mjs" 2>/dev/null)
+  assert_match "output contains kzk-large-task-delegation" \
+    "kzk-large-task-delegation" "$out"
+}
+
+test_keyword_detector_matches_session28_phrasing() {
+  printf '\n[test_keyword_detector_matches_session28_phrasing]\n'
+  local out
+  out=$(printf '%s' '{"prompt":"사용성 버그 모두 잡아줘"}' | node "$REPO_ROOT/install/hooks/keyword-detector.mjs" 2>/dev/null)
+  assert_match "output contains kzk-large-task-delegation" \
+    "kzk-large-task-delegation" "$out"
+}
+
+test_keyword_detector_matches_multi_skill() {
+  printf '\n[test_keyword_detector_matches_multi_skill]\n'
+  local out
+  out=$(printf '%s' '{"prompt":"spec 잡자 + 플랜 여러개로 쪼개"}' | node "$REPO_ROOT/install/hooks/keyword-detector.mjs" 2>/dev/null)
+  assert_match "output contains kzk-spec-and-review" \
+    "kzk-spec-and-review" "$out"
+  assert_match "output contains kzk-large-task-delegation" \
+    "kzk-large-task-delegation" "$out"
+}
+
+test_keyword_detector_matches_self_improvement_chain() {
+  printf '\n[test_keyword_detector_matches_self_improvement_chain]\n'
+  local out
+  out=$(printf '%s' '{"prompt":"자가개선 루프"}' | node "$REPO_ROOT/install/hooks/keyword-detector.mjs" 2>/dev/null)
+  assert_match "output contains kzk-spec-and-review" \
+    "kzk-spec-and-review" "$out"
+  assert_match "output contains kzk-large-task-delegation" \
+    "kzk-large-task-delegation" "$out"
+  assert_match "output contains kzk-pre-commit-gate" \
+    "kzk-pre-commit-gate" "$out"
+  assert_match "output contains kzk-autonomous-loop" \
+    "kzk-autonomous-loop" "$out"
+}
+
+test_keyword_detector_no_match_passes_through() {
+  printf '\n[test_keyword_detector_no_match_passes_through]\n'
+  local out
+  out=$(printf '%s' '{"prompt":"안녕하세요"}' | node "$REPO_ROOT/install/hooks/keyword-detector.mjs" 2>/dev/null)
+  assert_match "output is continue:true" \
+    '{"continue":true}' "$out"
+  if printf '%s\n' "$out" | grep -qF '🚨'; then
+    printf '  FAIL: no-match output must not contain 🚨\n'
+    FAIL=$((FAIL + 1))
+    ERRORS+=("test_keyword_detector_no_match_passes_through: unexpected 🚨 in output")
+  else
+    printf '  PASS: no 🚨 in no-match output\n'
+    PASS=$((PASS + 1))
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Run all tests
 # ---------------------------------------------------------------------------
 printf 'kzk-harness install-global tests (pure-bash, repo: %s)\n' "$REPO_ROOT"
@@ -525,6 +584,11 @@ test_verify_runs_all_8_acs
 test_ac5_skipped_when_claude_missing
 test_ac5_fails_on_source_path
 test_precedence_probe_clean_up
+test_keyword_detector_matches_large_task_phrase
+test_keyword_detector_matches_session28_phrasing
+test_keyword_detector_matches_multi_skill
+test_keyword_detector_matches_self_improvement_chain
+test_keyword_detector_no_match_passes_through
 
 printf '\n'
 printf '=%.0s' {1..60}
