@@ -21,6 +21,7 @@ const RULES = [
       "여러 plan 으로 쪼개", "여러 plan으로 쪼개", "플랜 여러개로 쪼개", "플랜 쪼개", "plan 쪼개", "plan 여러개",
       "사이클 자율", "사이클로 자율", "사이클 돌면서", "자율로 돌면서",
       "버그들 모두", "버그 모두 개선", "모두 잡아줘", "모두 개선",
+      "리팩토링", "refactor", "정리해줘", "cleanup", "개선해줘", "전반적으로", "통째로", "scope estimate",
     ],
   },
   {
@@ -53,6 +54,14 @@ const RULES = [
     skills: ["kzk-spec-and-review", "kzk-large-task-delegation", "kzk-pre-commit-gate", "kzk-autonomous-loop"],
     why: "self-improvement loop entry — load the full meta-stack to avoid recursive meta-gap",
     triggers: ["harness 개선 루프", "스킬 개선해줘", "harness loop", "자가개선", "자가개선 루프", "재발 방지", "메타 갭"],
+  },
+  {
+    skills: ["kzk-test-coverage"],
+    why: "TDD discipline — failing test (red) BEFORE impl (green) BEFORE refactor BEFORE commit; coverage gate gates the result",
+    triggers: [
+      "tdd", "TDD", "test first", "테스트 먼저", "테스트부터", "failing test", "red-green",
+      "테스트 추가", "테스트 추가해줘", "test 추가", "coverage 추가",
+    ],
   },
 ];
 

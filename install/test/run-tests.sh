@@ -573,6 +573,30 @@ test_keyword_detector_no_match_passes_through() {
   fi
 }
 
+test_keyword_detector_matches_tdd() {
+  printf '\n[test_keyword_detector_matches_tdd]\n'
+  local out
+  out=$(printf '%s' '{"prompt":"테스트 먼저 작성하고 진행해줘"}' | node "$REPO_ROOT/install/hooks/keyword-detector.mjs" 2>/dev/null)
+  assert_match "output contains kzk-test-coverage" \
+    "kzk-test-coverage" "$out"
+}
+
+test_keyword_detector_matches_vague_large() {
+  printf '\n[test_keyword_detector_matches_vague_large]\n'
+  local out
+  out=$(printf '%s' '{"prompt":"리팩토링 좀 해줘"}' | node "$REPO_ROOT/install/hooks/keyword-detector.mjs" 2>/dev/null)
+  assert_match "output contains kzk-large-task-delegation" \
+    "kzk-large-task-delegation" "$out"
+}
+
+test_keyword_detector_matches_test_add() {
+  printf '\n[test_keyword_detector_matches_test_add]\n'
+  local out
+  out=$(printf '%s' '{"prompt":"이 함수에 테스트 추가해줘"}' | node "$REPO_ROOT/install/hooks/keyword-detector.mjs" 2>/dev/null)
+  assert_match "output contains kzk-test-coverage" \
+    "kzk-test-coverage" "$out"
+}
+
 # ---------------------------------------------------------------------------
 # Run all tests
 # ---------------------------------------------------------------------------
@@ -597,6 +621,9 @@ test_keyword_detector_matches_session28_phrasing
 test_keyword_detector_matches_multi_skill
 test_keyword_detector_matches_self_improvement_chain
 test_keyword_detector_no_match_passes_through
+test_keyword_detector_matches_tdd
+test_keyword_detector_matches_vague_large
+test_keyword_detector_matches_test_add
 
 printf '\n'
 printf '=%.0s' {1..60}
