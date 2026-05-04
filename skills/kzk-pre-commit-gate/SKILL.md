@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.0.15
+version: 1.1.0
 description: "Up-to-6-step Pre-commit Gate (Gate 0 conditional on AGENTS.md hierarchy; gates: AGENTS.md sync / ai-slop-cleaner / secrets-scan / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/1.5/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'secrets scan', 'autonomous commit', 'doc-only exception'."
 ---
 
@@ -82,8 +82,8 @@ Note: skill files (`skills/**/*.md`) count as doc-only ONLY when modifying an ex
 User explicitly entered autonomous mode ("ralph로 돌려", "자는 동안 진행", "끝까지 끝내줘"):
 
 - All applicable gates pass (6 if AGENTS.md hierarchy present; 5 otherwise) → commit without user confirmation
-- Push to feature branch only. **Never push to / auto-merge to `main`.**
-- PR creation is allowed; final merge waits for explicit user approval
+- Push respects the session **branch contract** locked at autonomous-mode entry (`kzk-autonomous-boundary`). Direct-`main` push is allowed only if the user explicitly authorized direct-main flow this session — never as a silent default.
+- PR creation is allowed if the contract specifies PR-flow; final merge always waits for explicit user "merge it" regardless of contract
 
 Non-autonomous (default): every commit waits for user OK after gates pass. No auto-commit.
 

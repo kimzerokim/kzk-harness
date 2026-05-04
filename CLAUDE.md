@@ -27,7 +27,13 @@ All 14 skills are active in this repo. Load one by mentioning its trigger keywor
 
 Autonomous mode = explicit user permission only. Triggers: "ralph로 돌려", "자는 동안 진행해", "끝까지 끝내줘".
 
-All edits happen on `feature/<topic>` branches. `main` merge requires explicit user "merge it" after review.
+**Branch contract — ASK FIRST.** Before any autonomous-style flow (or any harness-driven multi-commit task), confirm three slots with the user and wait for explicit answers:
+
+1. Separate branch, or commit directly to current branch?
+2. Branch name OK as `<proposed>`? (only if separate branch)
+3. PR required, or direct commits without PR?
+
+The answers form the operating contract for the rest of the session. Direct-`main` commits are allowed **only when the user explicitly authorized direct-main flow this session** — never as a silent default. PR is optional, not mandatory. `git push --force` and `git reset --hard` on a pushed branch always require a separate explicit OK regardless of contract.
 
 ## Self-Improvement Loop (kzk-harness specific)
 
@@ -50,10 +56,12 @@ Each cycle:
 
 자가개선 루프 진입 시 메인 컨텍스트는 자체 kzk-* 스킬을 적극 호출한다. 다음 매핑이 default:
 
+- **Cycle 진입 전 branch contract 확인** = `kzk-autonomous-boundary §Branch contract — ASK FIRST` (별 branch / 직접 main / branch 이름 / PR 여부 — 사용자 명시 없이 진입 X)
 - **EVALUATOR / EXECUTOR dispatch** = `kzk-large-task-delegation §Model routing` (critic opus, executor sonnet)
 - **메인이 검증 차원에서 5+ 파일 read 필요 시** = `kzk-large-task-delegation §Read-heavy audit dispatch shape` (메인 직접 read 금지, EXPLORER subagent 위임)
+- **메인이 cross-cutting 검증 필요 시** = `kzk-codebase-survey §code-review-graph` (CRG MCP / CLI 우선, grep fallback). 이 레포 자체에 CRG 인덱스 없으면 `code-review-graph build` 부터 — 자기 인프라 부트스트랩 안 한 채 grep 으로 우회하면 메타 갭
 - **새 스킬 추가 / 큰 구조 변경 / 글로벌 install 등 메타 작업** = `kzk-spec-and-review` Step 0 (codebase survey 선행) → Step 1–3 (spec → codex 리뷰 → frozen plan)
-- **Cycle 끝에서 변경 commit** = `kzk-pre-commit-gate` (Gate 0 conditional + Gate 1.5 secrets) + `kzk-pre-merge-sync` (PR / merge 단계)
+- **Cycle 끝에서 변경 commit** = `kzk-pre-commit-gate` (Gate 0 conditional + Gate 1.5 secrets) + `kzk-pre-merge-sync` (PR-flow 면 PR 직전, direct-main flow 면 milestone 직전)
 - **다중 cycle 자율 실행** = `kzk-autonomous-loop` + `kzk-autonomous-boundary` (rate limit / context 80% / halt 조건)
 
 자가개선 루프가 자기 스킬을 안 쓰는 패턴은 메타 갭 — 즉시 다음 cycle 의 P0 로 처리한다.

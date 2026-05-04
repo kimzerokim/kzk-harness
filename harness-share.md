@@ -58,7 +58,7 @@ skill 호출 형식:
 
 ### 금지 동작 (강제)
 
-- **`main` branch 접근 금지**. autonomous 작업은 별 branch (예: `feature/<topic>`. kzk-harness 레포는 자체 컨벤션으로 `harness-test`를 쓰지만 다른 프로젝트는 채용 불필요) 에서. PR target 도 그 branch. main merge 는 사용자 명시 후
+- **Branch / PR contract: ASK FIRST 후 진입.** autonomous 시작 시 사용자에게 (a) 별 branch vs 직접 commit (b) branch 이름 (예: `feature/<topic>`, `harness-test`, `feature/web-loop-<slug>`) (c) PR 필요 여부 — 3 슬롯 명시 답 받고 그 contract 를 세션 끝까지 유지. 직접 `main` commit 은 사용자가 그 세션에서 명시 인가 ("main에 바로 커밋", "main 직접") 한 경우만 허용. silent default X. PR auto-merge 는 어떤 contract 에서도 사용자 "merge it" 필수. `git push --force` / `git reset --hard` on pushed branch 는 contract 무관 별도 OK 사인 필요
 - 사용자 PRD / 설계 문서 자동 override
 - Pre-commit Gate 실패 시 force commit
 - verification reviewer 2회 연속 FAIL 시 loop 지속 (halt + user-queue 적재)
@@ -425,7 +425,7 @@ EOF
 ```
 
 - 평상시 commit = 사용자 확인 후. autonomous 모드 = doc-only OR Pre-commit Gate 통과 시 자동
-- main 직접 push 금지. PR 만 사용
+- push / merge 는 §2 의 세션 branch contract 따름. 직접 `main` push 는 그 contract 가 direct-main flow 인 경우만. silent default X
 - pre-commit hook (--no-verify) skip 금지
 
 ---
@@ -530,10 +530,10 @@ PR target branch merge 직전 CLAUDE.md 의 다음 영역이 코드 현 상태�
 
 branch merge 전 1회 실행해 프로젝트 manifest + skill/tool inventory + memory 재생성.
 
-- 대상: 모든 feature branch → `main` merge 직전 (local 1회)
+- 대상 — **PR-flow**: 모든 feature branch → `main` merge 직전 (local 1회). **direct-main / direct-no-PR flow**: 사용자 visible milestone commit (topic 마무리, release-급 상태) 직전 1회. 매 direct-main commit 직전 X (noise).
 - 이유: PRD / plan / skill md 변경을 OMC memory 에 반영하지 않으면 다음 세션 agent 가 stale context 로 시작
-- 실패 시 로그 확인 후 해결. skip 허용 X
-- 체크포인트: PR description 에 "deepinit ran" 라인 포함
+- 실패 시 로그 확인 후 해결. skip 허용 X (contract 가 direct-main 이라도 milestone 직전 deepinit 의무)
+- 체크포인트: PR description 또는 milestone commit body 에 "deepinit ran" 라인 포함
 
 ```
 Skill("oh-my-claudecode:deepinit")
@@ -729,7 +729,7 @@ Russian Judge Verdict:
   - plan file 전체 경로
   - spec file 경로 (있으면)
   - "Identify: (a) acceptance criteria gaps, (b) scope drift risk, (c) optimal alternative approach, (d) reviewable evidence requirements per phase"
-  - "Assume autonomous ralph mode, feature/<topic> branch only (or your repo's autonomous branch convention)"
+  - "Assume autonomous ralph mode under the session branch contract recorded by `kzk-autonomous-boundary` (could be `feature/<topic>`, repo-specific like `harness-test`, or direct-main if user explicitly authorized)"
 - **REJECTED 또는 critical issues 반환 시**: plan 정정 후 재 review. 2 cycle 후에도 reject 시 halt + user-queue entry. brainstorming 단계 후퇴는 사용자가 결정 — 자율 후퇴 금지.
 - **APPROVED 또는 minor only**: ralph 진입.
 
@@ -883,7 +883,7 @@ After `/compact`, restate: "Cycle N, last: [issue], queue: [N remaining], PW: [o
 
 ### Branch boundary
 
-`kzk-autonomous-boundary` applies in full — executor agent dispatches always target a feature branch, never `main`. `main` merge requires explicit user approval outside the loop.
+`kzk-autonomous-boundary` applies in full — executor agent dispatches respect the session branch contract recorded at autonomous-mode entry. Default = feature branch (e.g., `feature/web-loop-<goal-slug>`). Direct-`main` dispatches are allowed only if the user explicitly authorized direct-main flow this session. PR-flow `main` merge always requires explicit user "merge it" outside the loop.
 
 ---
 

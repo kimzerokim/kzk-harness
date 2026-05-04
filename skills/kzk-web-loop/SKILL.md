@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.3.13
+version: 1.3.14
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '자율 개선', 'loop forever', '무한 개선', '무한 루프', '계속 돌려'."
 ---
 
@@ -22,7 +22,7 @@ Say a trigger keyword, optionally with a one-line goal:
 
 1. **Plugin pre-flight** — Run §Plugin Pre-flight. Detect superpowers / gstack / OMC; install missing ones. Record availability in a local variable for the rest of this run.
 
-2. **Branch** — If no branch is specified, ask once: "어느 브랜치에서 작업할까요? (default: `feature/web-loop-<goal-slug>`)" Create it if it doesn't exist. Never `main`. (This naming is a specialization of `feature/<topic>` per `kzk-autonomous-boundary`.)
+2. **Branch** — Run the `kzk-autonomous-boundary` ASK-FIRST branch contract before any commit. Web-loop's default proposal: separate branch named `feature/web-loop-<goal-slug>`, PR-flow. The user can override to a different name OR direct-main / direct-no-PR if they explicitly say so. Do NOT silently create `feature/web-loop-...` without an explicit OK.
 
 3. **Goal clarification** — If no goal is given:
    - superpowers available → `Skill("superpowers:brainstorming")` (keep to 2-3 questions max, then lock the goal)
