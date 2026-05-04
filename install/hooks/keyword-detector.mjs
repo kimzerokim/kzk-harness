@@ -63,6 +63,22 @@ const RULES = [
       "테스트 추가", "테스트 추가해줘", "test 추가", "coverage 추가",
     ],
   },
+  {
+    skills: ["kzk-spec-and-review"],
+    why: "brainstorm-mode: 탐색적 키워드 감지 → Step -1 brainstorming 자동 호출",
+    triggers: [
+      "어떻게 하면",
+      "방법 찾자",
+      "아이디어",
+      "설계하자",
+      "브레인스토밍",
+      "고민해",
+      "어떤 방향",
+      "how should we",
+      "brainstorm",
+      "let's design",
+    ],
+  },
 ];
 
 function detect(input) {
@@ -91,7 +107,15 @@ function buildReminder(matches) {
   const skillNames = matches.map((m) => m.skill).join(", ");
   const allTriggers = [...new Set(matches.flatMap((m) => m.triggers))];
   const triggersStr = allTriggers.map((t) => `'${t}'`).join(", ");
-  return `🚨 [kzk] LOAD before edit: ${skillNames} (matched: ${triggersStr})`;
+  const parts = [`🚨 [kzk] LOAD before edit: ${skillNames} (matched: ${triggersStr})`];
+  // If brainstorm mode, add marker
+  const brainstormRule = RULES.find((rule) => rule.why.startsWith("brainstorm-mode:"));
+  const isBrainstorm = brainstormRule && matches.some((m) => brainstormRule.skills.includes(m.skill) &&
+    m.triggers.some((t) => brainstormRule.triggers.includes(t)));
+  if (isBrainstorm) {
+    parts.push("Mode: brainstorm — Step -1 brainstorming 자동 호출 후 spec-and-review 진입");
+  }
+  return parts.join("\n");
 }
 
 export { detect, buildReminder, RULES };

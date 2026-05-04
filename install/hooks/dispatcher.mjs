@@ -6,6 +6,7 @@
 //   2. keyword-detector     — if manifest.keyword_detector === true
 //   3. regression-recall    — if manifest.regression_recall === true
 //   4. fix-scope-trigger    — if manifest.fix_scope_trigger === true
+//   5. freshness-guard      — if manifest.freshness_guard === true
 //
 // Active set = ~/.claude/skills/.kzk-harness-shared/hooks/enabled.json manifest.
 // File absence → stale-file risk → treated as all-false (safe default).
@@ -45,7 +46,7 @@ const HOOKS_DIR = path.join(
 );
 const MANIFEST_FILE = path.join(HOOKS_DIR, "enabled.json");
 
-let manifest = { keyword_detector: false, regression_recall: false, fix_scope_trigger: false };
+let manifest = { keyword_detector: false, regression_recall: false, fix_scope_trigger: false, freshness_guard: false };
 try {
   const raw = fs.readFileSync(MANIFEST_FILE, "utf8");
   manifest = { ...manifest, ...JSON.parse(raw) };
@@ -96,6 +97,7 @@ const subHooks = [];
 if (manifest.keyword_detector) subHooks.push(path.join(HOOKS_DIR, "keyword-detector.mjs"));
 if (manifest.regression_recall) subHooks.push(path.join(HOOKS_DIR, "regression-recall.mjs"));
 if (manifest.fix_scope_trigger) subHooks.push(path.join(HOOKS_DIR, "fix-scope-trigger.mjs"));
+if (manifest.freshness_guard) subHooks.push(path.join(HOOKS_DIR, "freshness-guard.mjs"));
 
 const additionalContextParts = [];
 

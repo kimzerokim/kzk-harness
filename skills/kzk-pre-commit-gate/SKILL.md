@@ -1,7 +1,7 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.5.0
-description: "Up-to-9-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets / production code-first / build / test / Playwright / fix-scope sanity / fresh-agent verifier). Top triggers: 'commit', 'pre-commit', 'Gate 0', 'AGENTS.md sync', 'Gate 1.6', 'production code-first', 'staged-path trigger', 'env-exception', 'Gate 4.5', 'fix-scope-cache', 'callsite mismatch', 'KZK_GATE45_SKIP', 'doc-only', 'Gate 5', 'verifier', 'fresh-agent verification', 'INVALID_VERDICT'. Body §Triggers for full list."
+version: 1.6.0
+description: "Up-to-10-step Pre-commit Gate (AGENTS.md sync / freshness guard / ai-slop / secrets / production code-first / build / test / Playwright / fix-scope sanity / fresh-agent verifier). Top triggers: 'commit', 'pre-commit', 'Gate 0', 'AGENTS.md sync', 'Gate 0.5', 'freshness guard', 'stale', 'Gate 1.6', 'production code-first', 'staged-path trigger', 'env-exception', 'Gate 4.5', 'fix-scope-cache', 'callsite mismatch', 'KZK_GATE45_SKIP', 'doc-only', 'Gate 5', 'verifier', 'fresh-agent verification', 'INVALID_VERDICT'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §3. On conflict, that wins.
@@ -10,9 +10,9 @@ description: "Up-to-9-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets /
 
 ## Triggers
 
-`commit`, `pre-commit`, `Gate 0`, `Gate 1`, `Gate 1.5`, `Gate 2`, `Gate 3`, `Gate 4`, `Gate 4.5`, `AGENTS.md sync`, `ai-slop-cleaner`, `secrets scan`, `autonomous commit`, `doc-only exception`, `fix-scope-cache`, `callsite mismatch`, `KZK_GATE45_SKIP`, `Gate 5`, `verifier`, `fresh-agent verification`, `Stage 3 cite`, `Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `Q-VERIFIER-DISPATCH-FAIL`, `INVALID_VERDICT`.
+`commit`, `pre-commit`, `Gate 0`, `Gate 0.5`, `Gate 1`, `Gate 1.5`, `Gate 2`, `Gate 3`, `Gate 4`, `Gate 4.5`, `AGENTS.md sync`, `freshness guard`, `stale`, `KZK_GATE05_SKIP`, `ai-slop-cleaner`, `secrets scan`, `autonomous commit`, `doc-only exception`, `fix-scope-cache`, `callsite mismatch`, `KZK_GATE45_SKIP`, `Gate 5`, `verifier`, `fresh-agent verification`, `Stage 3 cite`, `Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `Q-VERIFIER-DISPATCH-FAIL`, `INVALID_VERDICT`.
 
-Every commit passes up to 8 gates in order (0, 1, 1.5, 2, 3, 4, 4.5, 5 — Gate 0 only when AGENTS.md hierarchy present, so 7 gates otherwise). One failure → commit blocked.
+Every commit passes up to 9 gates in order (0, 0.5, 1, 1.5, 2, 3, 4, 4.5, 5 — Gate 0 only when AGENTS.md hierarchy present, so 8 gates otherwise). One failure → commit blocked.
 
 ## Gate 0 — Touched-files AGENTS.md sync
 
@@ -30,6 +30,22 @@ Concrete rule:
 Failure → fix the AGENTS.md, re-stage, new commit. NEVER amend.
 
 **Optional skill-level extension (NOT a Gate 0 gate requirement). Gate 0 alone passes on the AGENTS.md edit.** After that pass, load the deepinit_manifest tool schema — `ToolSearch(query="select:mcp__plugin_oh-my-claudecode_t__deepinit_manifest")` — then call with `action=save`. After `ToolSearch` resolves the tool, **read the loaded schema before calling** — do not hardcode `action="save"` as the full call shape if other params appear as required. If the schema requires more than `action`, log the extra params + values used in the commit body. Current OMC shape: `mcp__plugin_oh-my-claudecode_t__deepinit_manifest(action="save")`. Run once at the END of the commit batch (autonomous run) or at PR-creation time (interactive). If ToolSearch returns no result, search by keyword `ToolSearch(query="+deepinit_manifest")` and call the resolved name. If neither search finds the tool (OMC plugin not installed or not surfaced), skip — log `deepinit_manifest tool unavailable, manifest baseline skipped this commit` in the commit body and continue. Manifest baseline file is gitignored (`.omc/deepinit-manifest.json`); it lets the next session's `action=diff` produce a real signal.
+
+### Gate 0.5 — Freshness guard
+
+> Cross-ref: `kzk-freshness-guard` §Pre-commit Gate 0.5
+
+staged 코드 파일 → CRG 심볼 역참조 → 메타 문서 stale 감지.
+
+1. `crg-utils.getChangedFiles('staged')` → staged 파일 목록
+2. `crg-utils.findStaleMetaDocs(stagedFiles)` → stale 메타 문서 목록
+3. 결과 분기:
+   - **stale 없음** → PASS
+   - **stale 발견** → BLOCK + 사용자에게 stale 목록 + 이유 표시 + auto-fix dispatch (문서 종류별 전략 — `kzk-freshness-guard` §Auto-fix 참조) + fix된 메타 문서 restage
+   - **partial failure** (일부 fix 성공, 일부 실패) → 성공분만 stage + 실패분 WARN + user-queue entry
+4. skip: `KZK_GATE05_SKIP=1` env → 전체 skip
+
+**CRG 미설치 시**: degraded grep mode + WARN (silent skip 금지). `crg-utils.ensureCRG()` 결과에 따라 자동 분기.
 
 ## Gate 1 — ai-slop-cleaner
 
@@ -230,6 +246,7 @@ Non-autonomous (default): every commit waits for user OK after gates pass. No au
 
 ## Interaction with other kzk-*
 
+- **kzk-freshness-guard**: Gate 0.5 owner. CRG 기반 stale 메타 문서 감지 + auto-fix.
 - **kzk-autonomous-boundary**: Owns the halt protocol invoked when ≥2 consecutive reviewer/critic FAILs (or ≥3 consecutive build/test FAILs) occur during gate runs.
 - **kzk-playwright-verification**: Implements Gate 4 (browser smoke + screenshot drop).
 - **kzk-test-coverage**: Gate 3 runs the same test command this skill owns at session close.

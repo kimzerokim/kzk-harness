@@ -57,6 +57,7 @@ SYMLINK_MODE=0
 SYMLINK_MODE_FORCE=0
 ENABLE_HOOKS=0
 DO_REGRESSION_RECALL=0
+DO_FRESHNESS_GUARD=0
 AUTO_YES=0
 AC8_ATTESTED=""
 SOURCE_REPO_DIR=""
@@ -81,6 +82,7 @@ Flags:
   --enable-hooks                   Wire keyword-detector.mjs into settings.json (N3)
   --regression-recall              Also wire regression-recall.mjs (implies --enable-hooks)
   --fix-scope-trigger              Also wire fix-scope-trigger.mjs (Plan B, implies --enable-hooks)
+  --freshness-guard                Also wire freshness-guard.mjs (implies --enable-hooks)
   --yes                            Skip interactive marker-replace prompt
   --ac8-attested-by-user "<DATE>"  Manual AC8 attestation (CI / no claude CLI)
   -h, --help                       Show this help
@@ -126,6 +128,10 @@ parse_flags() {
         ;;
       --fix-scope-trigger)
         DO_FIX_SCOPE_TRIGGER=1
+        shift
+        ;;
+      --freshness-guard)
+        DO_FRESHNESS_GUARD=1
         shift
         ;;
       --yes)
@@ -674,11 +680,12 @@ update_hook_manifest() {
   local kw="${1:-true}"   # keyword_detector default ON
   local rr="${2:-false}"  # regression_recall default OFF
   local fs_flag="${3:-false}"  # fix_scope_trigger default OFF
+  local fg_flag="${4:-false}"  # freshness_guard default OFF
   local tmp
   tmp=$(mktemp)
   jq -n \
-    --argjson kw "$kw" --argjson rr "$rr" --argjson fs "$fs_flag" \
-    '{keyword_detector: $kw, regression_recall: $rr, fix_scope_trigger: $fs}' \
+    --argjson kw "$kw" --argjson rr "$rr" --argjson fs "$fs_flag" --argjson fg "$fg_flag" \
+    '{keyword_detector: $kw, regression_recall: $rr, fix_scope_trigger: $fs, freshness_guard: $fg}' \
     >"$tmp" && mv "$tmp" "$manifest"
 }
 
@@ -725,6 +732,11 @@ enable_hooks() {
     cp "$src/install/hooks/fix-scope-trigger.mjs" "$hook_dest/" 2>/dev/null || true
   fi
 
+  # freshness-guard hook
+  if [ "${DO_FRESHNESS_GUARD:-0}" -eq 1 ]; then
+    cp "$src/install/hooks/freshness-guard.mjs" "$hook_dest/" 2>/dev/null || true
+  fi
+
   local settings="$HOME/.claude/settings.json"
   if [ ! -f "$settings" ]; then
     printf '{}' >"$settings"
@@ -746,10 +758,12 @@ enable_hooks() {
   local kw_flag="true"
   local rr_flag="false"
   local fst_flag="false"
+  local fg_flag="false"
   [ "${DO_REGRESSION_RECALL:-0}" -eq 1 ] && rr_flag="true"
   [ "${DO_FIX_SCOPE_TRIGGER:-0}" -eq 1 ] && fst_flag="true"
-  update_hook_manifest "$kw_flag" "$rr_flag" "$fst_flag" || return 1
-  emit "  hooks: enabled.json manifest written (kw=$kw_flag rr=$rr_flag fst=$fst_flag)"
+  [ "${DO_FRESHNESS_GUARD:-0}" -eq 1 ] && fg_flag="true"
+  update_hook_manifest "$kw_flag" "$rr_flag" "$fst_flag" "$fg_flag" || return 1
+  emit "  hooks: enabled.json manifest written (kw=$kw_flag rr=$rr_flag fst=$fst_flag fg=$fg_flag)"
   record "hooks: enabled.json manifest written"
 
   return 0
@@ -831,6 +845,12 @@ main() {
   # Plan B: --fix-scope-trigger 는 --enable-hooks 의 explicit dependency
   if [ "${DO_FIX_SCOPE_TRIGGER:-0}" -eq 1 ] && [ "${ENABLE_HOOKS:-0}" -eq 0 ]; then
     emit "  --fix-scope-trigger implies --enable-hooks (explicit dependency)"
+    ENABLE_HOOKS=1
+  fi
+
+  # --freshness-guard 는 --enable-hooks 의 explicit dependency
+  if [ "${DO_FRESHNESS_GUARD:-0}" -eq 1 ] && [ "${ENABLE_HOOKS:-0}" -eq 0 ]; then
+    emit "  --freshness-guard implies --enable-hooks (explicit dependency)"
     ENABLE_HOOKS=1
   fi
 
