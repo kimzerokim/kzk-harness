@@ -78,19 +78,11 @@ function detect(input) {
 
 function buildReminder(matches) {
   if (matches.length === 0) return null;
-  const lines = [
-    "🚨 kzk-harness skill auto-load required (UserPromptSubmit detector)",
-    "",
-    "Matched trigger phrases require these kzk-* skills to be loaded BEFORE any Read/Edit/Write/Bash:",
-    "",
-  ];
-  for (const m of matches) {
-    lines.push(`- **${m.skill}** — matched: ${m.triggers.map((t) => "`" + t + "`").join(", ")}`);
-    for (const why of m.whys) lines.push(`  Why: ${why}`);
-  }
-  lines.push("");
-  lines.push("Loading these is not optional. Each skill body's safety rules (large-task → fresh subagent dispatch, 5+ file read → EXPLORER subagent, etc.) must be applied — bypassing them is a meta-gap regression.");
-  return lines.join("\n");
+  // Group skills into clusters by shared trigger phrases
+  const skillNames = matches.map((m) => m.skill).join(", ");
+  const allTriggers = [...new Set(matches.flatMap((m) => m.triggers))];
+  const triggersStr = allTriggers.map((t) => `'${t}'`).join(", ");
+  return `🚨 [kzk] LOAD before edit: ${skillNames} (matched: ${triggersStr})`;
 }
 
 export { detect, buildReminder, RULES };

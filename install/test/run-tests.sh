@@ -515,6 +515,12 @@ test_keyword_detector_matches_large_task_phrase() {
   out=$(printf '%s' '{"prompt":"버그 전수조사 해줘"}' | node "$REPO_ROOT/install/hooks/keyword-detector.mjs" 2>/dev/null)
   assert_match "output contains kzk-large-task-delegation" \
     "kzk-large-task-delegation" "$out"
+  # T2: short-form — must be single-line hookSpecificOutput (not multi-line bullet list)
+  assert_match "output contains matched: phrase (short-form)" \
+    "matched:" "$out"
+  local line_count
+  line_count=$(printf '%s' "$out" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('hookSpecificOutput',{}).get('additionalContext','').count('\n'))" 2>/dev/null || echo "0")
+  assert_eq "short-form reminder is single line (0 newlines)" "0" "$line_count"
 }
 
 test_keyword_detector_matches_session28_phrasing() {
@@ -523,6 +529,8 @@ test_keyword_detector_matches_session28_phrasing() {
   out=$(printf '%s' '{"prompt":"사용성 버그 모두 잡아줘"}' | node "$REPO_ROOT/install/hooks/keyword-detector.mjs" 2>/dev/null)
   assert_match "output contains kzk-large-task-delegation" \
     "kzk-large-task-delegation" "$out"
+  assert_match "output contains matched: phrase (short-form)" \
+    "matched:" "$out"
 }
 
 test_keyword_detector_matches_multi_skill() {
