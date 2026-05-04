@@ -245,22 +245,46 @@ remove_skill_dirs() {
     removed=$((removed + 1))
   fi
 
-  # Remove hook entry from ~/.claude/settings.json if present
+  # Plan F rev2: Remove managed hook entries from all three hook arrays
+  # managed filenames whitelist (5 files) — same as install-global.sh
   local settings="$HOME/.claude/settings.json"
   if [ -f "$settings" ] && command -v jq >/dev/null 2>&1; then
-    local hook_marker=".kzk-harness-shared/hooks/keyword-detector.mjs"
-    if grep -qF "$hook_marker" "$settings" 2>/dev/null; then
+    if grep -qF "kzk-harness-shared" "$settings" 2>/dev/null; then
       local tmp
       tmp=$(mktemp)
-      if jq 'del(.hooks.UserPromptSubmit[]? | select(.hooks[]?.command? | strings | test("kzk-harness-shared")))' \
-        "$settings" >"$tmp" 2>/dev/null; then
+      if jq '
+        def is_managed: (.command // "") |
+          (test("/dispatcher\\.mjs(\\s|$)") or
+           test("/edit-read-guard\\.mjs(\\s|$)") or
+           test("/keyword-detector\\.mjs(\\s|$)") or
+           test("/regression-recall\\.mjs(\\s|$)") or
+           test("/fix-scope-trigger\\.mjs(\\s|$)"));
+
+        .hooks.PreToolUse = ((.hooks.PreToolUse // []) | map(
+          .hooks |= map(select(is_managed | not))
+        ) | map(select((.hooks // []) | length > 0)))
+        | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | map(
+          .hooks |= map(select(is_managed | not))
+        ) | map(select((.hooks // []) | length > 0)))
+        | .hooks.UserPromptSubmit = ((.hooks.UserPromptSubmit // []) | map(
+          .hooks |= map(select(is_managed | not))
+        ) | map(select((.hooks // []) | length > 0)))
+      ' "$settings" >"$tmp" 2>/dev/null; then
         mv "$tmp" "$settings"
       else
         rm -f "$tmp"
       fi
-      emit "  Removed kzk-harness hook entry from ~/.claude/settings.json"
-      record "hooks: UserPromptSubmit entry removed"
+      emit "  Removed kzk-harness hook entries from ~/.claude/settings.json (PreToolUse + PostToolUse + UserPromptSubmit)"
+      record "hooks: PreToolUse + PostToolUse + UserPromptSubmit entries removed"
     fi
+  fi
+
+  # Plan F rev2: Remove enabled.json manifest
+  local manifest="$HOME/.claude/skills/.kzk-harness-shared/hooks/enabled.json"
+  if [ -f "$manifest" ]; then
+    rm -f "$manifest"
+    emit "  Removed enabled.json manifest"
+    record "hooks: enabled.json manifest removed"
   fi
 
   emit "  Removed $removed kzk-harness path(s)"

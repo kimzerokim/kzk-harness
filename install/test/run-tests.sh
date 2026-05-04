@@ -687,6 +687,16 @@ else
   ERRORS+=("gate-1.6-adhoc-grep.sh")
 fi
 
+# Plan F — edit-read-guard
+printf '\n--- edit-read-guard.test.mjs (Plan F rev2) ---\n'
+if node --test "$REPO_ROOT/install/test/edit-read-guard.test.mjs"; then
+  PASS=$((PASS + 1))
+  printf '  PASS: edit-read-guard.test.mjs\n'
+else
+  FAIL=$((FAIL + 1))
+  ERRORS+=("edit-read-guard.test.mjs")
+fi
+
 printf '\n'
 printf '=%.0s' {1..60}
 printf '\n'

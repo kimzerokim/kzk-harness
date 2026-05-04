@@ -627,25 +627,102 @@ verify_install() {
 }
 
 # ---------------------------------------------------------------------------
-# N3 opt-in: enable_hooks
+# N3 opt-in: enable_hooks (Plan F rev2)
 # ---------------------------------------------------------------------------
+
+# update_hooks_canonical — canonical reconstruct of PreToolUse / PostToolUse /
+# UserPromptSubmit arrays in settings.json. Managed whitelist (5 filenames) only
+# stripped — user custom hooks preserved. dispatcher only registered.
+update_hooks_canonical() {
+  local settings="$1"
+  local hook_dest="$HOME/.claude/skills/.kzk-harness-shared/hooks"
+  local pre_cmd="node $hook_dest/edit-read-guard.mjs --mode=pre"
+  local post_cmd="node $hook_dest/edit-read-guard.mjs --mode=post-read"
+  local disp_cmd="node $hook_dest/dispatcher.mjs"
+
+  local tmp
+  tmp=$(mktemp)
+
+  # managed filenames whitelist: strip only these 5, preserve user custom hooks
+  jq --arg pre "$pre_cmd" --arg post "$post_cmd" --arg disp "$disp_cmd" '
+    def is_managed: (.command // "") |
+      (test("/dispatcher\\.mjs(\\s|$)") or
+       test("/edit-read-guard\\.mjs(\\s|$)") or
+       test("/keyword-detector\\.mjs(\\s|$)") or
+       test("/regression-recall\\.mjs(\\s|$)") or
+       test("/fix-scope-trigger\\.mjs(\\s|$)"));
+
+    .hooks.PreToolUse = (((.hooks.PreToolUse // []) | map(
+        .hooks |= map(select(is_managed | not))
+      ) | map(select((.hooks // []) | length > 0))) +
+      [{matcher:"Edit|Write", hooks:[{type:"command", command:$pre}]}])
+    | .hooks.PostToolUse = (((.hooks.PostToolUse // []) | map(
+        .hooks |= map(select(is_managed | not))
+      ) | map(select((.hooks // []) | length > 0))) +
+      [{matcher:"Read", hooks:[{type:"command", command:$post}]}])
+    | .hooks.UserPromptSubmit = (((.hooks.UserPromptSubmit // []) | map(
+        .hooks |= map(select(is_managed | not))
+      ) | map(select((.hooks // []) | length > 0))) +
+      [{matcher:"*", hooks:[{type:"command", command:$disp}]}])
+  ' "$settings" >"$tmp" && mv "$tmp" "$settings" || return 1
+}
+
+# update_hook_manifest — write enabled.json manifest for dispatcher
+update_hook_manifest() {
+  local manifest_dir="$HOME/.claude/skills/.kzk-harness-shared/hooks"
+  local manifest="$manifest_dir/enabled.json"
+  local kw="${1:-true}"   # keyword_detector default ON
+  local rr="${2:-false}"  # regression_recall default OFF
+  local fs_flag="${3:-false}"  # fix_scope_trigger default OFF
+  local tmp
+  tmp=$(mktemp)
+  jq -n \
+    --argjson kw "$kw" --argjson rr "$rr" --argjson fs "$fs_flag" \
+    '{keyword_detector: $kw, regression_recall: $rr, fix_scope_trigger: $fs}' \
+    >"$tmp" && mv "$tmp" "$manifest"
+}
+
 enable_hooks() {
   local src="$SOURCE_REPO_DIR"
-  mkdir -p "$HOME/.claude/skills/.kzk-harness-shared/hooks"
-  mkdir -p "$HOME/.claude/skills/.kzk-harness-shared/lib"
+  local hook_dest="$HOME/.claude/skills/.kzk-harness-shared/hooks"
+  local lib_dest="$HOME/.claude/skills/.kzk-harness-shared/lib"
+
+  mkdir -p "$hook_dest"
+  mkdir -p "$lib_dest"
   mkdir -p "$HOME/.claude/skills/.kzk-harness-shared/bin"
 
-  cp "$src/install/hooks/keyword-detector.mjs" \
-    "$HOME/.claude/skills/.kzk-harness-shared/hooks/"
+  # Plan F: copy ALL install/lib/*.mjs idempotently (cmp -s skip / overwrite)
+  for libfile in "$src/install/lib"/*.mjs; do
+    [ -f "$libfile" ] || continue
+    local base
+    base="$(basename "$libfile")"
+    local dest="$lib_dest/$base"
+    if [ -f "$dest" ] && cmp -s "$libfile" "$dest"; then
+      emit "  hooks: lib/$base unchanged — skip"
+    else
+      cp "$libfile" "$dest"
+      emit "  hooks: lib/$base copied"
+      record "hooks: lib/$base copied"
+    fi
+  done
 
-  # Plan D: regression-recall hook + sidecar-write lib + dismiss bin
+  # Plan F: copy edit-read-guard.mjs and dispatcher.mjs (always active)
+  cp "$src/install/hooks/edit-read-guard.mjs" "$hook_dest/" || return 1
+  cp "$src/install/hooks/dispatcher.mjs" "$hook_dest/" || return 1
+
+  # Always copy keyword-detector (needed by dispatcher manifest)
+  cp "$src/install/hooks/keyword-detector.mjs" "$hook_dest/"
+
+  # Plan D: regression-recall hook + dismiss bin
   if [ "${DO_REGRESSION_RECALL:-0}" -eq 1 ]; then
-    cp "$src/install/hooks/regression-recall.mjs" \
-      "$HOME/.claude/skills/.kzk-harness-shared/hooks/"
-    cp "$src/install/lib/sidecar-write.mjs" \
-      "$HOME/.claude/skills/.kzk-harness-shared/lib/"
+    cp "$src/install/hooks/regression-recall.mjs" "$hook_dest/" 2>/dev/null || true
     cp "$src/install/bin/kzk-regression-memory.mjs" \
-      "$HOME/.claude/skills/.kzk-harness-shared/bin/"
+      "$HOME/.claude/skills/.kzk-harness-shared/bin/" 2>/dev/null || true
+  fi
+
+  # Plan B: fix-scope-trigger hook
+  if [ "${DO_FIX_SCOPE_TRIGGER:-0}" -eq 1 ]; then
+    cp "$src/install/hooks/fix-scope-trigger.mjs" "$hook_dest/" 2>/dev/null || true
   fi
 
   local settings="$HOME/.claude/settings.json"
@@ -656,66 +733,25 @@ enable_hooks() {
   if ! command -v jq >/dev/null 2>&1; then
     emit "  hooks: jq not found — cannot update settings.json. Install jq and re-run with --enable-hooks." >&2
     record "hooks: SKIPPED (jq not found)"
-    # rev2 codex #3 — fail-closed: jq 부재 시 enable 실패 → exit non-zero (called from kzk-pre-merge-sync step 3)
+    # fail-closed: jq 부재 시 enable 실패 → exit non-zero (called from kzk-pre-merge-sync step 3)
     return 1
   fi
 
-  # Idempotent append: keyword-detector
-  local kd_cmd="node $HOME/.claude/skills/.kzk-harness-shared/hooks/keyword-detector.mjs"
-  local kd_already
-  kd_already=$(jq --arg cmd "$kd_cmd" '[.hooks.UserPromptSubmit[]?.hooks[]?.command // empty] | map(select(. == $cmd)) | length' "$settings")
-  if [ "${kd_already:-0}" -gt 0 ]; then
-    emit "  hooks: keyword-detector.mjs already registered — skip"
-    record "hooks: keyword-detector skip (already registered)"
-  else
-    local tmp
-    tmp=$(mktemp)
-    jq --arg cmd "$kd_cmd" '
-      .hooks.UserPromptSubmit |= ((. // []) + [{matcher:"*", hooks:[{type:"command", command:$cmd}]}])
-    ' "$settings" >"$tmp" && mv "$tmp" "$settings" || return 1
-    emit "  hooks: keyword-detector.mjs registered in ~/.claude/settings.json"
-    record "hooks: UserPromptSubmit hook registered (--enable-hooks)"
-  fi
+  # Plan F: canonical reconstruct — dispatcher only in settings.json
+  update_hooks_canonical "$settings" || return 1
+  emit "  hooks: settings.json hook arrays reconstructed (canonical, dispatcher only)"
+  record "hooks: PreToolUse + PostToolUse + UserPromptSubmit canonical (dispatcher)"
 
-  # Plan D: regression-recall idempotent append
-  if [ "${DO_REGRESSION_RECALL:-0}" -eq 1 ]; then
-    cp "$src/install/hooks/regression-recall.mjs" \
-      "$HOME/.claude/skills/.kzk-harness-shared/hooks/" 2>/dev/null || true
-    local rr_cmd="node $HOME/.claude/skills/.kzk-harness-shared/hooks/regression-recall.mjs"
-    local rr_already
-    rr_already=$(jq --arg cmd "$rr_cmd" '[.hooks.UserPromptSubmit[]?.hooks[]?.command // empty] | map(select(. == $cmd)) | length' "$settings")
-    if [ "${rr_already:-0}" -gt 0 ]; then
-      emit "  hooks: regression-recall.mjs already registered — skip"
-      record "hooks: regression-recall skip (already registered)"
-    else
-      tmp=$(mktemp)
-      jq --arg cmd "$rr_cmd" '
-        .hooks.UserPromptSubmit |= ((. // []) + [{matcher:"*", hooks:[{type:"command", command:$cmd}]}])
-      ' "$settings" >"$tmp" && mv "$tmp" "$settings" || return 1
-      emit "  hooks: regression-recall.mjs registered (--regression-recall)"
-      record "hooks: regression-recall hook registered (--regression-recall, depends on --enable-hooks)"
-    fi
-  fi
+  # Plan F: manifest — keyword_detector ON by default; rr/fst per flags
+  local kw_flag="true"
+  local rr_flag="false"
+  local fst_flag="false"
+  [ "${DO_REGRESSION_RECALL:-0}" -eq 1 ] && rr_flag="true"
+  [ "${DO_FIX_SCOPE_TRIGGER:-0}" -eq 1 ] && fst_flag="true"
+  update_hook_manifest "$kw_flag" "$rr_flag" "$fst_flag" || return 1
+  emit "  hooks: enabled.json manifest written (kw=$kw_flag rr=$rr_flag fst=$fst_flag)"
+  record "hooks: enabled.json manifest written"
 
-  # Plan B: fix-scope-trigger idempotent append
-  if [ "${DO_FIX_SCOPE_TRIGGER:-0}" -eq 1 ]; then
-    cp "$src/install/hooks/fix-scope-trigger.mjs" \
-      "$HOME/.claude/skills/.kzk-harness-shared/hooks/" 2>/dev/null || true
-    local fst_cmd="node $HOME/.claude/skills/.kzk-harness-shared/hooks/fix-scope-trigger.mjs"
-    local fst_already
-    fst_already=$(jq --arg cmd "$fst_cmd" '[.hooks.UserPromptSubmit[]?.hooks[]?.command // empty] | map(select(. == $cmd)) | length' "$settings")
-    if [ "${fst_already:-0}" -gt 0 ]; then
-      emit "  hooks: fix-scope-trigger.mjs already registered — skip"
-      record "hooks: fix-scope-trigger skip (already registered)"
-    else
-      tmp=$(mktemp)
-      jq --arg cmd "$fst_cmd" '
-        .hooks.UserPromptSubmit |= ((. // []) + [{matcher:"*", hooks:[{type:"command", command:$cmd}]}])
-      ' "$settings" >"$tmp" && mv "$tmp" "$settings" || return 1
-      emit "  hooks: fix-scope-trigger.mjs registered (--fix-scope-trigger)"
-      record "hooks: fix-scope-trigger hook registered (--fix-scope-trigger, depends on --enable-hooks)"
-    fi
-  fi
   return 0
 }
 
