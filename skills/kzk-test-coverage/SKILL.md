@@ -1,6 +1,6 @@
 ---
 name: kzk-test-coverage
-version: 1.0.5
+version: 1.0.6
 description: "Autonomous-mode test coverage goal: 100% line + branch on changed files. Touched legacy raised too. Best-effort excuses forbidden. Required triggers: 'test coverage', 'test:cov', '100% coverage', '변경 파일 cov', 'coverage exemption'."
 ---
 
@@ -12,7 +12,7 @@ Autonomous session = 100% line + branch coverage on the files the session change
 
 ## Workflow
 
-- Run `npm run test:cov` (or repo equivalent) before session close
+- Run the repo's coverage command before session close (e.g. `npm run test:cov`, `pytest --cov`, `go test -cover ./...`)
 - Uncovered region in a touched file → add unit / integration / e2e until covered
 - Hard time constraint → append explicit user-queue entry stating which files + why; do not silently leave gaps
 

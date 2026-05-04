@@ -1,19 +1,21 @@
 ---
 name: kzk-codex-cross-verification
-version: 1.0.9
+version: 1.0.10
 description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'codex consult', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
 ---
 
-> Authoritative source: `harness-share.md` §22. On conflict, that wins. Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable.
+> Authoritative source: `harness-share.md` §22. On conflict, that wins.
 
 # kzk-codex-cross-verification
+
+Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable.
 
 Every meaningful design artifact gets a second opinion from a different model before it ships. Self-review and codex catch different classes of issue — both are needed.
 
 ## Pattern (3-pass)
 
 1. **Draft (me)** — main writes the spec / plan / design.
-2. **Codex consult** — run `codex exec` CLI directly (see §Codex execution shape below). CLI not available (`command not found` or exit code 2 / no first token in 5 min) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=<same review prompt>)`. **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
+2. **Codex consult** — run `codex exec` CLI directly (see §Codex execution shape below). CLI not available (`command not found`) or stuck per §Codex execution shape (60s no first token → retry; 5 min total → kill) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=<same review prompt>)`. **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
 3. **Synthesize (me)** — bucket each codex point as 🔴 즉시 fix / 🟡 spec 단계 디테일 / ⚪ push-back. Cite reasons per bucket. Hand the synthesized output to the user or the next phase.
 
 ## When mandatory

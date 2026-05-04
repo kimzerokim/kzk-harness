@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-loop
-version: 1.0.5
+version: 1.0.6
 description: "The autonomous loop never stops politely. Combines rate-limit polling (Anthropic 5h), context-budget /compact at 80%, and multi-Plan auto-continuation. Required triggers: 'rate limit', '5h window', 'ScheduleWakeup', '/compact', 'context budget', 'polite stop', 'next Plan', 'Plan auto-continuation'."
 ---
 
@@ -17,8 +17,10 @@ Hitting the 5h limit during autonomous run:
 1. Do NOT declare stop. Schedule `ScheduleWakeup(delaySeconds=600)` (10 min)
 2. Wakeup prompt = "계속 autonomous plan 이어서 진행 (rate limit 해제 확인)"
 3. Still blocked at wakeup → re-schedule `ScheduleWakeup(delaySeconds=600)` again
-4. Released → resume from the in-progress task list (`harness-flow-progress.md` Session N)
+4. Released → read `harness-flow-progress.md`, output one-line state restatement before any dispatch: `"Resuming: Cycle N, last: [issue], queue: [N remaining], next action: [X]"`. Then resume.
 5. Total elapsed → `harness-flow-progress.md` records "rate-limit wait N회, 누적 대기 Xh"
+
+**Anti-pattern: silent resume.** A wakeup that immediately dispatches a subagent without restating position = the user cannot tell if the session is actually running or stuck from a failed prior Agent call. Always restate first.
 
 A real new-topic message from the user takes priority over a scheduled wakeup.
 
@@ -47,7 +49,7 @@ Sequence Plan A → Plan B → ... → Plan N in one autonomous session:
 
 ## Plan-boundary checkpoints
 
-Each Plan boundary records pass/fail in `harness-flow-progress.md` Session N "체크포인트 Log". Plan-by-Plan PRs (no batch merge) — first plan-direction error → others stay protected. Ambiguous decisions go to `docs/harness/user-queue.md` (see `kzk-user-queue`). Crossing un-applied policy areas (e.g. plan written before PRD v1.13) → halt + user-queue entry; do NOT silently rewrite policy.
+Each Plan boundary records pass/fail in `harness-flow-progress.md` Session N "체크포인트 Log". Plan-by-Plan PRs (no batch merge) — if a plan is later found to have the wrong direction (user feedback reverses approach after merge), other plans' PRs remain independent and unaffected. Ambiguous decisions go to `docs/harness/user-queue.md` (see `kzk-user-queue`). Crossing un-applied policy areas (e.g. plan written before PRD v1.13) → halt + user-queue entry; do NOT silently rewrite policy.
 
 ## Halt conditions (re-stated; canonical source: `kzk-autonomous-boundary`)
 

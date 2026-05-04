@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.0.7
+version: 1.0.8
 description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체'."
 ---
 
@@ -33,7 +33,7 @@ Subagent dispatches are split by phase, not by topic. Reasoning-heavy phases get
 
 | Phase | Subagent type | Model | Cross-check |
 |---|---|---|---|
-| Plan authoring | `oh-my-claudecode:planner` / `oh-my-claudecode:architect` (invoke `deep-interview` via `Skill()` not Agent) | **opus** | Mandatory Codex CLI consult on draft plan before freezing (see `kzk-codex-cross-verification`) |
+| Plan authoring | `oh-my-claudecode:planner` / `oh-my-claudecode:architect` | **opus** | Mandatory Codex CLI consult on draft plan before freezing (see `kzk-codex-cross-verification`). For deep requirements elicitation before planning, use `Skill("oh-my-claudecode:deep-interview")` — it is a Skill invocation, not an Agent subagent_type. |
 | Critic / review | `oh-my-claudecode:critic` / `oh-my-claudecode:code-reviewer` | **opus** | Codex CLI review parallel pass (see `kzk-codex-cross-verification`) |
 | Verify | `oh-my-claudecode:verifier` | **opus** | Codex CLI consult on uncertain assertions (see `kzk-codex-cross-verification`) |
 | Implementation | `oh-my-claudecode:executor` | **sonnet** | none — plan must already be detailed enough |

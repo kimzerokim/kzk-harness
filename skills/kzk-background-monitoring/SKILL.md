@@ -1,6 +1,6 @@
 ---
 name: kzk-background-monitoring
-version: 1.0.2
+version: 1.0.3
 description: "Background process active monitoring mandate — agent owns every long-running task it spawns and never lets the user have to ask 'is it done?'. Applies to Bash run_in_background, Monitor, codex exec, npm install, docker build, subagent dispatch, anything ≥ 5s. Required triggers: 'background', 'monitor', 'long-running', 'stuck', 'codex consult', 'is it done', 'background task hung'."
 ---
 
@@ -59,6 +59,21 @@ cat <stderr-file>                         # error / hang signal
 ## Codex consult special case
 
 For Codex specifically, see `kzk-codex-cross-verification` §Codex execution shape (60s-to-first-token rule, 5 min total stuck threshold, mitigation steps).
+
+## Subagent completion verification
+
+When an `Agent()` call returns, output a receipt line BEFORE processing results:
+
+```
+Subagent [name] returned — [N chars / result summary]. Processing result...
+```
+
+Then verify:
+1. Result is non-empty and matches expected return format (e.g. evaluator should have a numbered issue list)
+2. If result is empty or clearly truncated (ends mid-sentence, no conclusion): treat as BLOCKED → append `Q-SUBAGENT-EMPTY-[name]` to `docs/harness/user-queue.md` and continue to next task
+3. Do NOT silently assume a completed-looking state is actual completion — always read and confirm the result before marking the task done
+
+**Session resume after ScheduleWakeup / rate-limit:** At the first turn after a wakeup, before any new dispatch, read `harness-flow-progress.md` and output one-line state restatement: `"Resuming: Cycle N, last: [issue], queue: [N remaining], next action: [X]"`. This makes the resume point visible to both the user and the next tool call chain.
 
 ## Narration mandate (cross-link with kzk-playwright-verification)
 

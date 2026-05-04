@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.0.8
+version: 1.0.9
 description: "Autonomous-mode boundary — what the agent may and may NOT do without per-step user confirmation. Covers main-branch ban, halt conditions, and when autonomous mode is even allowed. Required triggers: 'autonomous', 'ralph로 돌려', '자는 동안 진행', 'feature branch boundary', 'main 직접 접근', 'reviewer FAIL'."
 ---
 
@@ -20,7 +20,7 @@ Autonomous mode = explicit user permission only. Triggers: "ralph로 돌려", "�
 
 ## Forbidden actions
 
-- **`main` branch is off-limits.** All work happens on `feature/<topic>`. PR target = same. `main` merge requires explicit user "merge it" after experiment ends. (`harness-test` is the kzk-harness repo's own convention — use `feature/<topic>` in all other projects.)
+- **`main` branch is off-limits.** All work happens on `feature/<topic>`. PR target = same. `main` merge requires explicit user "merge it" after experiment ends.
 - Auto-overriding user PRD / design docs (must follow Documentation Storage Rules in repo CLAUDE.md)
 - Force-commit when a Pre-commit Gate fails
 - Adding files outside the declared source root (see CLAUDE.md for your repo's rootDir constraints)

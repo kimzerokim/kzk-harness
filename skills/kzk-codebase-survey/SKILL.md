@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.2.7
+version: 1.2.8
 description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning'."
 ---
 
@@ -24,7 +24,7 @@ Run all steps in order (Step 0.5 + Step 1–8). Save report before returning.
 code-review-graph --version 2>/dev/null
 ```
 
-If exit non-zero AND `pip --version` succeeds AND running in autonomous mode, first append a user-queue entry: `Q-INSTALL-CRG — autonomous mode auto-installing code-review-graph (pip)`. Then:
+If exit non-zero AND `pip --version` succeeds AND running in autonomous mode:
 ```bash
 python3 -m pip install --user code-review-graph && code-review-graph install && code-review-graph build
 ```

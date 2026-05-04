@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-merge-sync
-version: 1.0.5
+version: 1.0.6
 description: "Pre-merge checklist — sync CLAUDE.md to current code state and run `/oh-my-claudecode:deepinit` before any feature-branch merge. Required triggers: 'merge 전', 'PR 직전', 'deepinit', 'Pre-Merge', 'CLAUDE.md update', 'manifest 재생성'."
 ---
 
@@ -34,7 +34,7 @@ Skill("oh-my-claudecode:deepinit")
 ```
 
 - Target: every feature branch → `main` merge, exactly once locally before merge
-- **In autonomous mode**: deepinit runs at PR-creation time (immediately before `gh pr create` on the feature branch tip). Merge is gated by explicit user "merge it" — the deepinit refresh happens on the feature branch, not at merge time.
+- **In autonomous mode**: deepinit runs at PR-creation time (immediately before `gh pr create` on the feature branch tip), regardless of any prior local deepinit run in the same session. Merge is gated by explicit user "merge it" — the deepinit refresh happens on the feature branch, not at merge time.
 - Why: PRD / plan / skill md changes that aren't reflected in OMC memory cause the next session's agent to start with stale context
 - Failure → check log, fix, do not skip. Skip = block merge (failure also halts the autonomous loop — see `kzk-autonomous-boundary`)
 - Checkpoint: PR description includes the literal line `deepinit ran`

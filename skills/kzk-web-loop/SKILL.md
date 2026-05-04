@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.3.8
+version: 1.3.9
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
@@ -37,7 +37,7 @@ Say a trigger keyword, optionally with a one-line goal:
 
 Each cycle executes these steps in order:
 
-**1a. TOOL RUNNER** (`oh-my-claudecode:executor`, `model=sonnet`) — fresh subagent. Runs `npm test` (or project test command), Playwright screenshots + snapshots (if available, per §Playwright Resilience), counts console errors. Saves raw output to `.web-loop/cycle-N-report.md`. Returns immediately after saving — does not interpret results.
+**1a. TOOL RUNNER** (`oh-my-claudecode:executor`, `model=sonnet`) — fresh subagent. Runs `npm test` (or project test command), Playwright screenshots + snapshots (if available, per §Playwright Resilience), counts console errors. Saves raw output to `.web-loop/cycle-N-report.md` (flat file directly under `.web-loop/`, e.g. `.web-loop/cycle-1-report.md`). Returns immediately after saving — does not interpret results.
 
 **1b. EVALUATOR AGENT** (`oh-my-claudecode:critic`, `model=opus`) — fresh subagent with zero memory of previous cycles. Reads `.web-loop/cycle-N-report.md` + the built-in checklist (see §Evaluation Criteria). Outputs a prioritized issue list: P0 / P1 / P2.
 
@@ -58,7 +58,7 @@ Each cycle executes these steps in order:
   **superpowers unavailable (fallback):**
   1. `Skill("kzk-codebase-survey")` — EXPLORER runs, report saved to `.web-loop/surveys/cycle-N-survey.md`.
   2. PLANNER (`oh-my-claudecode:planner`, `model=opus`) authors frozen plan → `docs/plans/YYYY-MM-DD-<topic>.md` with `## Frozen` header. Main controller copies plan to `.web-loop/plans/cycle-N-plan.md` (canonical plan stays in `docs/plans/` for git tracking). Prompt includes survey report path.
-  3. CRITIC (`oh-my-claudecode:critic`, `model=opus`) reviews. Critic prompt: "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL." FAIL → planner revises once. Second FAIL → skip + user-queue.
+  3. CRITIC (`oh-my-claudecode:critic`, `model=opus`) reviews. Critic prompt: "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL." FAIL → planner revises once. Second consecutive FAIL from the same reviewer, or 3+ FAILs total across all reviewers in the same cycle → skip + user-queue.
   4. EXECUTOR (`oh-my-claudecode:executor`, `model=sonnet`) implements via TDD → `kzk-pre-commit-gate` → commit.
 
   Either path: evaluator's issue description is passed verbatim (quoted string). All dispatches include file scope + branch name + pre-commit gate rules (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise).
