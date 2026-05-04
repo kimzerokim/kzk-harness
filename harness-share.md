@@ -977,3 +977,87 @@ Cycle 28 학습: `kzk-codebase-survey` 가 트리거됐는데 `kzk-large-task-de
 2. 메인 turn 시작 전 점검 — 사용자 prompt 가 다음 phrase 포함 시 large-task hop 강제: '플랜 쪼개', '사이클 자율', '버그들 모두', '모두 개선', '사용성 버그', '구현 검증', '전수조사', '마무리'.
 3. 점검 자동화: `install/hooks/keyword-detector.mjs` UserPromptSubmit hook (`install-global.sh --enable-hooks`). 매칭 시 system-reminder 로 강제 skill-load 명시.
 4. Survey 단독 로드 + 메인 직접 large execute = §Session-28 anti-pattern. `kzk-large-task-delegation §Operational checks 1–4` 으로 매 turn 점검.
+
+---
+
+## 29. Regression Memory Protocol (kzk-regression-memory, Plan D)
+
+자율실행 cycle 의 regression 망각 차단. fix-start 시점 prompt 매칭 → 자동 recall + dismiss CLI mutation path.
+
+### Storage 모델 (5필드 + 7필드)
+
+- **Backend**: gstack `/learn` JSONL (project-scoped). 5필드: `key`, `type`, `insight`, `confidence`, `source`
+- **Sidecar**: `.kzk-harness/regression-meta.jsonl`. **7필드**: `key`, `file_snapshot`, `related_cycles`, `dismiss_count`, `last_dismissed_at`, `archived`, **`stale`**
+- Sidecar = metadata extension with **own SoT for dismiss + stale state** (derived view 아님 — dismiss_count 와 stale 둘 다 사용자/하드웨어 액션 source)
+- FK: sidecar `key` 는 `/learn` 에 반드시 존재. 부재 시 orphan cleanup
+- file_snapshot canonical source = `git rev-parse HEAD:<file>` (cycle 끝 evaluator 가 sentinel SHA 캡처)
+
+### Recall 룰
+
+- Trigger: `UserPromptSubmit` hook (`install/hooks/regression-recall.mjs`)
+- Query normalization: `prompt.slice(0, 200)` + 키워드 추출 (raw prompt 전체 X)
+- Decay: `confidence_decayed = confidence * (0.85 ** dismiss_count)`
+- Filter: `archived: true` OR `confidence_decayed < 4` → 제외
+- Orphan cleanup: `allLearnKeys` (gstack learn list 전체) snapshot 기준만. `searchHits` 기준 X
+- Output: system-reminder inject (`🚨 [REGRESSION RECALL]`)
+- gstack 미설치 시: stderr WARN + `_warn` structured reason. silent skip 금지
+
+### Dismiss/Archive CLI (mutation path)
+
+```bash
+node install/bin/kzk-regression-memory.mjs dismiss <key>
+```
+
+- `dismiss_count++`
+- `last_dismissed_at = ISO8601`
+- `archived = (dismiss_count >= 3)` (spec lock)
+- atomic write via `install/lib/sidecar-write.mjs`
+
+### 자가-skip guard (동사구만)
+
+자가개선 cycle 메인 prompt 자가오염 차단:
+- 환경변수 `KZK_HARNESS_SELF_IMPROVEMENT=1` 또는 `KZK_AUTONOMOUS=1` 우선
+- self-improvement **동사구** grep — 명사 단독 금지:
+  - `harness 개선 루프 시작`, `자가개선 cycle 진입`, `메타 cycle 진입`, `ralph 로 돌려` 등
+
+### Stale check
+
+`install/scripts/regression-stale-check.sh`:
+- cron 또는 cycle-end 단발
+- file_snapshot SHA vs HEAD 비교
+- sidecar 의 `stale` 7번째 필드 update (atomic via lockdir)
+- recall hook 은 cached `stale` 필드 read (라이브 git blame X)
+
+### Atomic sidecar writer (공용 utility)
+
+`install/lib/sidecar-write.mjs` — lockdir + tmp + atomic mv. hook + stale-check + dismiss CLI + cycle 회고 append 모두 본 utility 사용. 동시 실행 시 직렬화.
+
+### Cycle 회고 5W1H (kzk-web-loop step 5.5 진입)
+
+| W | Detail |
+|---|---|
+| Who | cycle entry 작성 주체 (메인 또는 evaluator subagent) |
+| When | cycle commit 직후, harness-flow-progress 갱신 다음 |
+| What | 1 entry/cycle. key=`cycle-<N>-<axis>`, type=`pattern`, source=`retro` |
+| How | `gstack learn add ...` + sidecar atomic append (file_snapshot = `git rev-parse HEAD:<file>`) |
+| 실패시 | gstack 미설치 → stderr WARN + cycle entry 본문 표기 의무. silent skip 금지 |
+| Where | kzk-web-loop cycle 끝 evaluator paragraph |
+
+### Default DISABLED at D commit, 자동 enable on main 머지 (5 plan 후, fail-closed)
+
+- D plan commit 시점: hook 파일 추가 but settings.json 등록 X
+- **5 plan (A→D→B→C→E)** 끝나고 `kzk-pre-merge-sync` step 3 가 `install-global.sh --enable-hooks --regression-recall` 자동 호출 (사용자 confirm 게이트)
+- `--regression-recall` 는 keyword-detector 도 explicit dependency 로 자동 enable
+- **fail-closed**: install-global.sh exit non-zero / duplicate entry / jq 부재 → merge block
+
+### Rollback (7 level — codex #10 답)
+
+| Level | 메커니즘 |
+|---|---|
+| 단일 plan revert | `git revert <Plan-D-sha>` |
+| Hook 즉시 비활성 | `OMC_SKIP_HOOKS=regression-recall` |
+| Skill 즉시 비활성 | `DISABLE_OMC=kzk-regression-memory` |
+| settings.json 수동 | hook entry 수동 제거 |
+| Sidecar 손실 | dismiss_count + stale reset 만 — /learn 보존 |
+| Plan D 자가오염 | default DISABLED 라 즉시 위협 X. enable 후 발견 시 OMC_SKIP_HOOKS |
+| **Global install 산출물 cleanup** | `~/.claude/skills/.kzk-harness-shared/hooks/regression-recall.mjs` + `lib/sidecar-write.mjs` + `bin/kzk-regression-memory.mjs` 제거 + 중복 settings.json `UserPromptSubmit` entry 정리 (`uninstall-global.sh --regression-recall` 또는 jq: `jq '.hooks.UserPromptSubmit \|= map(select(.hooks[0].command \| test("regression-recall") \| not))' ~/.claude/settings.json`) |

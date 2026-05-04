@@ -1,0 +1,5 @@
+# illustrative only — Plan D Step 0 actual gstack output wins on drift (codex #8)
+# gstack 미설치 환경 — recall feature OFF, cycle retro WARN degraded only
+{"key":"plan-d-step-0-test","type":"pattern","insight":"Step 0 backend probe — schema 검증","confidence":5,"source":"retro"}
+{"key":"hypothetical-stale-bug","type":"pitfall","insight":"old fix — file deleted","confidence":7,"source":"fix"}
+{"key":"hypothetical-archived","type":"pattern","insight":"dismissed 3 times","confidence":6,"source":"review"}

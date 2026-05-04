@@ -1,6 +1,6 @@
 # kzk-harness
 
-Workflow skill layer for [Claude Code](https://claude.ai/code). Installs 14 `kzk-*` skills into any project — commit gates, autonomous mode boundaries, Playwright verification, large task delegation, and more.
+Workflow skill layer for [Claude Code](https://claude.ai/code). Installs 15 `kzk-*` skills into any project — commit gates, autonomous mode boundaries, Playwright verification, large task delegation, and more.
 
 Each skill is a markdown file loaded by Claude when you mention its trigger keyword. No runtime, no config files, no build step.
 
@@ -29,7 +29,7 @@ kzk-harness 설치해줘.
   8. rm -rf /tmp/kzk-harness
 ```
 
-**Why global is recommended** — install once, every Claude Code session in any directory auto-activates. No per-project migration. Update with one command. No config files accumulate inside project trees. The 14 skill `.md` files live in `~/.claude/skills/kzk-*` (auto-loaded), the umbrella `harness-share.md` lives in `~/.claude/skills/.kzk-harness-shared/` (dot-prefix prevents Claude from treating it as an invocable skill), and a clearly-marked block in `~/.claude/CLAUDE.md` carries the routing table. Outside that block, your existing `~/.claude/CLAUDE.md` is left byte-for-byte identical.
+**Why global is recommended** — install once, every Claude Code session in any directory auto-activates. No per-project migration. Update with one command. No config files accumulate inside project trees. The 15 skill `.md` files live in `~/.claude/skills/kzk-*` (auto-loaded), the umbrella `harness-share.md` lives in `~/.claude/skills/.kzk-harness-shared/` (dot-prefix prevents Claude from treating it as an invocable skill), and a clearly-marked block in `~/.claude/CLAUDE.md` carries the routing table. Outside that block, your existing `~/.claude/CLAUDE.md` is left byte-for-byte identical.
 
 **Project artifacts** (`harness-flow-progress.md`, `docs/harness/`, `docs/plans/`, `.web-loop/`, `.omc/`, `docs/research/codex-reviews/`) always stay in `$PWD` per spec §6.2 — the install never writes outside `~/.claude/` (global mode) or outside the project root (project-only mode).
 
@@ -99,7 +99,7 @@ Also installed: `harness-share.md` — a portable workflow guide covering the fu
 
 ## 작업 유형별 베스트 프랙티스 (한국어)
 
-설치만 해도 14개 kzk-* 스킬이 자동 로드되지만, **어떤 phrase 로 prompt 를 시작하느냐** 에 따라 자동 활성화되는 skill 묶음이 달라집니다. 매칭은 두 경로로:
+설치만 해도 15개 kzk-* 스킬이 자동 로드되지만, **어떤 phrase 로 prompt 를 시작하느냐** 에 따라 자동 활성화되는 skill 묶음이 달라집니다. 매칭은 두 경로로:
 
 - **`install/hooks/keyword-detector.mjs`** UserPromptSubmit hook (`install-global.sh --enable-hooks` 후) — 매 prompt 마다 phrase 매칭 → 강제 system-reminder 주입
 - **Claude Code 자체 skill discovery** — `~/.claude/skills/kzk-*/SKILL.md` description + body §Triggers 매칭

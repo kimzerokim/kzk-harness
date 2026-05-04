@@ -227,6 +227,7 @@ Every dispatch prompt must include:
 - Race-condition awareness (file scopes vs other parallel subagents)
 - Return format on success
 - Halt condition (blocked → user-queue entry)
+- **Recall 결과 inject** (Plan D): subagent dispatch prompt 의 Rules block 에 메인이 받은 [REGRESSION RECALL] system-reminder 가 있으면, 해당 텍스트를 verbatim 으로 dispatch prompt 에 inject. **size cap 200 char** — reminder 가 200 char 초과 시 truncate (hits 우선순위 high → low confidence_decayed 로 정렬 후 cumulative length 200 도달까지) + warning footer (`[truncated: <N> more hits]`). subagent 가 fix 작업 시 recall 결과 read. 매칭 정확성은 subagent 가 검토.
 
 ### Sonnet executor — extra plan-detail requirements
 
@@ -313,3 +314,4 @@ Root cause: trigger keyword gap — '사용성 버그', '여러 plan 으로 쪼�
 - **kzk-test-coverage**: Step 4 of large-task delegation runs the same coverage check that test-coverage owns at session close.
 - **kzk-pre-commit-gate**: Subagent prompt MUST echo the gate sequence so the executor commits with full Gate 0–4 awareness.
 - **kzk-autonomous-boundary**: Halt protocol mirror — if a delegated subagent halts, this skill's caller must propagate to autonomous-boundary's halt rules.
+- **kzk-regression-memory**: 메인이 받은 [REGRESSION RECALL] reminder 를 subagent dispatch prompt 에 inject (size cap 200 char, truncate + warning). fix subagent 도 recall 결과 read.

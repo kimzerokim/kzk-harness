@@ -1,0 +1,3 @@
+{"key":"plan-d-step-0-test","file_snapshot":"install/hooks/regression-recall.mjs:42@abc1234","related_cycles":[31],"dismiss_count":0,"last_dismissed_at":null,"archived":false,"stale":false}
+{"key":"hypothetical-stale-bug","file_snapshot":"deleted/file.ts:10@old5678","related_cycles":[28],"dismiss_count":2,"last_dismissed_at":"2026-04-15T10:00:00Z","archived":false,"stale":true}
+{"key":"hypothetical-archived","file_snapshot":"src/old.ts:5@cafe9999","related_cycles":[20,22],"dismiss_count":3,"last_dismissed_at":"2026-04-20T10:00:00Z","archived":true,"stale":false}
