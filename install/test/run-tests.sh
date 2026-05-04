@@ -88,7 +88,7 @@ test_skill_files_landed() {
   count=$(find "$test_home/.claude/skills" -maxdepth 2 -name 'SKILL.md' \
     -path '*/kzk-*/*' 2>/dev/null | wc -l | tr -d ' ')
 
-  assert_eq "15 SKILL.md files landed" "15" "$count"
+  assert_eq "16 SKILL.md files landed" "16" "$count"
 
   rm -rf "$test_home"
 }
@@ -158,7 +158,7 @@ test_claude_md_marker() {
   local row_count
   row_count=$(awk '/<!-- BEGIN kzk-harness skills -->/,/<!-- END kzk-harness skills -->/' "$cfile" |
     grep -cE '^\| kzk-' || true)
-  assert_eq "15 kzk- rows in marker block" "15" "$row_count"
+  assert_eq "16 kzk- rows in marker block" "16" "$row_count"
 
   rm -rf "$test_home"
 }
@@ -613,6 +613,21 @@ test_regression_recall() {
 }
 
 # ---------------------------------------------------------------------------
+# Plan B — fix-scope-trigger.test.mjs
+# ---------------------------------------------------------------------------
+test_fix_scope_trigger() {
+  printf '\n[test_fix_scope_trigger]\n'
+  if node "$REPO_ROOT/install/test/fix-scope-trigger.test.mjs"; then
+    printf '  PASS: fix-scope-trigger.test.mjs\n'
+    PASS=$((PASS + 1))
+  else
+    printf '  FAIL: fix-scope-trigger.test.mjs\n'
+    FAIL=$((FAIL + 1))
+    ERRORS+=("test_fix_scope_trigger")
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Run all tests
 # ---------------------------------------------------------------------------
 printf 'kzk-harness install-global tests (pure-bash, repo: %s)\n' "$REPO_ROOT"
@@ -640,6 +655,7 @@ test_keyword_detector_matches_tdd
 test_keyword_detector_matches_vague_large
 test_keyword_detector_matches_test_add
 test_regression_recall
+test_fix_scope_trigger
 
 # Plan A — skill-text-checks
 printf '\n--- skill-text-checks (Plan A) ---\n'

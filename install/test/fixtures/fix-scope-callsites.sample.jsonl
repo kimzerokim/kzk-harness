@@ -1,0 +1,5 @@
+# illustrative only — Plan B Step 0 actual code-review-graph output wins on drift
+# CRG Task 0 confirmed: `code-review-graph detect-changes --base HEAD~1` (no --file, no --symbol)
+# grep fallback: grep -rn <symbol> --include='*.{ts,tsx,js,mjs,sh,py}' --exclude-dir={node_modules,.git,docs}
+{"type":"crg_response_sample","source":"code-review-graph detect-changes --base HEAD~1","callsites":["install/test/fix-scope-trigger.test.mjs:42","install/install-global.sh:88"]}
+{"type":"grep_response_sample","source":"grep -rn shouldSkip --include='*.mjs' --exclude-dir={node_modules,.git,docs}","callsites":["install/hooks/fix-scope-trigger.mjs:15","install/test/regression-recall.test.mjs:33"]}

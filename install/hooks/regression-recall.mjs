@@ -8,48 +8,14 @@
 import { execSync } from "node:child_process";
 import path from "node:path";
 import { mutateSidecar, readSidecar } from "../lib/sidecar-write.mjs";
+import { FIX_KEYWORDS, SELF_IMPROVE_VERBPHRASES, shouldSkip, detectFixIntent, normalizeQuery } from "../lib/hook-shared.mjs";
 
-const FIX_KEYWORDS = [
-  "fix", "수정", "버그", "에러", "error", "regression", "재발",
-  "같은 버그", "또 났", "이거 또", "broken", "안 됨", "안된다",
-];
-
-// rev2 codex #5 — 동사구만, 명사 단독 금지
-const SELF_IMPROVE_VERBPHRASES = [
-  "harness 개선 루프 시작",
-  "스킬 개선해줘",
-  "harness loop 진입",
-  "자가개선 cycle 진입",
-  "자가개선 돌려줘",
-  "메타 cycle 진입",
-  "ralph 로 돌려",
-];
+// rev2 codex #5 — 동사구만, 명사 단독 금지 (now sourced from hook-shared.mjs — single SoT)
+// FIX_KEYWORDS, SELF_IMPROVE_VERBPHRASES, shouldSkip, detectFixIntent, normalizeQuery
+// all imported above. Local definitions removed to prevent drift.
 
 const DECAY_BASE = 0.85;
 const CONFIDENCE_THRESHOLD = 4;
-const QUERY_WINDOW = 200;  // first 200 chars
-
-function shouldSkip(prompt, env) {
-  if (env.KZK_HARNESS_SELF_IMPROVEMENT === "1") return "env:KZK_HARNESS_SELF_IMPROVEMENT";
-  if (env.KZK_AUTONOMOUS === "1") return "env:KZK_AUTONOMOUS";
-  for (const m of SELF_IMPROVE_VERBPHRASES) {
-    if (prompt.includes(m)) return `verbphrase:${m}`;
-  }
-  return null;
-}
-
-function detectFixIntent(prompt) {
-  return FIX_KEYWORDS.some((k) => prompt.includes(k));
-}
-
-// rev2 codex #4 — query normalization (raw prompt 전체 X)
-function normalizeQuery(prompt) {
-  const window = prompt.slice(0, QUERY_WINDOW);
-  const tokens = window.split(/\s+/).filter((t) => t.length >= 3);
-  // intersection with FIX_KEYWORDS for keyword extraction
-  const matches = tokens.filter((t) => FIX_KEYWORDS.some((k) => t.includes(k)));
-  return matches.length > 0 ? matches.join(" ") : window;
-}
 
 // rev2 codex #7 — gstack 미설치 시 stderr WARN + structured _warn
 function querylearn(query) {

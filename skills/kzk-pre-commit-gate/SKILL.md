@@ -1,7 +1,7 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.2.0
-description: "Up-to-6-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets / build / test / Playwright). Top triggers: 'commit', 'pre-commit', 'Gate 0', 'AGENTS.md sync', 'doc-only'. Body §Triggers for full list."
+version: 1.3.0
+description: "Up-to-7-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets / build / test / Playwright / fix-scope sanity). Top triggers: 'commit', 'pre-commit', 'Gate 0', 'AGENTS.md sync', 'Gate 4.5', 'fix-scope-cache', 'callsite mismatch', 'KZK_GATE45_SKIP', 'doc-only'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §3. On conflict, that wins.
@@ -10,9 +10,9 @@ description: "Up-to-6-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets /
 
 ## Triggers
 
-`commit`, `pre-commit`, `Gate 0`, `Gate 1`, `Gate 1.5`, `Gate 2`, `Gate 3`, `Gate 4`, `AGENTS.md sync`, `ai-slop-cleaner`, `secrets scan`, `autonomous commit`, `doc-only exception`.
+`commit`, `pre-commit`, `Gate 0`, `Gate 1`, `Gate 1.5`, `Gate 2`, `Gate 3`, `Gate 4`, `Gate 4.5`, `AGENTS.md sync`, `ai-slop-cleaner`, `secrets scan`, `autonomous commit`, `doc-only exception`, `fix-scope-cache`, `callsite mismatch`, `KZK_GATE45_SKIP`.
 
-Every commit passes up to 6 gates in order (0, 1, 1.5, 2, 3, 4 — Gate 0 only when AGENTS.md hierarchy present, so 5 gates otherwise). One failure → commit blocked.
+Every commit passes up to 7 gates in order (0, 1, 1.5, 2, 3, 4, 4.5 — Gate 0 only when AGENTS.md hierarchy present, so 6 gates otherwise). One failure → commit blocked.
 
 ## Gate 0 — Touched-files AGENTS.md sync
 
@@ -62,6 +62,28 @@ Run the repo's build command (e.g. `npm run build`). Verify dist artifact exists
 If any changed file matches `src/**/*.{tsx,ts,css}` (or your repo's equivalent frontend source glob), Gate 4 is mandatory. See `kzk-playwright-verification` skill for the full routine. Skipping / deferring / "do it later in the final sweep" is forbidden.
 
 Exception: change is solely under `src/**/*.test.{tsx,ts}` — Gate 4 may be skipped.
+
+## Gate 4.5 — Fix Scope Sanity Check (Plan B)
+
+> Authoritative source: harness-share.md §3.5. On conflict, that wins.
+
+**Trigger**: `.kzk-harness/fix-scope-cache.jsonl` 존재 시 (fix-scope-trigger hook 이 활성이고 fix intent commit 일 때).
+
+**Skip**: `KZK_GATE45_SKIP=1` env var 설정 시 N/A (사유 commit body 기재 권고).
+
+**Cache policy**: JSONL append/list — 현재 cycle commit SHA (`$(git rev-parse HEAD)`) key 의 모든 항목 union 체크. `last-fix-wins` 아님.
+
+**Sanity check**: callsite list ⊄ `git diff --cached --name-only` → BLOCK.
+
+BLOCK 시 메시지:
+```
+Gate 4.5: callsite N곳 중 M곳 미수정.
+누락 의도를 commit body 에 명시하거나 해당 callsite 도 수정.
+```
+
+**Cache 부재**: N/A (fix-scope-trigger hook 비활성 또는 fix intent 아닌 commit).
+
+See `kzk-fix-scope-expansion` for the full fix-scope rules and `harness-share.md §3.5` as canonical SoT.
 
 ## Doc-only commit exception
 
