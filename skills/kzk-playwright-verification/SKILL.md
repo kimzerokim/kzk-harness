@@ -1,6 +1,6 @@
 ---
 name: kzk-playwright-verification
-version: 1.0.2
+version: 1.0.3
 description: "Playwright MCP-based UI Gate 4 verification routine, debug cheatsheet, and result-narration mandate (also applies to any long-running tool ≥ 2s). Use whenever a commit touches frontend source files or whenever the agent calls a Playwright MCP tool or any long-running tool. Required triggers: 'Playwright', 'Gate 4', 'browser_navigate', 'browser_take_screenshot', 'screenshot 검수', 'MCP drop', 'visual verification', 'Result narration', 'long-running tool', 'Cooked for Nm', 'silence', 'stuck', 'Bash background', 'Agent dispatch progress'."
 ---
 
@@ -87,3 +87,9 @@ Official shadcn new-york blocks use **prefix-less** tokens (`--background / --pr
 - snapshot only, no screenshot — accessibility tree misses color/spacing/font regressions
 - Reading the screenshot but stating "looks good" without an explicit visual claim. Build/test green ≠ visual PASS. Mandatory format: name elements + name tokens (e.g. "Card has shadow, padding looks correct, primary CTA blue is the brand token")
 - "I'll bypass via dev token" when MCP drops — see `harness-share.md` §19 MCP Reconnect Protocol
+
+## Interaction with other kzk-*
+
+- **kzk-pre-commit-gate**: This skill implements Gate 4 (browser smoke + screenshot).
+- **kzk-background-monitoring**: Reuses the narration table this skill defines for long-running browser actions.
+- **kzk-web-loop**: Cascade-recovery override — web loop's playwright resilience rule overrides this skill's hard-stop when MCP repeatedly fails.

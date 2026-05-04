@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.0.13
+version: 1.0.14
 description: "Up-to-6-step Pre-commit Gate (Gate 0 conditional on AGENTS.md hierarchy; gates: AGENTS.md sync / ai-slop-cleaner / secrets-scan / build / test / Playwright Gate 4) plus autonomous-mode and doc-only commit policies. Use this skill before every commit, before claiming a task complete, when deciding whether to skip a gate, or when a gate fails. Required triggers: 'commit', 'pre-commit', 'Gate 0/1/1.5/2/3/4', 'AGENTS.md sync', 'ai-slop-cleaner', 'secrets scan', 'autonomous commit', 'doc-only exception'."
 ---
 
@@ -101,3 +101,12 @@ Non-autonomous (default): every commit waits for user OK after gates pass. No au
 - **Autonomous mode:** 3 consecutive build/test failures on the same area → halt, append user-queue entry (see `kzk-autonomous-boundary`). **Interactive mode:** surface failures to user, do not auto-halt.
 - Critic / verifier / Gate 4 visual reviewer 2 consecutive FAIL on the same change (Gate 4 Playwright visual review, plan reviewer, verifier agent) → halt + user-queue entry. See `kzk-autonomous-boundary` for the full halt condition list. Exception: `kzk-web-loop` overrides consecutive-FAIL halts with skip+next-issue (see `kzk-web-loop` §Failure Handling).
 - Never `git commit --amend` after a hook failure (the commit didn't happen — amending hits the previous commit)
+
+## Interaction with other kzk-*
+
+- **kzk-autonomous-boundary**: Owns the halt protocol invoked when ≥3 reviewer FAILs occur during gate runs.
+- **kzk-playwright-verification**: Implements Gate 4 (browser smoke + screenshot drop).
+- **kzk-test-coverage**: Gate 3 runs the same test command this skill owns at session close.
+- **kzk-large-task-delegation**: Subagent prompts must echo the gate sequence so delegated executors commit with full gate awareness.
+- **kzk-web-loop**: Owns the override exception that lets the loop bypass full Gate 0–4 in indefinite-loop mode (see web-loop §Override exception).
+- **kzk-pre-merge-sync**: Consumes the gate-PASS line this skill emits in the PR footer.
