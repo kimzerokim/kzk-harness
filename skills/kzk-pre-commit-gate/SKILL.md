@@ -1,7 +1,7 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.4.0
-description: "Up-to-8-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets / build / test / Playwright / fix-scope sanity / fresh-agent verifier). Top triggers: 'commit', 'pre-commit', 'Gate 0', 'AGENTS.md sync', 'Gate 4.5', 'fix-scope-cache', 'callsite mismatch', 'KZK_GATE45_SKIP', 'doc-only', 'Gate 5', 'verifier', 'fresh-agent verification', 'INVALID_VERDICT'. Body §Triggers for full list."
+version: 1.5.0
+description: "Up-to-9-step Pre-commit Gate (AGENTS.md sync / ai-slop / secrets / production code-first / build / test / Playwright / fix-scope sanity / fresh-agent verifier). Top triggers: 'commit', 'pre-commit', 'Gate 0', 'AGENTS.md sync', 'Gate 1.6', 'production code-first', 'staged-path trigger', 'env-exception', 'Gate 4.5', 'fix-scope-cache', 'callsite mismatch', 'KZK_GATE45_SKIP', 'doc-only', 'Gate 5', 'verifier', 'fresh-agent verification', 'INVALID_VERDICT'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §3. On conflict, that wins.

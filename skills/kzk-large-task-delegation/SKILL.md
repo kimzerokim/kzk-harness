@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.7.0
+version: 1.8.0
 description: "Large tasks (3+ files / 200+ LoC / 5+ file read / multi-stage) dispatch to fresh subagents — main never executes. Top triggers: '큰 작업', '버그 전수조사', '사이클 자율', 'plan 쪼개', 'subagent dispatch', 'Stage 3', 'fresh-agent verifier', 'verifier dispatch', 'INVALID_VERDICT'. Body §Triggers for full list."
 ---
 
