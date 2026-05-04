@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.0.10
+version: 1.0.11
 description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'large task', 'subagent dispatch', '3+ file edits', '200+ LoC', 'opus/sonnet routing', 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체'."
 ---
 
@@ -33,15 +33,15 @@ Subagent dispatches are split by phase, not by topic. Reasoning-heavy phases get
 
 | Phase | Subagent type | Model | Cross-check |
 |---|---|---|---|
-| Plan authoring | `oh-my-claudecode:planner` / `oh-my-claudecode:architect` | **opus** | Mandatory Codex CLI consult on draft plan before freezing (see `kzk-codex-cross-verification`). For deep requirements elicitation before planning, use `Skill("oh-my-claudecode:deep-interview")` — it is a Skill invocation, not an Agent subagent_type. |
-| Critic / review | `oh-my-claudecode:critic` / `oh-my-claudecode:code-reviewer` | **opus** | Codex CLI review parallel pass (see `kzk-codex-cross-verification`) |
-| Verify | `oh-my-claudecode:verifier` | **opus** | Codex CLI consult on uncertain assertions (see `kzk-codex-cross-verification`) |
+| Plan authoring | `oh-my-claudecode:planner` / `oh-my-claudecode:architect` | **opus** | Mandatory Codex CLI consult on draft plan before freezing (see `kzk-spec-and-review`). For deep requirements elicitation before planning, use `Skill("oh-my-claudecode:deep-interview")` — it is a Skill invocation, not an Agent subagent_type. |
+| Critic / review | `oh-my-claudecode:critic` / `oh-my-claudecode:code-reviewer` | **opus** | Codex CLI review parallel pass (see `kzk-spec-and-review`) |
+| Verify | `oh-my-claudecode:verifier` | **opus** | Codex CLI consult on uncertain assertions (see `kzk-spec-and-review`) |
 | Implementation | `oh-my-claudecode:executor` | **sonnet** | none — plan must already be detailed enough |
 | Quick research / file search | `oh-my-claudecode:explore` | **sonnet** (survey/deep reads); **haiku** (quick targeted lookups) | none |
 
 Reason: heavy reasoning where it changes the outcome, cheap execution where the plan already determined every move. Override: if sonnet returns BLOCKED or main reviews the diff and finds plan-vs-code drift, re-dispatch the same task with `model="opus"` and root-cause whether the plan was insufficient (fix the plan policy) or the model failed (record once, do not generalize from a single failure).
 
-Codex is invoked via CLI: `codex exec "$PROMPT" -C <repo-root> -s read-only` (see `kzk-codex-cross-verification §Codex execution shape`). CLI unavailable → `Agent(subagent_type="oh-my-claudecode:critic", model="opus")`. Codex disagreement on plan ≠ veto — main reconciles; persistent disagreement → user-queue entry, do not silently override one model with the other.
+Codex is invoked via CLI: `codex exec "$PROMPT" -C <repo-root> -s read-only` (see `kzk-spec-and-review §Codex execution shape`). CLI unavailable → `Agent(subagent_type="oh-my-claudecode:critic", model="opus")`. Codex disagreement on plan ≠ veto — main reconciles; persistent disagreement → user-queue entry, do not silently override one model with the other.
 
 ### Default split — 80% sonnet
 
@@ -88,7 +88,7 @@ Before dispatching the sonnet executor, the plan must clear this gate exactly on
 
 0. **`kzk-codebase-survey`** — EXPLORER agent runs all steps (Step 0.5 + Step 1–8), saves report to `docs/harness/surveys/YYYY-MM-DD-<topic>-survey.md`. Report path passed to planner and critic as required reading. Survey failure → note in report, continue.
 1. main authors the plan or dispatches `planner` (opus) — **prompt must include survey report path as required reading**
-2. Codex CLI consult on the plan draft (`codex exec` per `kzk-codex-cross-verification`) → returns concerns; CLI unavailable → `oh-my-claudecode:critic` opus
+2. Codex CLI consult on the plan draft (`codex exec` per `kzk-spec-and-review`) → returns concerns; CLI unavailable → `oh-my-claudecode:critic` opus
 3. main edits plan (or dispatches `oh-my-claudecode:critic` opus) to address concerns — **critic prompt must include:** "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL."
 4. on agreement, plan is frozen — written to `docs/plans/<file>.md` with a `## Frozen` header line
 5. only frozen plans may feed a sonnet executor dispatch
@@ -160,7 +160,7 @@ Re-prevention:
 
 ## Interaction with other kzk-*
 
-- **kzk-codex-cross-verification**: This skill's "Pre-implementation plan-critic loop" is the smaller, in-skill version of codex-cross-verification's broader plan/spec/arch review. Use this skill when a single executor task needs a plan critic; use codex-cross-verification when the artifact is a standalone plan/spec/architecture doc.
+- **kzk-spec-and-review**: This skill's "Pre-implementation plan-critic loop" is the narrower, in-skill version of `kzk-spec-and-review`'s broader spec/plan/architecture authoring + cross-vendor review. Use this skill's plan-critic when a single executor task needs a plan critic inline; use `kzk-spec-and-review` when the artifact is a standalone spec/plan/architecture doc that needs Step 0 codebase survey + 3-pass review.
 - **kzk-codebase-survey**: Step 0 of any task ≥3 files / ≥200 LoC. Survey runs BEFORE this skill's planner dispatch.
 - **kzk-test-coverage**: Step 4 of large-task delegation runs the same coverage check that test-coverage owns at session close.
 - **kzk-pre-commit-gate**: Subagent prompt MUST echo the gate sequence so the executor commits with full Gate 0–4 awareness.

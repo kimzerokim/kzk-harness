@@ -720,7 +720,7 @@ Russian Judge Verdict:
 
 - 절차:
   1. `/writing-plans` skill 로 plan draft 작성
-  2. `codex exec` CLI 직접 호출 (full command: see `kzk-codex-cross-verification` §Codex execution shape) — codex가 fresh 시각 으로 review
+  2. `codex exec` CLI 직접 호출 (full command: see `kzk-spec-and-review` §Codex execution shape) — codex가 fresh 시각 으로 review
   3. **codex CLI parse fail 시 fallback** = `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=...)` (claude opus critic agent)
   4. codex/critic feedback 수신 → critical issues 반영 (architecture / acceptance criteria gap / scope drift / risk 미고려)
   5. revised plan 으로 ralph autonomous 진입
@@ -762,8 +762,9 @@ ralph autonomous 진입 시 spec drafting + plan drafting + critic review + impl
 ### 룰
 
 - 사용자가 idea / brainstorming 결과 (high-level goal) 만 제공 → ralph 가 다음 모두 자동 처리:
-  1. **PRD/spec drafting** — `docs/prd/<plan>.md` 작성 (사용자 high-level goal 기반 + repo 구조 인식)
-  2. **Plan drafting** — `docs/plans/<plan>.md` 작성 (`/writing-plans` skill)
+  0. **Codebase survey** — `kzk-codebase-survey` 호출, report 저장 (`docs/harness/surveys/<topic>-survey.md` 또는 `.web-loop/surveys/cycle-N-survey.md`). PRD/spec drafting 및 모든 critic review 의 Required reading. `kzk-spec-and-review` Step 0 precondition.
+  1. **PRD/spec drafting** — `docs/prd/<plan>.md` 작성 (사용자 high-level goal + survey report 기반). draft prompt 의 CONTEXT block 에 survey report path 명시.
+  2. **Plan drafting** — `docs/plans/<plan>.md` 작성 (`/writing-plans` skill). 동일 survey report 인용.
   3. **Critic review** (cycle 1) — codex 또는 critic agent dispatch + verdict file 저장
   4. **Plan revision** (REJECT 시) — cycle 2 max
   5. **prd.json setup** — story breakdown + acceptance criteria
@@ -939,7 +940,7 @@ Every tool failure = 1 automatic retry, no user prompt in between. Polite-stop a
 ### Key failure modes
 
 - **Edit "String to replace not found"**: `Read` the file (±10 lines or `grep -n`) → re-issue Edit with corrected `old_string`. Two consecutive failures → `Write` whole file or queue.
-- **Edit/Write "File has not been read yet"**: Call `Read` once (1 line is enough) → re-issue the original Edit/Write. Do NOT ask the user.
+- **Edit/Write "File has not been read yet" / "modified since read"**: Prevention-first. Treat these events as read-tracker invalidators and re-Read before the next Edit on the affected file: any new user message, `<system-reminder>` flagging a file change, your own `sed -i` / `Write` / formatter run, an Agent dispatch return, `/compact` or session restore. Recovery if it still fails: call `Read` once → re-issue the Edit (adjust `old_string` if "modified since read" — the on-disk content moved). Do NOT ask the user.
 - **Bash transient**: 1 retry OK. Persistent failure (compile error, type error) → root-cause fix, no blind retry.
 
 ### Queue-on-double-failure

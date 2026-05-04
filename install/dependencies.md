@@ -20,7 +20,7 @@ The skills are designed to degrade gracefully: if a dependency is missing, the r
 ### codex CLI (recommended)
 
 - **Purpose**: Cross-vendor second opinion on plans / specs / architecture (different model family from Claude → catches different blind spots).
-- **Used by**: `kzk-codex-cross-verification` (primary), `kzk-large-task-delegation` (plan-critic loop).
+- **Used by**: `kzk-spec-and-review` (primary), `kzk-large-task-delegation` (plan-critic loop).
 - **Install**: `npm install -g @openai/codex` (npm path) or `brew install codex` (Homebrew path).
 - **Fallback if missing**: Skills fall back to `Agent(subagent_type="oh-my-claudecode:critic", model="opus", ...)`. Same review structure, just same-vendor (Claude opus reviewing Claude opus).
 
@@ -51,12 +51,12 @@ Detection sources:
 ### oh-my-claudecode (OMC) — recommended
 
 - **Purpose**: Provides specialized subagents (`critic`, `executor`, `verifier`, `planner`, `architect`, `code-reviewer`, `document-specialist`), `deepinit_manifest` tool, `ToolSearch` deferred-tool helper, and the `/oh-my-claudecode:*` skill suite.
-- **Used by**: `kzk-large-task-delegation` (subagent dispatch), `kzk-pre-commit-gate` (Gate 0 deepinit_manifest, reviewer agents), `kzk-codex-cross-verification` (critic fallback), `kzk-pre-merge-sync` (deepinit), `kzk-test-coverage` (verifier).
+- **Used by**: `kzk-large-task-delegation` (subagent dispatch), `kzk-pre-commit-gate` (Gate 0 deepinit_manifest, reviewer agents), `kzk-spec-and-review` (critic fallback), `kzk-pre-merge-sync` (deepinit), `kzk-test-coverage` (verifier).
 - **Install**: in a Claude Code session, run `/plugin` and install `oh-my-claudecode`. Or follow https://github.com/kimzerokim/oh-my-claudecode.
 - **Fallback if missing**: 
   - `deepinit_manifest` tool unavailable → `kzk-pre-commit-gate` Gate 0 skips the manifest baseline (still passes on AGENTS.md edits).
   - Reviewer agents unavailable → no automatic critic; user must run reviews manually.
-  - Codex fallback unavailable → if codex CLI is also missing, `kzk-codex-cross-verification` halts with "no reviewer available".
+  - Codex fallback unavailable → if codex CLI is also missing, `kzk-spec-and-review` halts with "no reviewer available".
 
 ### playwright-mcp — required for kzk-web-loop, recommended for Gate 4
 
@@ -77,7 +77,7 @@ Detection sources:
 | `kzk-autonomous-boundary` | git | — |
 | `kzk-autonomous-loop` | — | — (uses ScheduleWakeup, built-in) |
 | `kzk-background-monitoring` | — | — (uses Monitor, built-in) |
-| `kzk-codex-cross-verification` | — | codex CLI OR OMC (`critic` agent — at least one required) |
+| `kzk-spec-and-review` | — | codex CLI OR OMC (`critic` agent — at least one required) |
 | `kzk-pre-merge-sync` | git, gh | OMC (`deepinit` skill) |
 | `kzk-production-access` | — | aws-vault |
 | `kzk-test-coverage` | — | OMC (`verifier`) |

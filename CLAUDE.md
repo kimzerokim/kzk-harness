@@ -14,7 +14,7 @@ All 14 skills are active in this repo. Load one by mentioning its trigger keywor
 | `kzk-autonomous-boundary` | ralph, autonomous mode, halt condition, main branch boundary |
 | `kzk-autonomous-loop` | rate limit, context 80%, multi-plan continuation |
 | `kzk-background-monitoring` | run_in_background, Monitor, long-running, build, install |
-| `kzk-codex-cross-verification` | codex review, cross-verify, spec draft, plan draft, major design, architecture review |
+| `kzk-spec-and-review` | spec 잡자/작성, plan 작성, spec/plan/design draft, major design, architecture review, codex review, cross-verify |
 | `kzk-pre-merge-sync` | merge, feature branch, CLAUDE.md sync, deepinit |
 | `kzk-production-access` | AWS, SSM, DB, production, credential, destructive, AKIA, ASIA, aws-vault |
 | `kzk-test-coverage` | session close, coverage gap, touched files |
@@ -63,7 +63,7 @@ All external dependencies are installed by `install/dependencies.sh` (run automa
 
 Quick reference:
 - `code-review-graph` (auto, pip --user → pipx) — Tree-sitter + SQLite knowledge graph. Used by `kzk-codebase-survey` Steps 0.5/1/2. Fallback: grep-based scope expansion.
-- `codex` CLI (auto, npm → brew) — cross-vendor second opinion. Used by `kzk-codex-cross-verification`, `kzk-large-task-delegation`. Fallback: `oh-my-claudecode:critic` opus.
+- `codex` CLI (auto, npm → brew) — cross-vendor second opinion. Used by `kzk-spec-and-review`, `kzk-large-task-delegation`. Fallback: `oh-my-claudecode:critic` opus.
 - `gh` CLI (detected only) — required for PR workflow. Install: `brew install gh`.
 - `aws-vault` (detected only, optional) — STS-backed AWS credentials. Used by `kzk-production-access`.
 - Claude Code plugins (`/plugin` inside a session): `oh-my-claudecode` (subagents, deepinit_manifest), `playwright-mcp` (Gate 4 + web-loop browser MCP).

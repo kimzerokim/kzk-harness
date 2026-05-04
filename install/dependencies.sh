@@ -58,15 +58,28 @@ else
   fi
 fi
 
-# Build the graph for this project (background — does not block install completion)
+# Build the graph for this project (foreground — must complete + verify via status)
+# Rationale: the build log is misleading (shows last incremental pass, can read
+# "8 files" even when the full graph holds 2000+ nodes). Only `code-review-graph
+# status` is authoritative. Block on build, then parse status to confirm.
 if command -v code-review-graph >/dev/null 2>&1 && [ -d "$PROJECT_ROOT" ]; then
-  emit "Building code-review-graph index for $PROJECT_ROOT (background)..."
-  ( cd "$PROJECT_ROOT" && code-review-graph build >/tmp/kzk-crg-build.log 2>&1 & )
-  record "code-review-graph: build started in background (log: /tmp/kzk-crg-build.log)"
+  emit "Building code-review-graph index for $PROJECT_ROOT (foreground, may take 30s+)..."
+  if ( cd "$PROJECT_ROOT" && code-review-graph build >/tmp/kzk-crg-build.log 2>&1 ); then
+    status_out=$(cd "$PROJECT_ROOT" && code-review-graph status 2>&1)
+    files=$(printf '%s\n' "$status_out" | grep -oE 'Files:[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | head -1)
+    nodes=$(printf '%s\n' "$status_out" | grep -oE 'Nodes:[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | head -1)
+    if [ "${files:-0}" -gt 0 ] && [ "${nodes:-0}" -gt 0 ]; then
+      record "code-review-graph: index verified ($files files, $nodes nodes)"
+    else
+      record "code-review-graph: build completed but status reports empty index — manual investigation needed (log: /tmp/kzk-crg-build.log)"
+    fi
+  else
+    record "code-review-graph: build FAILED (see /tmp/kzk-crg-build.log) — kzk-codebase-survey will fall back to grep"
+  fi
 fi
 
 # ---------------------------------------------------------------------------
-# 2. codex CLI (OpenAI) — used by kzk-codex-cross-verification, kzk-large-task-delegation
+# 2. codex CLI (OpenAI) — used by kzk-spec-and-review, kzk-large-task-delegation
 # ---------------------------------------------------------------------------
 if command -v codex >/dev/null 2>&1; then
   record "codex CLI: already installed ($(codex --version 2>/dev/null || echo 'version unknown'))"
@@ -89,7 +102,7 @@ else
   fi
 
   if [ "$installed" -eq 0 ]; then
-    record "codex CLI: SKIPPED (npm & brew both failed or unavailable). kzk-codex-cross-verification will fall back to oh-my-claudecode:critic agent. Manual install: 'npm i -g @openai/codex' or 'brew install codex'."
+    record "codex CLI: SKIPPED (npm & brew both failed or unavailable). kzk-spec-and-review will fall back to oh-my-claudecode:critic agent. Manual install: 'npm i -g @openai/codex' or 'brew install codex'."
   fi
 fi
 

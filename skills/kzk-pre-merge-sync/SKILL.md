@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-merge-sync
-version: 1.0.9
+version: 1.0.10
 description: "Pre-merge checklist — sync CLAUDE.md to current code state and run `/oh-my-claudecode:deepinit` before any feature-branch merge. Required triggers: 'merge', 'merge 전', 'feature branch', 'PR', 'PR 직전', 'deepinit', 'Pre-Merge', 'CLAUDE.md update', 'CLAUDE.md sync', 'manifest 재생성'."
 ---
 
@@ -54,4 +54,4 @@ Skill("oh-my-claudecode:deepinit")
 
 - **kzk-autonomous-boundary**: Defines when autonomous PR creation is allowed (post-review explicit user merge approval is the sole exception).
 - **kzk-pre-commit-gate**: Provides the gate-PASS line this skill writes into the PR footer.
-- **kzk-codex-cross-verification**: Pre-PR `deepinit_manifest` refresh updates the AGENTS.md memory that codex review reads.
+- **kzk-spec-and-review**: Pre-PR `deepinit_manifest` refresh updates the AGENTS.md memory that codex review reads.
