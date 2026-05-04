@@ -147,9 +147,9 @@ test("bypass token single-use", async () => {
 });
 
 // ---------------------------------------------------------------------------
-// Case 5 — cross-turn deny
+// Case 5 — cross-turn allow (reads persist across turns within session)
 // ---------------------------------------------------------------------------
-test("cross-turn deny", async () => {
+test("cross-turn allow", async () => {
   await withFixture(async ({ stateDir, file }) => {
     await rotateTurnDirect(stateDir);
 
@@ -160,15 +160,15 @@ test("cross-turn deny", async () => {
       payload: { tool_name: "Read", tool_input: { file_path: file } },
     });
 
-    // Rotate to turn 2 — read-log is truncated
+    // Rotate to turn 2 — read-log is pruned by age, NOT truncated
     await rotateTurnDirect(stateDir);
 
-    // Edit in turn 2 with no Read → deny
+    // Edit in turn 2 — should be allowed (read persists across turns)
     const r = callHook({
       stateDir,
       payload: { tool_name: "Edit", tool_input: { file_path: file } },
     });
-    assert.equal(JSON.parse(r.stdout).decision, "block");
+    assert.equal(JSON.parse(r.stdout).continue, true);
   });
 });
 

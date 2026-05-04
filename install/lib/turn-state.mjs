@@ -42,9 +42,12 @@ function readLogPath(stateDir) {
 }
 
 // ---------------------------------------------------------------------------
-// rotateTurn — generate new uuid-v4 turn-id, atomic-write current-turn.json,
-//              truncate read-log.jsonl.
+// rotateTurn — generate new uuid-v4 turn-id, atomic-write current-turn.json.
+//              Read-log is NOT truncated — cross-turn edits within a session
+//              are allowed. Time-based expiry (MAX_READ_AGE_MS) handles cleanup.
 // ---------------------------------------------------------------------------
+const MAX_READ_AGE_MS = 2 * 60 * 60 * 1000; // 2 hours
+
 export function rotateTurn() {
   const stateDir = getStateDir();
   const turnId = randomUUID();
@@ -56,10 +59,31 @@ export function rotateTurn() {
   fs.writeFileSync(tmp, payload, "utf8");
   fs.renameSync(tmp, turnFile);
 
-  // Truncate read-log
-  fs.writeFileSync(readLogPath(stateDir), "", "utf8");
+  // Prune expired entries instead of truncating
+  pruneReadLog(stateDir);
 
   return turnId;
+}
+
+function pruneReadLog(stateDir) {
+  const logFile = readLogPath(stateDir);
+  let raw;
+  try {
+    raw = fs.readFileSync(logFile, "utf8");
+  } catch {
+    return;
+  }
+  const now = Date.now();
+  const kept = raw.split("\n").filter((line) => {
+    if (!line) return false;
+    try {
+      const entry = JSON.parse(line);
+      return now - new Date(entry.ts).getTime() < MAX_READ_AGE_MS;
+    } catch {
+      return false;
+    }
+  });
+  fs.writeFileSync(logFile, kept.length > 0 ? kept.join("\n") + "\n" : "", "utf8");
 }
 
 // ---------------------------------------------------------------------------
@@ -98,9 +122,11 @@ export function appendRead(realpath) {
 }
 
 // ---------------------------------------------------------------------------
-// hasReadInTurn — scan read-log.jsonl line-by-line for matching turn + file.
+// hasReadInTurn — scan read-log.jsonl for matching file (any turn in session).
+//                 Cross-turn reads are valid because Claude retains file
+//                 content in context across turns within a session.
 // ---------------------------------------------------------------------------
-export function hasReadInTurn(realpath, turnId) {
+export function hasReadInTurn(realpath, _turnId) {
   const stateDir = getStateDir();
   const logFile = readLogPath(stateDir);
 
@@ -117,11 +143,10 @@ export function hasReadInTurn(realpath, turnId) {
     try {
       entry = JSON.parse(line);
     } catch {
-      // corrupt line — silent skip + stderr WARN
       process.stderr.write(`[turn-state] WARN: corrupt read-log line skipped: ${line}\n`);
       continue;
     }
-    if (entry.turn === turnId && entry.file === realpath) {
+    if (entry.file === realpath) {
       return true;
     }
   }
