@@ -1,6 +1,6 @@
 ---
 name: kzk-tool-retry
-version: 1.0.4
+version: 1.0.5
 description: "Tool failure auto-retry mandate — every Edit/Write/Bash failure gets exactly one automatic retry before any user prompt. 'File has not been read yet' is always solved by re-reading the same path then retrying — never by asking the user. Polite-stop after 1 failure is a rule violation in autonomous mode. Required triggers: 'tool retry', 'auto-retry', 'retry', 'File has not been read yet', 'String to replace not found', 'Edit failed', 'Write failed', 'polite-stop'."
 ---
 
@@ -22,16 +22,34 @@ Tool failure is data, not a stop signal. One automatic retry is the default. Pol
 2. Re-issue `Edit` with the corrected `old_string`.
 3. Two consecutive failures → `Write` the whole file as fallback OR queue.
 
-### Edit / Write — "File has not been read yet"
+### Edit / Write — "File has not been read yet" / "File has been modified since read"
 
-This is the most common one. Observed behavior (Claude Code 2025–2026): the read-tracker resets across `UserPromptSubmit`, hook events, session restore, and `/compact`. A single user message between Read and Write can reset the tracker even if the file was read just before. Even if the underlying mechanism changes, the 1-line pre-Read pattern is cheap and never wrong.
+The most common failure class. Two distinct triggers, same fix:
 
-**Mandatory recovery (autonomous mode = polite-stop forbidden)**:
-1. Same path → call `Read` once (1 line is fine — cost is trivial).
-2. Re-issue the original Write/Edit. Content intent is unchanged; only the read tracker is refreshed.
-3. Do NOT ask the user. The user noticing and asking "왜 또 실패했어?" = trust loss.
+- **"not been read yet"**: read-tracker reset between Read and Edit. Resets happen across `UserPromptSubmit`, hook events, session restore, `/compact`, agent dispatch return, and any system-reminder injection. A single user message between Read and Edit can reset the tracker.
+- **"modified since read"**: an external tool (sed, formatter, linter, the user, another agent) wrote to the file between your Read and your Edit. The on-disk content moved past your snapshot.
 
-**Pre-emptive avoidance**: right after every user message, the first Edit/Write on a file should be preceded by a 1-line `Read` of that file. For frequently edited files, always Read-then-Edit pattern.
+**Pre-emptive Read protocol — MANDATORY** (prevention is cheaper than recovery):
+
+The Edit tool requires a Read of the file in the *same effective session window* before it will write. Treat the following events as **read-tracker invalidators** — the next Edit on any affected file MUST be preceded by a fresh Read:
+
+| Invalidator | Affected files | Required action |
+|---|---|---|
+| User sends a new message | All files you intended to edit | Read each before next Edit |
+| `<system-reminder>` mentions a file was modified by user/linter | The cited file (and any open editor target) | Re-Read before next Edit |
+| You ran `sed -i`, `Write`, formatter, or any non-Edit modifier | All files modified | Re-Read before next Edit |
+| You called an Agent that returned (subagent_type=executor etc.) | All files the agent might have touched | Re-Read before next Edit |
+| `/compact`, session restore, hook event with file edits | All files you'll edit next | Re-Read before next Edit |
+| > 5 turns since last Read of a frequently-edited file | That file | Re-Read before next Edit |
+
+A 1-line `Read` (offset=1, limit=5) is enough to refresh the tracker — cost is trivial vs. the round-trip cost of a failed Edit.
+
+**Recovery if the protocol slipped (failure already occurred)**:
+1. Same path → call `Read` once.
+2. If the failure was "modified since read", inspect the diff between your previous mental model and the on-disk content (the system reminder usually shows the new content). Adjust `old_string` if the surrounding text changed.
+3. Re-issue the Edit. Do NOT ask the user.
+
+**Forbidden**: asking the user "재시도할까요?" or "다시 읽고 진행할까요?". The user already saw the error in the system reminder; what they want is the next Edit to land, not a permission prompt.
 
 ### Bash — transient failure
 

@@ -58,15 +58,28 @@ else
   fi
 fi
 
-# Build the graph for this project (background — does not block install completion)
+# Build the graph for this project (foreground — must complete + verify via status)
+# Rationale: the build log is misleading (shows last incremental pass, can read
+# "8 files" even when the full graph holds 2000+ nodes). Only `code-review-graph
+# status` is authoritative. Block on build, then parse status to confirm.
 if command -v code-review-graph >/dev/null 2>&1 && [ -d "$PROJECT_ROOT" ]; then
-  emit "Building code-review-graph index for $PROJECT_ROOT (background)..."
-  ( cd "$PROJECT_ROOT" && code-review-graph build >/tmp/kzk-crg-build.log 2>&1 & )
-  record "code-review-graph: build started in background (log: /tmp/kzk-crg-build.log)"
+  emit "Building code-review-graph index for $PROJECT_ROOT (foreground, may take 30s+)..."
+  if ( cd "$PROJECT_ROOT" && code-review-graph build >/tmp/kzk-crg-build.log 2>&1 ); then
+    status_out=$(cd "$PROJECT_ROOT" && code-review-graph status 2>&1)
+    files=$(printf '%s\n' "$status_out" | grep -oE 'Files:[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | head -1)
+    nodes=$(printf '%s\n' "$status_out" | grep -oE 'Nodes:[[:space:]]+[0-9]+' | grep -oE '[0-9]+' | head -1)
+    if [ "${files:-0}" -gt 0 ] && [ "${nodes:-0}" -gt 0 ]; then
+      record "code-review-graph: index verified ($files files, $nodes nodes)"
+    else
+      record "code-review-graph: build completed but status reports empty index — manual investigation needed (log: /tmp/kzk-crg-build.log)"
+    fi
+  else
+    record "code-review-graph: build FAILED (see /tmp/kzk-crg-build.log) — kzk-codebase-survey will fall back to grep"
+  fi
 fi
 
 # ---------------------------------------------------------------------------
-# 2. codex CLI (OpenAI) — used by kzk-codex-cross-verification, kzk-large-task-delegation
+# 2. codex CLI (OpenAI) — used by kzk-spec-and-review, kzk-large-task-delegation
 # ---------------------------------------------------------------------------
 if command -v codex >/dev/null 2>&1; then
   record "codex CLI: already installed ($(codex --version 2>/dev/null || echo 'version unknown'))"
@@ -89,7 +102,7 @@ else
   fi
 
   if [ "$installed" -eq 0 ]; then
-    record "codex CLI: SKIPPED (npm & brew both failed or unavailable). kzk-codex-cross-verification will fall back to oh-my-claudecode:critic agent. Manual install: 'npm i -g @openai/codex' or 'brew install codex'."
+    record "codex CLI: SKIPPED (npm & brew both failed or unavailable). kzk-spec-and-review will fall back to oh-my-claudecode:critic agent. Manual install: 'npm i -g @openai/codex' or 'brew install codex'."
   fi
 fi
 
@@ -112,6 +125,35 @@ else
 fi
 
 # ---------------------------------------------------------------------------
+# 5. Claude Code plugins (oh-my-claudecode, playwright-mcp) — detect-only
+# ---------------------------------------------------------------------------
+# Plugins themselves cannot be installed from shell (they require /plugin in a
+# Claude Code session), but we can detect whether the user has them.
+PLUGIN_DB="$HOME/.claude/plugins/installed_plugins.json"
+USER_CLAUDE_JSON="$HOME/.claude.json"
+PROJECT_MCP_JSON="$PROJECT_ROOT/.mcp.json"
+
+if command -v jq >/dev/null 2>&1 && [ -f "$PLUGIN_DB" ] && jq -e '.plugins | keys[] | select(startswith("oh-my-claudecode@"))' "$PLUGIN_DB" >/dev/null 2>&1; then
+  omc_version=$(jq -r '.plugins | to_entries[] | select(.key | startswith("oh-my-claudecode@")) | .value[0].version' "$PLUGIN_DB" 2>/dev/null || echo "unknown")
+  record "oh-my-claudecode plugin: installed (version $omc_version)"
+else
+  record "oh-my-claudecode plugin: NOT DETECTED. Recommended — provides critic/executor/verifier agents, deepinit_manifest tool, ToolSearch helpers. Install: in a Claude Code session run /plugin and add oh-my-claudecode."
+fi
+
+playwright_found=0
+for json_file in "$USER_CLAUDE_JSON" "$PROJECT_MCP_JSON"; do
+  [ -f "$json_file" ] || continue
+  if grep -q '"playwright"' "$json_file" 2>/dev/null && grep -q '@playwright/mcp' "$json_file" 2>/dev/null; then
+    playwright_found=1
+    record "playwright-mcp: registered (found in $(basename "$json_file"))"
+    break
+  fi
+done
+if [ "$playwright_found" -eq 0 ]; then
+  record "playwright-mcp: NOT DETECTED. Required by kzk-web-loop, recommended for Gate 4 (UI smoke). Install: in a Claude Code session run /plugin and add playwright-mcp, OR run 'claude mcp add playwright -- npx -y @playwright/mcp@latest'."
+fi
+
+# ---------------------------------------------------------------------------
 # Summary
 # ---------------------------------------------------------------------------
 emit ""
@@ -119,9 +161,5 @@ emit "=== kzk-harness dependency install summary ==="
 for line in "${SUMMARY[@]}"; do
   emit "  - $line"
 done
-emit ""
-emit "Claude Code plugin dependencies (install in a Claude Code session via /plugin — cannot be automated from shell):"
-emit "  - oh-my-claudecode (recommended)  — provides critic/executor/verifier agents, deepinit_manifest tool, ToolSearch helpers."
-emit "  - playwright-mcp (kzk-web-loop required) — provides browser_navigate/screenshot MCP tools for Gate 4 + web loop."
 emit ""
 emit "See install/dependencies.md in the kzk-harness repo for the authoritative list and per-skill fallback behavior."

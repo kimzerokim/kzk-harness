@@ -200,7 +200,7 @@ If any step is blocked, note the reason in the report and continue.`,
 
 - **kzk-large-task-delegation**: This skill is Step 0 of the plan-critic loop. Report path must be in planner + critic prompts.
 - **kzk-web-loop P1/P2**: Survey runs before `writing-plans`. Report path passed to writing-plans as "Required reading".
-- **kzk-codex-cross-verification**: Survey report should be included in the Codex CLI prompt context (append to DESIGN UNDER REVIEW section).
+- **kzk-spec-and-review**: Survey report should be included in the Codex CLI prompt context (append to DESIGN UNDER REVIEW section).
 - **kzk-background-monitoring**: EXPLORER dispatch is a long-running subagent; narrate after completion per result-narration mandate.
 ```
 
@@ -387,7 +387,7 @@ Before dispatching the sonnet executor, the plan must clear this gate exactly on
 Find the exact text:
 ```
 1. main authors the plan or dispatches `planner` (opus)
-2. Codex CLI consult on the plan draft (`codex exec` per `kzk-codex-cross-verification`) → returns concerns; CLI unavailable → `oh-my-claudecode:critic` opus
+2. Codex CLI consult on the plan draft (`codex exec` per `kzk-spec-and-review`) → returns concerns; CLI unavailable → `oh-my-claudecode:critic` opus
 3. main edits plan (or dispatches `oh-my-claudecode:critic` opus) to address concerns
 4. on agreement, plan is frozen — written to `docs/plans/<file>.md` with a `## Frozen` header line
 5. only frozen plans may feed a sonnet executor dispatch
@@ -397,7 +397,7 @@ Replace with:
 ```
 0. **kzk-codebase-survey** — dispatch EXPLORER agent (see that skill). Report saved to `docs/harness/surveys/YYYY-MM-DD-<topic>-survey.md`. Report path is passed to every subsequent step as "Required reading".
 1. main authors the plan or dispatches `planner` (opus) — prompt must include survey report path
-2. Codex CLI consult on the plan draft (`codex exec` per `kzk-codex-cross-verification`) — include survey report in DESIGN UNDER REVIEW section; CLI unavailable → `oh-my-claudecode:critic` opus
+2. Codex CLI consult on the plan draft (`codex exec` per `kzk-spec-and-review`) — include survey report in DESIGN UNDER REVIEW section; CLI unavailable → `oh-my-claudecode:critic` opus
 3. main edits plan (or dispatches `oh-my-claudecode:critic` opus) to address concerns — critic must check plan covers all "Features to Preserve" and "Integration Points" from survey report; any gap = FAIL
 4. on agreement, plan is frozen — written to `docs/plans/<file>.md` with a `## Frozen` header line
 5. only frozen plans may feed a sonnet executor dispatch

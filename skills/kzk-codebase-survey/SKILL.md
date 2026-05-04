@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.2.11
+version: 1.3.0
 description: "Mandatory deep codebase explorer — runs before brainstorming and planning. Reads full file scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a codebase intelligence report used by planner + critic. Required triggers: 'codebase survey', '코드베이스 탐색', 'deep explore', 'survey first', 'before planning'."
 ---
 
@@ -10,7 +10,7 @@ description: "Mandatory deep codebase explorer — runs before brainstorming and
 
 Mandatory pre-brainstorming and pre-planning deep read. Solves the root cause of feature gaps in plans: the planner only sees a short file list, not the full codebase context, external library APIs, or TypeScript type contracts.
 
-**Run before:** `superpowers:brainstorming`, `kzk-large-task-delegation` planner dispatch, `kzk-web-loop` P1/P2 `writing-plans` step.
+**Run before:** `superpowers:brainstorming`, `kzk-spec-and-review` (spec / plan / major design draft — Step 0 precondition), `kzk-large-task-delegation` planner dispatch, `kzk-web-loop` P1/P2 `writing-plans` step.
 
 ## EXPLORER Agent
 
@@ -18,24 +18,44 @@ Mandatory pre-brainstorming and pre-planning deep read. Solves the root cause of
 
 Run all steps in order (Step 0.5 + Step 1–8). Save report before returning.
 
-### Step 0.5 — Tool Availability Self-Heal
+### Step 0.5 — Tool Availability + Index Verification
 
+`code-review-graph --version` only confirms the binary exists. The build log is not a reliable success signal — it shows the last incremental pass and may report `8 files, 5 edges` even when the full graph holds 2000+ nodes. **`code-review-graph status` is the oracle.** Always verify the index before trusting any query.
+
+Sequence:
+
+**(a) Binary check.**
 ```bash
-code-review-graph --version 2>/dev/null
+export PATH="$HOME/.local/bin:$PATH"
+command -v code-review-graph >/dev/null 2>&1
 ```
-
-If exit non-zero AND `pip --version` succeeds AND running in autonomous mode:
+If missing AND running in autonomous mode AND `python3 -m pip --version` succeeds:
 ```bash
-export PATH="$HOME/.local/bin:$PATH" && python3 -m pip install --user code-review-graph && code-review-graph install && code-review-graph build
+python3 -m pip install --user code-review-graph && code-review-graph install
 ```
+PEP 668 fallback: `pipx install code-review-graph`. Both fail → set `CRG_AVAILABLE=false`, queue `Q-INSTALL-CRG-MANUAL`, proceed to grep fallback. Interactive mode without auto-install: log the install command and set `CRG_AVAILABLE=false`. Never halt.
 
-In interactive (non-autonomous) mode: log "code-review-graph not installed — run: python3 -m pip install --user code-review-graph && code-review-graph install && code-review-graph build" and proceed with grep fallback without auto-installing.
+**(b) Index status (oracle).**
+```bash
+code-review-graph status 2>&1
+```
+Parse for `Files: <N>`, `Nodes: <N>`, `Edges: <N>`, `Last updated: <ISO>`, `Built at commit: <sha>`. If status command fails OR `Files: 0` OR `Nodes: 0` → index empty/missing.
 
-Cache result for this session as `CRG_AVAILABLE=true/false`. When auto-install succeeds and `build` completes, the graph artifact persists on disk (e.g. `.code-review-graph/` index). Subsequent survey calls within the same session where `CRG_AVAILABLE=true` skip `build` — the artifact is already current. Only re-run `build` if new files were committed since the last build. If install fails with PEP 668 error (externally-managed-environment) → skip `--user`, queue `Q-INSTALL-CRG-MANUAL — use pipx install code-review-graph` and proceed with grep fallback. Any other failure → log "code-review-graph install failed: <error>" to `docs/harness/user-queue.md` and proceed with grep fallback. Never halt on tool availability.
+**(c) Build if empty or stale.**
+- Empty: run `code-review-graph build` (foreground — block on it).
+- Stale: if `Built at commit: <sha>` differs from `git rev-parse HEAD` AND `git rev-list --count <sha>..HEAD` > 10 → run `code-review-graph build` to refresh. Single-commit drift is fine; trust the existing index.
+
+**(d) Verify after build.** Re-run `code-review-graph status` and confirm `Files > 0` AND `Nodes > 0`. If still empty after a build → set `CRG_AVAILABLE=false`, queue `Q-CRG-EMPTY-INDEX — build produced 0 nodes, investigate`, proceed to grep fallback.
+
+**(e) Cache for session.** Set `CRG_AVAILABLE=true`, `CRG_FILES=<N>`, `CRG_NODES=<N>`, `CRG_LAST_BUILT_SHA=<sha>`. Subsequent survey calls within the same session trust this cache; only re-run `status` if > 30 minutes elapsed OR new commits detected since `CRG_LAST_BUILT_SHA`.
+
+**Anti-pattern**: trusting build log output alone. The build log shows the most recent incremental pass — it can read tiny numbers even when the full graph is healthy. Only `status` is authoritative.
 
 ### Step 1 — Scope Expansion
 
-If Step 0.5 ran and set `CRG_AVAILABLE=true`, skip the version check and proceed directly to the "If available" path. If Step 0.5 ran and set `CRG_AVAILABLE=false`, skip the version check and go to the Fallback path. If Step 0.5 was skipped (interactive mode), check: first add `$HOME/.local/bin` to PATH then run `code-review-graph --version 2>/dev/null`.
+If Step 0.5 ran and set `CRG_AVAILABLE=true`, trust the cache and proceed directly to the "If MCP / CLI available" paths below. If `CRG_AVAILABLE=false`, jump to the grep Fallback path.
+
+If Step 0.5 was skipped entirely (interactive mode without prior survey call this session), run a fast verification before any CRG call: `command -v code-review-graph >/dev/null && code-review-graph status 2>&1 | grep -E "^Files: " ` — if missing or `Files: 0`, fall back to grep without trying to build (interactive mode rule).
 
 **Path priority: MCP tools → CLI → grep.** When `code-review-graph install` runs it auto-registers as an MCP server (in `.mcp.json`, `.claude/`, `.cursor/`, etc.). Probe with `ToolSearch(query="+code-review-graph")` once per session — if MCP tools surface, use them in preference to the CLI form below. See `## MCP tool surface` near the bottom of this file for the tool→use-case mapping.
 
@@ -211,7 +231,7 @@ When `code-review-graph install` ran (per `install/dependencies.sh`), the tool r
 | `query_graph` (patterns: `callers_of`, `callees_of`, `imports_of`, `tests_for`) | Step 1 — trace deps in either direction; replaces `code-review-graph query` / `blast-radius` |
 | `get_impact_radius` | Step 1 — blast-radius scoring for a target file or symbol |
 | `get_affected_flows` | Step 1 — which execution paths a change touches |
-| `detect_changes` | kzk-pre-commit-gate Gate 4 / kzk-codex-cross-verification — risk-scored diff analysis |
+| `detect_changes` | kzk-pre-commit-gate Gate 4 / kzk-spec-and-review — risk-scored diff analysis |
 | `get_review_context` | Step 2 alt — token-efficient source snippets when scope is too large for full Read |
 | `get_architecture_overview` | Step 1 alt — high-level structure pass before deep read |
 | `refactor_tool` | Out-of-scope of this skill (planning renames / dead-code detection) |
@@ -222,6 +242,6 @@ Fallback order: MCP → CLI → grep. Skill never halts on missing MCP server. A
 
 - **kzk-large-task-delegation §"Pre-implementation plan-critic loop (opus + codex)"**: This skill is Step 0 of that loop. Report path must be in planner + critic prompts.
 - **kzk-web-loop P1/P2**: Survey runs before `writing-plans`. Report path passed as "Required reading".
-- **kzk-codex-cross-verification**: Survey report appended to Codex CLI prompt DESIGN UNDER REVIEW section.
+- **kzk-spec-and-review §"Step 0 — Codebase survey precondition"**: This skill is the precondition for any spec / plan / major design draft. The codex review skill blocks Step 1 (Draft) until a survey report exists. Survey report path is then cited in the draft prompt's CONTEXT block as "Required reading", and the same path is appended to the Codex CLI prompt's DESIGN UNDER REVIEW section.
 - **kzk-background-monitoring**: EXPLORER dispatch is a long-running subagent; narrate after completion per result-narration mandate.
 - **kzk-tool-retry**: If any EXPLORER Edit/Write/Bash call fails mid-survey, apply the 1-retry policy before halting — do not abort the entire survey on a single tool failure.

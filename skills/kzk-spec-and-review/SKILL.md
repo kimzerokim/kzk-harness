@@ -1,20 +1,35 @@
 ---
-name: kzk-codex-cross-verification
-version: 1.0.14
-description: "Codex cross-verification mandate — every spec / plan / major design draft must pass a 3-pass loop (draft → codex consult → synthesize) before reaching the user or the next phase. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'codex review', 'codex consult', 'cross-verify', 'spec draft', 'plan draft', 'major design', 'architecture review'."
+name: kzk-spec-and-review
+version: 2.0.0
+description: "Spec / plan / major-design authoring + cross-vendor review loop. Step 0: kzk-codebase-survey precondition (no draft without code context). Steps 1–3: main controller drafts the artifact → codex CLI cross-vendor consult (or oh-my-claudecode:critic opus fallback) → synthesize. Use whenever authoring or majorly editing PRD, plan, architecture, ORM/framework decision, refactor scope, security/permission model, or DB schema change. Required triggers: 'spec 잡자', 'spec 작성', 'spec draft', 'plan draft', 'plan 작성', 'design draft', 'major design', 'architecture review', 'codex review', 'codex consult', 'cross-verify'."
 ---
 
 > Authoritative source: `harness-share.md` §22. On conflict, that wins.
 
-# kzk-codex-cross-verification
+# kzk-spec-and-review
 
 Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable or produces no parseable output (parse fail — see §Codex execution shape).
 
 Every meaningful design artifact gets a second opinion from a different model before it ships. Self-review and codex catch different classes of issue — both are needed.
 
-## Pattern (3-pass)
+## Step 0 — Codebase survey precondition (mandatory before drafting)
 
-1. **Draft (me)** — main writes the spec / plan / design.
+A spec / plan / design draft built without codebase context is the same root cause that `kzk-codebase-survey` exists to fix. Before the 3-pass loop runs, locate or generate a survey report for the topic.
+
+**Lookup order:**
+1. **In-session reference** — the current conversation already cites a survey report path (e.g. user pasted it, or this skill was triggered after `kzk-codebase-survey` ran in the same session). Use that path.
+2. **Recent on-disk report** — glob `docs/harness/surveys/*-<topic>-survey.md`. Accept the latest if its mtime is ≤ 7 days old AND no commits have changed the surveyed file scope since the report was written (`git log --since=<report-mtime> -- <files-in-scope>` returns empty). Otherwise treat as stale.
+3. **Web-loop survey** — if running under `kzk-web-loop`, check `.web-loop/surveys/cycle-<N>-survey.md` for the current cycle.
+
+**If none found:** trigger `kzk-codebase-survey` first, capture the saved report path, then proceed to Step 1 (Draft) with the report path included in the draft prompt as `Required reading: <survey-report-path>`. Survey running cascades through `Skill("kzk-codebase-survey")` — do not draft and survey in parallel.
+
+**Exempt from precondition** (matches the §Exempt list): typo / wording, harness-flow-progress append, retro, session-local notes. Survey adds no value to artifacts that don't touch code logic.
+
+**Survey skip OFF** — only on explicit user "survey 빼고" / "survey skip". No silent skip. Log the skip reason in the verdict file header.
+
+## Pattern (3-pass) — runs after Step 0
+
+1. **Draft (me)** — main writes the spec / plan / design. Survey report path from Step 0 MUST appear in the draft prompt's CONTEXT block as "Required reading: <path>" (not just file-listed — the draft must actually cite findings from the survey).
 2. **Codex consult** — run `codex exec` CLI directly (see §Codex execution shape below). CLI not available (`command not found`) or stuck per §Codex execution shape (60s no first token → retry; 5 min total → kill) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=<same review prompt>)`. **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
 3. **Synthesize (me)** — bucket each codex point as 🔴 즉시 fix / 🟡 spec 단계 디테일 / ⚪ push-back. Cite reasons per bucket. Hand the synthesized output to the user or the next phase.
 

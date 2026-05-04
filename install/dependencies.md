@@ -20,7 +20,7 @@ The skills are designed to degrade gracefully: if a dependency is missing, the r
 ### codex CLI (recommended)
 
 - **Purpose**: Cross-vendor second opinion on plans / specs / architecture (different model family from Claude → catches different blind spots).
-- **Used by**: `kzk-codex-cross-verification` (primary), `kzk-large-task-delegation` (plan-critic loop).
+- **Used by**: `kzk-spec-and-review` (primary), `kzk-large-task-delegation` (plan-critic loop).
 - **Install**: `npm install -g @openai/codex` (npm path) or `brew install codex` (Homebrew path).
 - **Fallback if missing**: Skills fall back to `Agent(subagent_type="oh-my-claudecode:critic", model="opus", ...)`. Same review structure, just same-vendor (Claude opus reviewing Claude opus).
 
@@ -40,19 +40,23 @@ The skills are designed to degrade gracefully: if a dependency is missing, the r
 - **Install**: `brew install aws-vault`.
 - **Fallback if missing**: User must use `aws sso login` / 1Password CLI / equivalent. `kzk-production-access` will refuse plaintext permanent IAM keys.
 
-## Claude Code plugin dependencies (manual via `/plugin`)
+## Claude Code plugin dependencies (detected only — manual install via `/plugin`)
 
-These are Claude Code plugins, installed from inside a Claude Code session — `/plugin` slash command. The shell installer cannot do this; it only emits a reminder.
+These are Claude Code plugins, installed from inside a Claude Code session — `/plugin` slash command. The shell installer cannot install them, but it does **detect** whether they are already present and reports `installed (version X)` vs `NOT DETECTED`.
+
+Detection sources:
+- **oh-my-claudecode**: `~/.claude/plugins/installed_plugins.json` — checked via `jq` for any key matching `oh-my-claudecode@*`.
+- **playwright-mcp**: scans `~/.claude.json` (user-level) and `<project>/.mcp.json` (project-level) for an MCP server entry containing `"playwright"` and `@playwright/mcp`.
 
 ### oh-my-claudecode (OMC) — recommended
 
 - **Purpose**: Provides specialized subagents (`critic`, `executor`, `verifier`, `planner`, `architect`, `code-reviewer`, `document-specialist`), `deepinit_manifest` tool, `ToolSearch` deferred-tool helper, and the `/oh-my-claudecode:*` skill suite.
-- **Used by**: `kzk-large-task-delegation` (subagent dispatch), `kzk-pre-commit-gate` (Gate 0 deepinit_manifest, reviewer agents), `kzk-codex-cross-verification` (critic fallback), `kzk-pre-merge-sync` (deepinit), `kzk-test-coverage` (verifier).
+- **Used by**: `kzk-large-task-delegation` (subagent dispatch), `kzk-pre-commit-gate` (Gate 0 deepinit_manifest, reviewer agents), `kzk-spec-and-review` (critic fallback), `kzk-pre-merge-sync` (deepinit), `kzk-test-coverage` (verifier).
 - **Install**: in a Claude Code session, run `/plugin` and install `oh-my-claudecode`. Or follow https://github.com/kimzerokim/oh-my-claudecode.
 - **Fallback if missing**: 
   - `deepinit_manifest` tool unavailable → `kzk-pre-commit-gate` Gate 0 skips the manifest baseline (still passes on AGENTS.md edits).
   - Reviewer agents unavailable → no automatic critic; user must run reviews manually.
-  - Codex fallback unavailable → if codex CLI is also missing, `kzk-codex-cross-verification` halts with "no reviewer available".
+  - Codex fallback unavailable → if codex CLI is also missing, `kzk-spec-and-review` halts with "no reviewer available".
 
 ### playwright-mcp — required for kzk-web-loop, recommended for Gate 4
 
@@ -73,7 +77,7 @@ These are Claude Code plugins, installed from inside a Claude Code session — `
 | `kzk-autonomous-boundary` | git | — |
 | `kzk-autonomous-loop` | — | — (uses ScheduleWakeup, built-in) |
 | `kzk-background-monitoring` | — | — (uses Monitor, built-in) |
-| `kzk-codex-cross-verification` | — | codex CLI OR OMC (`critic` agent — at least one required) |
+| `kzk-spec-and-review` | — | codex CLI OR OMC (`critic` agent — at least one required) |
 | `kzk-pre-merge-sync` | git, gh | OMC (`deepinit` skill) |
 | `kzk-production-access` | — | aws-vault |
 | `kzk-test-coverage` | — | OMC (`verifier`) |
