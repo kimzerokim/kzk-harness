@@ -1,7 +1,7 @@
 ---
 name: kzk-playwright-verification
-version: 1.0.4
-description: "Playwright MCP-based UI Gate 4 verification routine, debug cheatsheet, and result-narration mandate (also applies to any long-running tool ≥ 2s). Use whenever a commit touches frontend source files or whenever the agent calls a Playwright MCP tool or any long-running tool. Required triggers: 'Playwright', 'Gate 4', 'browser_navigate', 'browser_take_screenshot', 'screenshot 검수', 'MCP drop', 'visual verification', 'Result narration', 'long-running tool', 'Cooked for Nm', 'silence', 'stuck', 'Bash background', 'Agent dispatch progress'."
+version: 1.1.0
+description: "Playwright MCP-based UI Gate 4 verification routine, debug cheatsheet, OAuth click-through protocol, and result-narration mandate (also applies to any long-running tool ≥ 2s). Use whenever a commit touches frontend source files or whenever the agent calls a Playwright MCP tool or any long-running tool. Required triggers: 'Playwright', 'Gate 4', 'browser_navigate', 'browser_take_screenshot', 'screenshot 검수', 'MCP drop', 'visual verification', 'Result narration', 'long-running tool', 'Cooked for Nm', 'silence', 'stuck', 'Bash background', 'Agent dispatch progress', 'Google 로그인', 'OAuth 막힘', 'login 화면', '로그인 버튼', 'sign in with google'."
 ---
 
 > Authoritative source: `harness-share.md` §3 Gate 4. On conflict, that wins.
@@ -26,9 +26,29 @@ Exception: `kzk-web-loop` overrides this — see `kzk-web-loop` §Playwright Res
 
 ## Authentication (Playwright profile is persistent)
 
-1. First run per session: `browser_navigate('<your-app-login-url>')` → user logs in via the Chrome window. Examples: `http://localhost:3000/auth/google`, `https://staging.example.com/login`, `http://auth.local.example.com/` (subdomain auth). Match your app's actual login route — kzk-harness does not assume a specific path shape.
-2. Subsequent `browser_navigate` calls inherit the session cookie automatically
-3. 24h expiry / logout → repeat step 1
+1. First run per session: `browser_navigate('<your-app-login-url>')`. Match your app's actual login route — kzk-harness does not assume a specific path shape. Examples: `http://localhost:3000/auth/google`, `https://staging.example.com/login`, `http://auth.local.example.com/` (subdomain auth).
+2. **OAuth click-through is the agent's job, not the user's.** When a login screen appears, the agent clicks all in-app OAuth buttons itself — see §OAuth click-through protocol below. Do NOT polite-stop on "사용자가 로그인하기를 기다린다."
+3. Subsequent `browser_navigate` calls inherit the session cookie automatically.
+4. 24h expiry / logout → repeat step 1.
+
+## OAuth click-through protocol (agent never waits for the user on login UI)
+
+The Playwright Chromium profile is persistent — Google session cookies survive across runs. The agent's job is to drive the OAuth click chain itself; only halt when actual human credentials (password / 2FA) are required, which a cached profile usually avoids.
+
+Click chain (in order, each step conditional on the previous):
+
+1. **App's "Sign in with Google" button** — `browser_snapshot` to find the ref; common labels: `Sign in with Google`, `Continue with Google`, `Google 로그인`, `Google 으로 시작`, anchor `<a href="/auth/google">`, button with Google `<svg>` icon. **Click it.** Do not wait — this is in-app UI, not Google's domain yet.
+2. **Google account picker page** (`accounts.google.com/o/oauth2/...` or `accounts.google.com/AccountChooser`) — `browser_snapshot`. If a previously-used account is listed (cached profile), click the user's email row directly. Do not type credentials. If no cached account is listed → halt + user-queue (`Q-PW-OAUTH-NEW-ACCOUNT — fresh profile, user must sign in once`).
+3. **OAuth consent screen** (`Continue` / `Allow`) — click the primary continue button. This is also agent-driven, no user wait.
+4. **App-side OAuth callback** — `browser_navigate` lands on `<app>/auth/callback?code=...` then redirects to the protected route. Verify by checking final URL + a known authenticated element (e.g., user avatar or project list) via `browser_snapshot`.
+
+If at step 2 Google demands password / SMS OTP (uncached profile, account changed, security re-prompt) → halt. The user must sign in once in the Chromium window; the cached cookie then covers all subsequent agent runs.
+
+**Forbidden patterns:**
+
+- Stopping at the app login screen with "사용자 로그인 대기" / "Google 로그인 화면 떴어요, 진행해주세요" — that's a Session-X regression, the agent must click the button itself.
+- Typing the user's email or password into Google's form — never. Cached profile or halt; no third option.
+- Re-running `browser_navigate('/auth/google')` repeatedly hoping the redirect just succeeds — when stuck, snapshot first, identify the actual block (account picker, consent, MFA), then act per the chain above.
 
 ## Result narration — applies to ALL long-running tools, not just Playwright
 
@@ -57,7 +77,8 @@ The user otherwise sees only "Cooked for Nm" otherwise — that reads as stuck a
 | Symptom | Cause | Fix |
 |---|---|---|
 | `Target page, context or browser has been closed` | MCP session drop | Ask user to run `/mcp` to reconnect, then retry navigate |
-| Empty page after login / `<your-protected-route>` redirects to `/login` | JWT 24h expiry or cookie drop | `browser_navigate <your-app-login-url>`, user re-logs in |
+| Empty page after login / `<your-protected-route>` redirects to `/login` | JWT 24h expiry or cookie drop | `browser_navigate <your-app-login-url>`, then drive the §OAuth click-through protocol — do NOT wait for the user |
+| App login screen visible, agent stuck waiting | Skipped §OAuth click-through protocol | `browser_snapshot` → click the in-app `Sign in with Google` ref; only halt if step 2 (Google account picker) lacks a cached account |
 | `Cannot GET <path>` | Backend redirect mismatch or SPA fallback missing | Check auth controller redirect path or frontend route config |
 | `--no-sandbox` / Chromium launch error | Chrome-for-Testing launch arg | `/mcp` reconnect first; if recurring, fix MCP config browser args |
 | Screenshot saved to repo root | Filename had no path | `ls *.png` pre-commit, move to `.playwright-mcp/` |
@@ -87,6 +108,7 @@ Official shadcn new-york blocks use **prefix-less** tokens (`--background / --pr
 - snapshot only, no screenshot — accessibility tree misses color/spacing/font regressions
 - Reading the screenshot but stating "looks good" without an explicit visual claim. Build/test green ≠ visual PASS. Mandatory format: name elements + name tokens (e.g. "Card has shadow, padding looks correct, primary CTA blue is the brand token")
 - "I'll bypass via dev token" when MCP drops — see `harness-share.md` §19 MCP Reconnect Protocol
+- **Stopping at any login UI to "wait for user to log in"** — see §OAuth click-through protocol. The agent clicks; only halt on uncached Google account picker or password/MFA prompt.
 
 ## Interaction with other kzk-*
 
