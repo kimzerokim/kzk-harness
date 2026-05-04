@@ -1,10 +1,10 @@
 ---
 name: kzk-background-monitoring
-version: 1.0.0
+version: 1.0.3
 description: "Background process active monitoring mandate — agent owns every long-running task it spawns and never lets the user have to ask 'is it done?'. Applies to Bash run_in_background, Monitor, codex exec, npm install, docker build, subagent dispatch, anything ≥ 5s. Required triggers: 'background', 'monitor', 'long-running', 'stuck', 'codex consult', 'is it done', 'background task hung'."
 ---
 
-> Authoritative source: `harness-share.md` §23. On conflict, that wins. Originated from `gridless` repo §2.5; portable to all projects.
+> Authoritative source: `harness-share.md` §23. On conflict, that wins.
 
 # kzk-background-monitoring
 
@@ -26,7 +26,7 @@ Once you spawn a background task, you own it until it terminates (success, failu
    - longer / uncertain: `Monitor` with stdout filter that catches success AND every failure signature (`grep -E "Error|FAIL|Traceback|tokens used|exit code"`)
    - manual loop: `until <terminal-condition>; do sleep N; done` — `terminal-condition` covers both success and failure
 3. **Stuck detection** — declare stuck on any of:
-   - Output file size has not grown for X minutes (codex / streaming tools must produce a token within 30-60s)
+   - Output file size has not grown (thresholds: subagent ≥ 5 min; Bash background ≥ 3 min; codex / streaming tools: no first token within 60s, or no new output within 5 min total)
    - Process CPU usage 0
    - stderr shows hang signals like `Reading additional input from stdin...`
    - Wall time exceeds 2× the expected duration
@@ -58,9 +58,22 @@ cat <stderr-file>                         # error / hang signal
 
 ## Codex consult special case
 
-- First token within 30s in normal operation; > 5 min @ 0 byte = stuck.
-- Common causes: prompt-as-arg vs stdin collision, heredoc escape, oversized prompt
-- Mitigations: shrink prompt, `< /dev/null` to close stdin, alternate invocation, shorter timeout
+For Codex specifically, see `kzk-codex-cross-verification` §Codex execution shape (60s-to-first-token rule, 5 min total stuck threshold, mitigation steps).
+
+## Subagent completion verification
+
+When an `Agent()` call returns, output a receipt line BEFORE processing results:
+
+```
+Subagent [name] returned — [N chars / result summary]. Processing result...
+```
+
+Then verify:
+1. Result is non-empty and matches expected return format (e.g. evaluator should have a numbered issue list)
+2. If result is empty or clearly truncated (ends mid-sentence, no conclusion): treat as BLOCKED → append `Q-SUBAGENT-EMPTY-[name]` to `docs/harness/user-queue.md` and continue to next task
+3. Do NOT silently assume a completed-looking state is actual completion — always read and confirm the result before marking the task done
+
+**Session resume after ScheduleWakeup / rate-limit:** At the first turn after a wakeup, before any new dispatch, read `harness-flow-progress.md` and output one-line state restatement: `"Resuming: Cycle N, last: [issue], queue: [N remaining], next action: [X]"`. This makes the resume point visible to both the user and the next tool call chain.
 
 ## Narration mandate (cross-link with kzk-playwright-verification)
 

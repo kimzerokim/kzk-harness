@@ -1,10 +1,10 @@
 ---
 name: kzk-large-task-delegation
-version: 1.0.1
-description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체'."
+version: 1.0.9
+description: "Large tasks dispatch to fresh subagents — main context never executes. Defines what counts as 'large', what main may do, fresh-subagent prompt requirements, and Session-6 anti-patterns. Required triggers: 'large task', 'subagent dispatch', '3+ file edits', '200+ LoC', 'opus/sonnet routing', 'subagent-driven', '큰 작업', 'fresh subagent', '메인 컨텍스트', '여러 파일 동시 편집', 'Plan scope 전체'."
 ---
 
-> Authoritative source: repo `CLAUDE.md` "Large Task Delegation" + `harness-share.md` §4. On conflict, those win.
+> Authoritative source: `harness-share.md` §4. On conflict, that wins.
 
 # kzk-large-task-delegation
 
@@ -33,11 +33,11 @@ Subagent dispatches are split by phase, not by topic. Reasoning-heavy phases get
 
 | Phase | Subagent type | Model | Cross-check |
 |---|---|---|---|
-| Plan authoring | `oh-my-claudecode:planner` / `oh-my-claudecode:architect` / `oh-my-claudecode:deep-interview` | **opus** | Mandatory Codex CLI consult on draft plan before freezing (see `kzk-codex-cross-verification`) |
+| Plan authoring | `oh-my-claudecode:planner` / `oh-my-claudecode:architect` | **opus** | Mandatory Codex CLI consult on draft plan before freezing (see `kzk-codex-cross-verification`). For deep requirements elicitation before planning, use `Skill("oh-my-claudecode:deep-interview")` — it is a Skill invocation, not an Agent subagent_type. |
 | Critic / review | `oh-my-claudecode:critic` / `oh-my-claudecode:code-reviewer` | **opus** | Codex CLI review parallel pass (see `kzk-codex-cross-verification`) |
 | Verify | `oh-my-claudecode:verifier` | **opus** | Codex CLI consult on uncertain assertions (see `kzk-codex-cross-verification`) |
 | Implementation | `oh-my-claudecode:executor` | **sonnet** | none — plan must already be detailed enough |
-| Quick research / file search | `Explore` / `oh-my-claudecode:explore` | **haiku** or default | none |
+| Quick research / file search | `oh-my-claudecode:explore` | **sonnet** (survey/deep reads); **haiku** (quick targeted lookups) | none |
 
 Reason: heavy reasoning where it changes the outcome, cheap execution where the plan already determined every move. Override: if sonnet returns BLOCKED or main reviews the diff and finds plan-vs-code drift, re-dispatch the same task with `model="opus"` and root-cause whether the plan was insufficient (fix the plan policy) or the model failed (record once, do not generalize from a single failure).
 
@@ -75,7 +75,7 @@ Agent({
 
 // ✅ Quick lookup — haiku or default
 Agent({
-  subagent_type: 'Explore',
+  subagent_type: 'oh-my-claudecode:explore',
   prompt: 'Locate every reference to <symbol> ...',
 });
 ```
@@ -86,9 +86,10 @@ Agent({
 
 Before dispatching the sonnet executor, the plan must clear this gate exactly once per Plan or per discrete task:
 
-1. main authors the plan or dispatches `planner` (opus)
+0. **`kzk-codebase-survey`** — EXPLORER agent runs all steps (Step 0.5 + Step 1–8), saves report to `docs/harness/surveys/YYYY-MM-DD-<topic>-survey.md`. Report path passed to planner and critic as required reading. Survey failure → note in report, continue.
+1. main authors the plan or dispatches `planner` (opus) — **prompt must include survey report path as required reading**
 2. Codex CLI consult on the plan draft (`codex exec` per `kzk-codex-cross-verification`) → returns concerns; CLI unavailable → `oh-my-claudecode:critic` opus
-3. main edits plan (or dispatches `oh-my-claudecode:critic` opus) to address concerns
+3. main edits plan (or dispatches `oh-my-claudecode:critic` opus) to address concerns — **critic prompt must include:** "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL."
 4. on agreement, plan is frozen — written to `docs/plans/<file>.md` with a `## Frozen` header line
 5. only frozen plans may feed a sonnet executor dispatch
 
@@ -101,7 +102,7 @@ Every dispatch prompt must include:
 - Scope (file paths, line ranges)
 - Plan file path (which task within) — **frozen plan only when dispatching to sonnet**
 - Required reading list (CLAUDE.md, the spec doc, sister files)
-- Rules block: TDD strict + context7 mandate + `kzk-pre-commit-gate` (incl. **Gate 0 AGENTS.md sync** — touched-files AGENTS.md goes in the SAME commit) + DO-NOT-MODIFY paths + branch boundary (your-feature-branch)
+- Rules block: TDD strict + context7 mandate + `kzk-pre-commit-gate` (incl. **Gate 0 AGENTS.md sync** — touched-files AGENTS.md goes in the SAME commit) + DO-NOT-MODIFY paths + branch boundary (current `feature/<topic>` branch — verify via `git branch --show-current` before dispatch; `main` forbidden per `kzk-autonomous-boundary`)
 - Commit message convention (English conventional commits, no Co-Authored-By)
 - Working directory absolute path
 - Race-condition awareness (file scopes vs other parallel subagents)
@@ -141,6 +142,7 @@ Main verifies:
 1. Trust-but-verify — `git log` + `git diff` + dist artifact directly
 2. Build / test / Playwright (if applicable) result
 3. Spec acceptance criteria
+4. Coverage on touched files (per `kzk-test-coverage` — 100% line + branch on changed files; exemption only with explicit Q-COV-* entry in `docs/harness/user-queue.md`)
 
 Trusting only the agent's summary text = forbidden.
 
@@ -152,6 +154,6 @@ Re-prevention:
 
 1. Detect "large" → immediately invoke `/superpowers:subagent-driven-development`
 2. Skill demands `docs/plans/<name>.md` first (2-5 task TDD format)
-3. Fresh subagent dispatch = `Agent` tool + `subagent_type="oh-my-claudecode:executor"` + `model="sonnet"` (default for implementation; see Model routing table) + frozen plan path + context7 mandate + Pre-commit Gate 0-4 all in prompt
+3. Fresh subagent dispatch = `Agent` tool + `subagent_type="oh-my-claudecode:executor"` + `model="sonnet"` (default for implementation; see Model routing table) + frozen plan path + context7 mandate + Pre-commit Gates 0, 1, 1.5, 2, 3, 4 all in prompt
 4. Main reviews subagent return → gate check → commit+push, OR re-dispatch fresh subagent on failure
 5. 2 consecutive subagent failures → halt + user-queue entry. Main does NOT take over.

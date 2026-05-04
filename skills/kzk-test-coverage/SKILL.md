@@ -1,10 +1,10 @@
 ---
 name: kzk-test-coverage
-version: 1.0.0
+version: 1.0.7
 description: "Autonomous-mode test coverage goal: 100% line + branch on changed files. Touched legacy raised too. Best-effort excuses forbidden. Required triggers: 'test coverage', 'test:cov', '100% coverage', '변경 파일 cov', 'coverage exemption'."
 ---
 
-> Authoritative source: repo `CLAUDE.md` "Test Coverage Goal: 100% on changed code" + `harness-share.md` §11. On conflict, those win.
+> Authoritative source: `harness-share.md` §11. On conflict, that wins.
 
 # kzk-test-coverage
 
@@ -12,7 +12,7 @@ Autonomous session = 100% line + branch coverage on the files the session change
 
 ## Workflow
 
-- Run `npm run test:cov` (or repo equivalent) before session close
+- Run the repo's coverage command before session close (e.g. `npm run test:cov`, `pytest --cov`, `go test -cover ./...`)
 - Uncovered region in a touched file → add unit / integration / e2e until covered
 - Hard time constraint → append explicit user-queue entry stating which files + why; do not silently leave gaps
 
@@ -24,8 +24,18 @@ Autonomous session = 100% line + branch coverage on the files the session change
 
 These count as "no logic — coverage non-goal". Anything with a branch or expression must be covered.
 
+Required PR description line format per exemption: `Coverage exemption: <file> — <reason>` (e.g. `Coverage exemption: src/main.ts — boot file, no logic`).
+
 ## Anti-patterns
 
 - "Best-effort coverage" without specific exemption call-out
 - Coverage-pad tests (calling a function with no assertion) — counted as 0
 - Skipping coverage for files outside the changed area — only allowed when truly untouched
+- Coverage script (`test:cov`) not found → silently declaring 100%. Forbidden. Add a coverage script (e.g. `vitest run --coverage`) or queue `Q-COV-SETUP — missing coverage script`; do not declare 100% by omission.
+- Coverage report generated but exit code non-zero (e.g. coverage threshold guard): counts as FAIL. Must be exit 0 AND every touched file present in the report.
+
+## Interaction with other kzk-*
+
+- **kzk-user-queue**: when a coverage gap is queued due to time constraint, use the entry template from that skill (`Q-COV-<FILE>` prefix).
+- **kzk-pre-commit-gate**: Gate 3 (module test pass) is the execution; this skill is the coverage threshold applied to that same test run on touched files.
+- **kzk-large-task-delegation**: two-stage review step 4 (coverage on touched files) references this skill's exemption rules.

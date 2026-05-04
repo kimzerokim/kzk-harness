@@ -1,10 +1,10 @@
 ---
 name: kzk-web-loop
-version: 1.1.0
+version: 1.3.11
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
-> Authoritative source: repo `docs/superpowers/specs/2026-05-03-kzk-web-loop-design.md` + `harness-share.md §25`. On conflict, those win.
+> Authoritative source: `harness-share.md` §25. On conflict, that wins.
 
 # kzk-web-loop
 
@@ -22,7 +22,7 @@ Say a trigger keyword, optionally with a one-line goal:
 
 1. **Plugin pre-flight** — Run §Plugin Pre-flight. Detect superpowers / gstack / OMC; install missing ones. Record availability in a local variable for the rest of this run.
 
-2. **Branch** — If no branch is specified, ask once: "어느 브랜치에서 작업할까요? (default: `feature/web-loop-<goal-slug>`)" Create it if it doesn't exist. Never `main`.
+2. **Branch** — If no branch is specified, ask once: "어느 브랜치에서 작업할까요? (default: `feature/web-loop-<goal-slug>`)" Create it if it doesn't exist. Never `main`. (This naming is a specialization of `feature/<topic>` per `kzk-autonomous-boundary`.)
 
 3. **Goal clarification** — If no goal is given:
    - superpowers available → `Skill("superpowers:brainstorming")` (keep to 2-3 questions max, then lock the goal)
@@ -31,35 +31,37 @@ Say a trigger keyword, optionally with a one-line goal:
 
 4. **`harness-flow-progress.md`** — Create at repo root with `# harness-flow-progress` if missing.
 
-5. **`.web-loop/` and `.web-loop/plans/`** — Create if missing. These are gitignored.
+5. **`.web-loop/`, `.web-loop/plans/`, and `.web-loop/surveys/`** — Create if missing. These are gitignored.
 
 ## Loop Structure
 
 Each cycle executes these steps in order:
 
-**1a. TOOL RUNNER** (`oh-my-claudecode:executor`, `model=sonnet`) — fresh subagent. Runs `npm test` (or project test command), Playwright screenshots + snapshots (if available, per §Playwright Resilience), counts console errors. Saves raw output to `.web-loop/cycle-N-report.md`. Returns immediately after saving — does not interpret results.
+**1a. TOOL RUNNER** (`oh-my-claudecode:executor`, `model=sonnet`) — fresh subagent. Runs `npm test` (or project test command), Playwright screenshots + snapshots (if available, per §Playwright Resilience), counts console errors. Saves raw output to `.web-loop/cycle-N-report.md` (flat file directly under `.web-loop/`, e.g. `.web-loop/cycle-1-report.md`). Returns immediately after saving — does not interpret results.
 
 **1b. EVALUATOR AGENT** (`oh-my-claudecode:critic`, `model=opus`) — fresh subagent with zero memory of previous cycles. Reads `.web-loop/cycle-N-report.md` + the built-in checklist (see §Evaluation Criteria). Outputs a prioritized issue list: P0 / P1 / P2.
 
 **2. Pick top-priority issue** — take the highest-severity issue for which `harness-flow-progress.md` has NO line starting with `Cycle N (` that contains this issue's text (N = current cycle number). Each cycle is independent — an issue fixed in Cycle 3 may recur and be picked again in Cycle 9.
 
-**3. Ambiguous?** — If any decision is unclear, append an entry to `docs/harness/user-queue.md` (per `kzk-user-queue` skill) with a tentative default and continue immediately. Never stop to ask the user.
+**3. Ambiguous?** — If any decision is unclear, append an entry to `docs/harness/user-queue.md` (per `kzk-user-queue` skill) with a tentative default and continue immediately. Never stop to ask the user. Use `Q-WEBLOOP-<N>-<TOPIC>` prefix for web-loop–originated entries (e.g., `Q-WEBLOOP-3-PLAYWRIGHT-DROP`).
 
-**4a. P0 fast path** — If the issue is P0, dispatch `oh-my-claudecode:executor` (`model=sonnet`) directly with the evaluator's issue description verbatim (passed as a quoted string, not re-interpreted) + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), commits.
+**4a. P0 fast path** — If the issue is P0, dispatch `oh-my-claudecode:executor` (`model=sonnet`) directly with the evaluator's issue description verbatim (passed as a quoted string, not re-interpreted) + file scope + branch name + pre-commit gate rules. Implements via TDD, passes `kzk-pre-commit-gate` (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise), commits.
 
 **4b. P1/P2 plan gate** (per `kzk-large-task-delegation` plan-critic loop requirement) — If the issue is P1 or P2:
 
   **superpowers available:**
-  1. `Skill("superpowers:writing-plans")` — creates a frozen plan at `.web-loop/plans/cycle-N-plan.md`.
-  2. `Skill("superpowers:subagent-driven-development")` — reads frozen plan, dispatches implementer subagent, 2-stage spec + quality review. gstack available → append `Skill("gstack:review")` as the final code review pass.
-  3. Second consecutive FAIL from any reviewer → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
+  1. `Skill("kzk-codebase-survey")` — EXPLORER runs all steps (Step 0.5 + Step 1–8), saves report to `.web-loop/surveys/cycle-N-survey.md`. Report path passed to writing-plans as required reading.
+  2. `Skill("superpowers:writing-plans")` — creates a frozen plan (default path: `docs/plans/YYYY-MM-DD-<topic>.md`). After the skill returns, main controller copies the plan to `.web-loop/plans/cycle-N-plan.md` so the loop's state dir stays consistent (canonical plan remains in `docs/plans/` for git tracking; in-cycle reads use `.web-loop/plans/`). Both copies are read-only after Frozen. Any plan amendment requires a new `## Frozen v2` section in `docs/plans/...` and re-copy to `.web-loop/plans/`. Prompt includes survey report path.
+  3. `Skill("superpowers:subagent-driven-development")` — reads frozen plan, dispatches implementer subagent, 2-stage spec + quality review. gstack available → append `Skill("gstack:review")` as the final code review pass.
+  4. Second consecutive FAIL from the same reviewer (or 3+ FAILs total across all reviewers in the same cycle) → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
 
   **superpowers unavailable (fallback):**
-  1. PLANNER (`oh-my-claudecode:planner`, `model=opus`) authors frozen plan → `.web-loop/plans/cycle-N-plan.md` with `## Frozen` header.
-  2. CRITIC (`oh-my-claudecode:critic`, `model=opus`) reviews. FAIL → planner revises once. Second FAIL → skip + user-queue.
-  3. EXECUTOR (`oh-my-claudecode:executor`, `model=sonnet`) implements via TDD → `kzk-pre-commit-gate` → commit.
+  1. `Skill("kzk-codebase-survey")` — EXPLORER runs, report saved to `.web-loop/surveys/cycle-N-survey.md`.
+  2. PLANNER (`oh-my-claudecode:planner`, `model=opus`) authors frozen plan → `docs/plans/YYYY-MM-DD-<topic>.md` with `## Frozen` header. Main controller copies plan to `.web-loop/plans/cycle-N-plan.md` (canonical plan stays in `docs/plans/` for git tracking). Prompt includes survey report path.
+  3. CRITIC (`oh-my-claudecode:critic`, `model=opus`) reviews. Critic prompt: "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL." FAIL → planner revises once. Second consecutive FAIL from the same reviewer, or 3+ FAILs total across all reviewers in the same cycle → skip + user-queue.
+  4. EXECUTOR (`oh-my-claudecode:executor`, `model=sonnet`) implements via TDD → `kzk-pre-commit-gate` → commit.
 
-  Either path: evaluator's issue description is passed verbatim (quoted string). All dispatches include file scope + branch name + pre-commit gate rules (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise).
+  Either path: evaluator's issue description is passed verbatim (quoted string). All dispatches include file scope + branch name + pre-commit gate rules (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise).
 
 **5. Update `harness-flow-progress.md`** — append one line using the canonical format (see §State Persistence):
 - Completed: `Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue one-liner] — queue: N remaining — PW: ok|degraded`
@@ -67,7 +69,7 @@ Each cycle executes these steps in order:
 
 **6. Back to step 1a.**
 
-**Result narration:** Per `kzk-background-monitoring` + `kzk-playwright-verification` §Result-narration mandate, narrate 1-3 sentences after each subagent dispatch OR Skill invocation (tool runner / evaluator / brainstorming / writing-plans / subagent-driven-development / planner / critic / executor): file count / commit / phase / latest output snippet. Silence between dispatches is forbidden.
+**Result narration:** Per `kzk-background-monitoring` + `kzk-playwright-verification` §Result narration, narrate 1-3 sentences after each subagent dispatch OR Skill invocation (tool runner / evaluator / brainstorming / writing-plans / subagent-driven-development / planner / critic / executor): file count / commit / phase / latest output snippet. Silence between dispatches is forbidden.
 
 The loop runs until the user explicitly stops it. No automatic termination.
 
@@ -102,18 +104,22 @@ Run once at loop start (Setup Checklist step 1). Detect each plugin; **install i
 ### Step-by-step (run in this exact order)
 
 ```bash
-# 1. Get current plugin list
-PLUGINS=$(claude plugin list 2>/dev/null)
+# 1. Get current plugin list (capture exit code; if subcommand unavailable, degrade)
+if ! PLUGINS=$(claude plugin list 2>/tmp/plugin-err.txt); then
+  echo "Q-PLUGIN-PREFLIGHT — claude plugin subcommand unavailable ($(cat /tmp/plugin-err.txt | head -1)), pre-flight skipped" >> docs/harness/user-queue.md
+  PLUGINS=""
+fi
 
-# 2. Install missing plugins right now
-echo "$PLUGINS" | grep -qi "oh-my-claudecode" || claude plugin add oh-my-claudecode
-echo "$PLUGINS" | grep -qi "superpowers"       || claude plugin add superpowers
-echo "$PLUGINS" | grep -qi "gstack"            || claude plugin add gstack
+# 2. Install missing plugins right now (only runs if plugin list succeeded)
+if [ -n "$PLUGINS" ]; then
+  echo "$PLUGINS" | grep -qi "oh-my-claudecode" || claude plugin add oh-my-claudecode
+  echo "$PLUGINS" | grep -qi "superpowers"       || claude plugin add superpowers
+  echo "$PLUGINS" | grep -qi "gstack"            || claude plugin add gstack
+fi
 ```
 
 If any `claude plugin add` command fails (network error, registry issue, unknown name):
-1. Try the npm fallback: `npm install -g @anthropic/<plugin-name>` (replace with actual package name)
-2. Still fails → log to `docs/harness/user-queue.md` with the exact error and continue without that plugin
+1. Log to `docs/harness/user-queue.md` with the exact error and plugin name, then continue without that plugin (see graceful degradation table below)
 
 ### Session restart (only if newly installed)
 
@@ -123,9 +129,9 @@ Newly installed plugins require a Claude Code session restart to surface their s
    ```
    Q-PLUGIN-RESTART — plugins installed, session restart required
    - Installed: [list of newly installed plugins]
-   - Action: restart Claude Code session, then re-trigger the web loop
+   - Action: restart Claude Code session, then re-trigger the web loop for full plugin access
    ```
-2. Halt and notify the user. Do NOT start the loop without the plugins surfaced.
+2. Continue the loop in **degraded mode** (see graceful degradation table below — same fallbacks apply as if the plugin install had failed). Do NOT halt. The degradation table covers all missing-plugin scenarios.
 
 If all plugins were already installed → no restart needed, continue to step 2 (Branch).
 
@@ -206,7 +212,7 @@ Every tool runner, evaluator, planner, critic, and executor dispatch prompt must
 - Scope: file paths + line ranges
 - Branch name (never `main` — per `kzk-autonomous-boundary`)
 - Required reading: `CLAUDE.md`, spec doc path, harness-share.md §25
-- Rules: TDD strict, context7 mandate, `kzk-pre-commit-gate` (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise), DO-NOT-MODIFY paths
+- Rules: TDD strict, context7 mandate, `kzk-pre-commit-gate` (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise), DO-NOT-MODIFY paths
 - Commit convention: English conventional commits, no Co-Authored-By
 - Working directory absolute path
 - Return format on success
@@ -219,4 +225,13 @@ Halt and append user-queue summary only when:
 - Every issue in the current queue has failed 3× (nothing left to try)
 - System-level failure that prevents any progress (disk full, etc.)
 
+**Who writes the halt summary:** Main context (not a subagent). Append to `docs/harness/user-queue.md` with: cycle number, last issue attempted, failure count, and recommended next action. Then stop.
+
 Anything else → keep going.
+
+## Interaction with other kzk-*
+
+- **kzk-tool-retry**: Any Edit/Write/Bash failure within a cycle gets 1 auto-retry before the failure is counted toward the 3× skip threshold. Do not count the first failure as a cycle failure.
+- **kzk-pre-commit-gate**: All executor dispatches must run all applicable gates (6 if AGENTS.md hierarchy present; 5 otherwise) before committing.
+- **kzk-autonomous-boundary**: All boundary conditions apply normally. The reviewer FAIL halt (defined in `kzk-autonomous-loop`) is overridden by web-loop per `harness-share.md` §25 — skip+next-issue instead of halt.
+- **kzk-user-queue**: skipped issues and ambiguous decisions are appended here with Q-WEBLOOP-<N>-<TOPIC> prefix.

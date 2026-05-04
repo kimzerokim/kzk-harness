@@ -1,14 +1,14 @@
 ---
 name: kzk-user-queue
-version: 1.0.0
-description: "user-queue protocol — append entries with tentative defaults during autonomous runs, parametrize so user can override cheaply, then run interactive 1-by-1 review (Stage 1/2/3) when user returns. Required triggers: 'user-queue', 'Q-PLAN', 'Pending', 'Resolved', 'DECISION', 'Interactive Queue Review', 'Stage 3', '모호 결정'."
+version: 1.0.3
+description: "user-queue protocol — append entries with tentative defaults during autonomous runs, parametrize so user can override cheaply, then run interactive 1-by-1 review (Stage 1/2/3) when user returns. Required triggers: 'user-queue', 'Q-COV', 'Q-TOOL', 'Q-WEBLOOP', 'Q-SUBAGENT', 'Q-INSTALL', 'Q-PLUGIN', 'Pending', 'Resolved', 'DECISION', 'Interactive Queue Review', 'Stage 3', '모호 결정'."
 ---
 
-> Authoritative source: repo `CLAUDE.md` "User Queue 운용" + "Interactive Queue Review Protocol" + `harness-share.md` §6. On conflict, those win.
+> Authoritative source: `harness-share.md` §6. On conflict, that wins.
 
 # kzk-user-queue
 
-Path: `docs/harness/user-queue.md`. Two sections: `## Pending` and `## Resolved`. Git-tracked.
+Path: `docs/harness/user-queue.md`. Three sections: `## Pending`, `## Resolved`, and `## Escalated`. Git-tracked.
 
 ## Append-during-autonomous protocol
 
@@ -66,8 +66,6 @@ User commit appends DECISIONs → kick a Stage-3 iteration:
 - Apply Resolved decisions to affected artifacts (PRD / plan / code)
 - Max **3 iterations** (infinite-loop guard)
 - Same entry processed twice OR DECISIONs conflict → move to `## Escalated` section + separate user session
-
-Detail: `docs/harness/ralph-items.md` "Stage 3 — User Queue Resolution Loop"
 
 ## Anti-patterns
 

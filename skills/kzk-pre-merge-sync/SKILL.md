@@ -1,14 +1,14 @@
 ---
 name: kzk-pre-merge-sync
-version: 1.0.0
-description: "Pre-merge checklist — sync CLAUDE.md to current code state and run `/oh-my-claudecode:deepinit` before any feature-branch merge. Required triggers: 'merge 전', 'PR 직전', 'deepinit', 'Pre-Merge', 'CLAUDE.md update', 'manifest 재생성'."
+version: 1.0.8
+description: "Pre-merge checklist — sync CLAUDE.md to current code state and run `/oh-my-claudecode:deepinit` before any feature-branch merge. Required triggers: 'merge', 'merge 전', 'feature branch', 'PR', 'PR 직전', 'deepinit', 'Pre-Merge', 'CLAUDE.md update', 'CLAUDE.md sync', 'manifest 재생성'."
 ---
 
-> Authoritative source: repo `CLAUDE.md` "Pre-Merge CLAUDE.md Update" + "Pre-Merge `/deepinit`" + `harness-share.md` §14.5 + §15. On conflict, those win.
+> Authoritative source: `harness-share.md` §14.5 + §15. On conflict, that wins.
 
 # kzk-pre-merge-sync
 
-Two checks every PR must complete before merge to its target branch (usually `harness-test` during experiments, `main` post-experiment).
+Two checks every PR must complete before merge to its target branch (use `feature/<topic>` in all adopting projects; `harness-test` is the kzk-harness repo's own convention only).
 
 ## 1. CLAUDE.md sync (mandatory)
 
@@ -34,8 +34,9 @@ Skill("oh-my-claudecode:deepinit")
 ```
 
 - Target: every feature branch → `main` merge, exactly once locally before merge
+- **In autonomous mode**: deepinit runs at PR-creation time (immediately before `gh pr create` on the feature branch tip), regardless of any prior local deepinit run in the same session. Merge is gated by explicit user "merge it" — the deepinit refresh happens on the feature branch, not at merge time.
 - Why: PRD / plan / skill md changes that aren't reflected in OMC memory cause the next session's agent to start with stale context
-- Failure → check log, fix, do not skip. Skip = block merge *(synthesized: failure also halts the autonomous loop — see `kzk-autonomous-boundary`)*
+- Failure → check log, fix, do not skip. Skip = block merge.
 - Checkpoint: PR description includes the literal line `deepinit ran`
 
 ## Combined PR description footer
@@ -45,6 +46,6 @@ Skill("oh-my-claudecode:deepinit")
 
 - [x] CLAUDE.md updated to match current state
 - [x] deepinit ran
-- [x] kzk-pre-commit-gate 5-gate PASS (Gates 0–4) on final commit
-- [x] (only if user has approved end-of-experiment merge to main) experiment complete + user merge approval received
+- [x] kzk-pre-commit-gate full gate PASS (Gate 0 N/A if no AGENTS.md hierarchy; otherwise all of 0, 1, 1.5, 2, 3, 4) on final commit
+- [ ] Experiment complete + user merge approval received (skip if PR target is feature branch, not main)
 ```

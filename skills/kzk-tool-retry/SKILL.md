@@ -1,10 +1,10 @@
 ---
 name: kzk-tool-retry
-version: 1.0.0
-description: "Tool failure auto-retry mandate — every Edit/Write/Bash failure gets exactly one automatic retry before any user prompt. 'File has not been read yet' is always solved by re-reading the same path then retrying — never by asking the user. Polite-stop after 1 failure is a rule violation in autonomous mode. Required triggers: 'tool retry', 'auto retry', 'File has not been read yet', 'String to replace not found', 'Edit failed', 'Write failed', 'polite-stop'."
+version: 1.0.4
+description: "Tool failure auto-retry mandate — every Edit/Write/Bash failure gets exactly one automatic retry before any user prompt. 'File has not been read yet' is always solved by re-reading the same path then retrying — never by asking the user. Polite-stop after 1 failure is a rule violation in autonomous mode. Required triggers: 'tool retry', 'auto-retry', 'retry', 'File has not been read yet', 'String to replace not found', 'Edit failed', 'Write failed', 'polite-stop'."
 ---
 
-> Authoritative source: this skill body (no dedicated `harness-share.md` section). Originated from `gridless` repo §2.6; portable to all projects.
+> Authoritative source: `harness-share.md` §27. On conflict, that wins.
 
 # kzk-tool-retry
 
@@ -24,7 +24,7 @@ Tool failure is data, not a stop signal. One automatic retry is the default. Pol
 
 ### Edit / Write — "File has not been read yet"
 
-This is the most common one. Cause: Claude Code's read-tracker is volatile across `UserPromptSubmit`, hook events, session restore, `/compact`. A single user message between Read and Write resets the tracker even if the conversation read the file just before.
+This is the most common one. Observed behavior (Claude Code 2025–2026): the read-tracker resets across `UserPromptSubmit`, hook events, session restore, and `/compact`. A single user message between Read and Write can reset the tracker even if the file was read just before. Even if the underlying mechanism changes, the 1-line pre-Read pattern is cheap and never wrong.
 
 **Mandatory recovery (autonomous mode = polite-stop forbidden)**:
 1. Same path → call `Read` once (1 line is fine — cost is trivial).
@@ -45,10 +45,15 @@ In autonomous (sleep / coffee / "끝까지 끝내줘") this is a hard violation.
 
 ## Queue-on-double-failure
 
-When the auto-retry also fails:
-1. Append a Q-* entry to `docs/harness/user-queue.md` (or `kzk-user-queue` skill's location)
-2. Include the failing tool call shape, error message, suspected cause, and recommended manual fix
-3. Continue to the next task in the autonomous run
+When the auto-retry also fails, append a `Q-TOOL-<FILE>` entry to `docs/harness/user-queue.md` using the `kzk-user-queue` template:
+
+- **Context**: `<tool type> failed twice on <file path>: <error message>`
+- **Options**: 1. Manual fix per recommended action  2. Skip this file this session
+- **Tentative default**: Option 1 — recommended fix: `<suspected cause + one-line fix>`
+- **Override mechanism**: append DECISION line
+- **Impact**: file edit blocked; next task proceeds
+
+Continue to the next task without waiting for user input.
 
 ## Interaction with other kzk-*
 

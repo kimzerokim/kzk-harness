@@ -80,6 +80,15 @@ multi-step sequence (cutover, migration) 이면 단계별 OK 사인: AI propose 
 
 두 경우 모두 memory / metadata 저장 X. conversation 종료 시 자동 폐기.
 
+### Rollback / revert policy
+
+autonomous loop 이 commit 한 코드가 이후 잘못된 것으로 판명 된 경우:
+
+1. `git revert <sha>` 선호 — reset 보다 history 보존
+2. pushed branch 에서 `git reset --hard` 는 사용자 명시 ("hard reset 해줘") 없으면 금지
+3. user-queue 에 entry 추가: 어느 commit, 왜 revert, 올바른 접근 방향
+4. 같은 issue 를 바로 재시도 하지 말고 다음 issue 로 resume
+
 ### Polite-stop 금지
 
 - 사용자가 autonomous 지시 한 범위 안에선 모든 task 완료 또는 halt 조건 도달 시까지 정지 X
@@ -88,7 +97,7 @@ multi-step sequence (cutover, migration) 이면 단계별 OK 사인: AI propose 
 
 ---
 
-## 3. Pre-commit Gate (5 단계)
+## 3. Pre-commit Gate (6 단계)
 
 매 commit 직전 순차 통과. 하나라도 실패 시 commit 금지.
 
@@ -107,6 +116,8 @@ multi-step sequence (cutover, migration) 이면 단계별 OK 사인: AI propose 
 
 레포에 AGENTS.md hierarchy 가 없으면 Gate 0 N/A.
 
+Gate 0 통과 후, kzk-pre-commit-gate skill 은 추가로 `deepinit_manifest` tool (OMC plugin) 을 `action=save` 로 호출해 manifest baseline 을 저장한다. Tool 미설치 시 skip (Gate 0 자체는 AGENTS.md 편집만으로 PASS). 이 호출은 §3 게이트 요건 외의 skill-level extension 이다.
+
 ### Gate 1 — ai-slop-cleaner
 
 변경 파일 의 dead code / duplicate / needless abstraction / boundary leak 제거.
@@ -116,6 +127,16 @@ Skill("oh-my-claudecode:ai-slop-cleaner")
 ```
 
 trivial 변경 (1줄 옵션 flag) 인 경우 skip 가능 — commit body 에 "ai-slop-cleaner skipped (trivial)" 명시.
+
+### Gate 1.5 — secrets scan
+
+staged diff 에서 자격증명 패턴 검색:
+
+```bash
+git diff --cached | grep -iE "(password|secret|api_key|aws_secret|private_key|token)\s*[:=]\s*['\"]?[A-Za-z0-9+/]{8,}" || true
+```
+
+`AKIA`/`ASIA` prefix (AWS key 패턴) 도 추가 확인. match 발견 시 → unstage + secret 제거 + re-stage. test fixture 내 명백한 fake string 은 false positive — commit body 에 `secrets-scan: false positive — <reason>` 명시.
 
 ### Gate 2 — build green
 
@@ -172,13 +193,17 @@ npm test -- --testPathPatterns=<changed-area>
 
 ### Doc-only commit 예외
 
-source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `docs/**`, `harness-flow-progress.md`, `.claude/skills/**/*.md`, `docs/screenshots/**`):
+source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `docs/**`, `harness-flow-progress.md`, `CLAUDE.md`, `DESIGN.md`, `skills/**/*.md`, `.claude/skills/**/*.md`, `docs/screenshots/**`):
 - Gate 2 (build) + Gate 3 (test) skip
 - Gate 1 (ai-slop-cleaner) 변경 md 에 한해 필요시
 - Gate 4 N/A
 - autonomous 모드 = 사용자 확인 없이 commit 허용. 평소 = 사용자 확인
 
-코드 변경 1줄이라도 섞이면 full 5-gate 수행 (AGENTS.md hierarchy 가 없는 레포는 4-gate).
+코드 변경 1줄이라도 섞이면 full 6-gate 수행 (AGENTS.md hierarchy 가 없는 레포는 5-gate).
+
+**AGENTS.md / README.md 분류 기준**: 이 파일들은 `*.md` glob 에 해당하지만 상황에 따라 다름.
+- 단독 수정 (파일 구조 변경 없는 routine 갱신) → doc-only 적용 O. Gate 0 트리거 안 됨 (source file add/delete 없음).
+- Gate 0 트리거 commit 에 동승 (source 파일 추가/삭제와 같은 commit) → doc-only 적용 X. source 변경이 예외 자동 해제.
 
 ### Token migration — shadcn + Tailwind v4 bridge requirement
 
@@ -317,7 +342,7 @@ After Stage 1 + 2 finish and the user appends DECISIONs:
 - Apply Resolved decisions to affected artifacts (PRD / plan / code)
 - Max **3 iterations** (infinite-loop guard)
 - Same entry processed twice OR DECISIONs conflict → move to `## Escalated` section + separate user session
-- Detail (state machine + iteration counter): `docs/harness/ralph-items.md` "Stage 3"
+- Full Stage 3 state machine: three phases (classify → GROUP A interactive review → resolution apply), max 3 iterations, conflict moves to `## Escalated`
 
 ### Halt when crossing un-applied policy areas
 
@@ -695,16 +720,16 @@ Russian Judge Verdict:
 
 - 절차:
   1. `/writing-plans` skill 로 plan draft 작성
-  2. `omc ask codex --agent-prompt critic "<plan path + spec path + acceptance criteria>"` 호출 — codex가 fresh 시각 으로 review
-  3. **codex CLI parse fail 시 fallback** = `Task(subagent_type="oh-my-claudecode:critic", model="opus", prompt=...)` (claude opus critic agent)
+  2. `codex exec` CLI 직접 호출 (full command: see `kzk-codex-cross-verification` §Codex execution shape) — codex가 fresh 시각 으로 review
+  3. **codex CLI parse fail 시 fallback** = `Agent(subagent_type="oh-my-claudecode:critic", model="opus", prompt=...)` (claude opus critic agent)
   4. codex/critic feedback 수신 → critical issues 반영 (architecture / acceptance criteria gap / scope drift / risk 미고려)
   5. revised plan 으로 ralph autonomous 진입
 - codex/critic prompt 필수 포함:
   - plan file 전체 경로
   - spec file 경로 (있으면)
   - "Identify: (a) acceptance criteria gaps, (b) scope drift risk, (c) optimal alternative approach, (d) reviewable evidence requirements per phase"
-  - "Assume autonomous ralph mode, harness-test branch only"
-- **REJECTED 또는 critical issues 반환 시**: plan 정정 후 재 review. 2 cycle 후에도 reject 시 brainstorming 단계로 후퇴 + user-queue entry.
+  - "Assume autonomous ralph mode, feature/<topic> branch only (or your repo's autonomous branch convention)"
+- **REJECTED 또는 critical issues 반환 시**: plan 정정 후 재 review. 2 cycle 후에도 reject 시 halt + user-queue entry. brainstorming 단계 후퇴는 사용자가 결정 — 자율 후퇴 금지.
 - **APPROVED 또는 minor only**: ralph 진입.
 
 ### Critic verdict file 저장 의무
@@ -824,8 +849,8 @@ Run a self-directed improvement cycle on a web project until the user explicitly
 1a. Tool runner (`oh-my-claudecode:executor`, sonnet) runs tests + Playwright screenshots → saves raw output to `.web-loop/cycle-N-report.md`.
 1b. Evaluator (`oh-my-claudecode:critic`, opus) reads report + built-in checklist → outputs P0 / P1 / P2 issue list.
 2. Main picks top issue NOT recorded as "Cycle N: completed/skipped" for the current cycle (cycle-scoped, not session-scoped); ambiguous decisions → `docs/harness/user-queue.md` entry with tentative default, never stop.
-3a. P0: executor (sonnet) implements directly via TDD → kzk-pre-commit-gate (5 gates: 0–4 if AGENTS.md hierarchy present; 4 gates otherwise) → commit.
-3b. P1/P2: planner (opus) writes frozen plan to `.web-loop/plans/cycle-N-plan.md` → critic (opus) reviews → executor (sonnet) implements → commit.
+3a. P0: executor (sonnet) implements directly via TDD → kzk-pre-commit-gate (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise) → commit.
+3b. P1/P2: kzk-codebase-survey (EXPLORER) → survey report → writing-plans/planner (opus) → critic (opus) reviews → executor (sonnet) implements → commit.
 4. Update `harness-flow-progress.md` one-liner → back to step 1a.
 
 ### Evaluation Priority
@@ -857,3 +882,70 @@ After `/compact`, restate: "Cycle N, last: [issue], queue: [N remaining], PW: [o
 ### Branch boundary
 
 `kzk-autonomous-boundary` applies in full — executor agent dispatches always target a feature branch, never `main`. `main` merge requires explicit user approval outside the loop.
+
+---
+
+## 26. kzk-codebase-survey — Mandatory Deep Codebase Explorer
+
+Full spec: `docs/superpowers/specs/2026-05-04-kzk-codebase-survey-design.md`. Skill: `skills/kzk-codebase-survey/SKILL.md`.
+
+### Purpose
+
+Run before any brainstorming or planning phase. Reads the full codebase scope (direct + transitive imports), loads external library docs via context7, extracts TypeScript type contracts and env vars. Produces a "codebase intelligence report" that feeds planner + critic, preventing plans that miss features or integration points.
+
+### When mandatory
+
+- Before `superpowers:brainstorming` — report injected into brainstorming context
+- `kzk-large-task-delegation` Step 0 — before any planner dispatch
+- `kzk-web-loop` P1/P2 — survey → writing-plans order
+
+### code-review-graph (optional, recommended)
+
+If available (`code-review-graph --version` exits 0), use for scope expansion and blast radius analysis:
+- `code-review-graph query --file <target>` — forward dependency graph
+- `code-review-graph blast-radius --file <target>` — reverse deps (who imports target)
+- Install: `pip install code-review-graph && code-review-graph install && code-review-graph build` (run once per project)
+- Fallback: grep-based scope expansion if not installed.
+
+### EXPLORER steps (Step 0.5 + Step 1–8)
+
+1a. Scope expansion (target files → transitive imports → feature dir → tests). **If code-review-graph available:** use `query` + `blast-radius` commands. **Fallback:** `grep -r "from '.*<module-name>'" --include="*.ts" -l`.
+1b. Deep read all files in parallel (full file, no excerpts) + `git log -5 <file>`
+2. Library detection (parse imports → external packages only)
+3. Library knowledge: context7 docs → kzk/superpowers skill → web_search fallback
+4. Pattern extraction (naming, error handling, async, state management)
+5. TypeScript type/interface contracts (exports + reverse deps, ⚠ breaking-change flags)
+6. Env vars / config (`process.env.*`, `.env.example`)
+7. Report generation → `docs/harness/surveys/YYYY-MM-DD-<topic>-survey.md` (manual) or `.web-loop/surveys/cycle-N-survey.md` (autonomous)
+
+### Critic gate
+
+Critic prompt must include: "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL."
+
+### No-halt
+
+Survey failure (file unreadable, library docs unavailable) → note in report, continue with available data. Never halts the planning pipeline.
+
+---
+
+## 27. kzk-tool-retry — Tool Failure Auto-Retry Discipline
+
+Full skill: `skills/kzk-tool-retry/SKILL.md`.
+
+### Default policy
+
+Every tool failure = 1 automatic retry, no user prompt in between. Polite-stop after a single failure in autonomous mode is a hard violation.
+
+### Key failure modes
+
+- **Edit "String to replace not found"**: `Read` the file (±10 lines or `grep -n`) → re-issue Edit with corrected `old_string`. Two consecutive failures → `Write` whole file or queue.
+- **Edit/Write "File has not been read yet"**: Call `Read` once (1 line is enough) → re-issue the original Edit/Write. Do NOT ask the user.
+- **Bash transient**: 1 retry OK. Persistent failure (compile error, type error) → root-cause fix, no blind retry.
+
+### Queue-on-double-failure
+
+After auto-retry also fails: append Q-* entry to `docs/harness/user-queue.md` with failing tool shape + error + recommended fix, then continue to next task.
+
+### Forbidden
+
+Asking "어떻게 할까요?" between attempts in autonomous mode.
