@@ -86,6 +86,26 @@ Detection sources:
 | `kzk-web-loop` | playwright-mcp | code-review-graph (via `kzk-codebase-survey`) |
 | `kzk-codebase-survey` | — | code-review-graph |
 
+## Manual smoke test — `--skip-project` flag
+
+```bash
+# Assert build SKIPPED line appears and "Building code-review-graph" does NOT:
+bash /path/to/kzk-harness/install/dependencies.sh --skip-project 2>&1 \
+  | grep -q 'build SKIPPED (--skip-project' && echo PASS || echo FAIL
+
+# Assert codex/code-review-graph binary install is still attempted (not skipped):
+bash /path/to/kzk-harness/install/dependencies.sh --skip-project 2>&1 \
+  | grep -qE 'code-review-graph: (already installed|installed via|SKIPPED .pip)' && echo PASS || echo FAIL
+
+# Positional path + flag (flag must win — build still SKIPPED):
+bash /path/to/kzk-harness/install/dependencies.sh /tmp --skip-project 2>&1 \
+  | grep -q 'build SKIPPED (--skip-project' && echo PASS || echo FAIL
+
+# Flag first, path second (flag must win):
+bash /path/to/kzk-harness/install/dependencies.sh --skip-project /tmp 2>&1 \
+  | grep -q 'build SKIPPED (--skip-project' && echo PASS || echo FAIL
+```
+
 ## Re-running the installer
 
 Idempotent. Re-run after:
