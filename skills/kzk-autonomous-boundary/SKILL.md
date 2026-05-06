@@ -62,6 +62,7 @@ Anything else → keep going (see `kzk-autonomous-loop` for polite-stop ban).
 | `Q-VERIFIER-INVALID` | verifier 응답 첫 줄이 `VERDICT: PASS\|FAIL\|PARTIAL` 정규식 매칭 실패 | fail-closed BLOCK + Q-VERIFIER-INVALID entry | retry (stricter prompt) PASS 또는 사용자 manual verify OK |
 | `Q-VERIFIER-DISPATCH-FAIL` | verifier subagent dispatch 자체 실패 (timeout / unavailable) | BLOCK + Q-VERIFIER-DISPATCH-FAIL entry. fallback: `oh-my-claudecode:code-reviewer` | fallback PASS 또는 사용자 manual review OK |
 | `Q-CODEX-DISPATCH-FAIL` | codex subagent dispatch 자체 실패 — `kzk-codex-handoff §Fresh subagent 호출 패턴` 정의 | BLOCK + Q-CODEX-DISPATCH-FAIL entry. fallback 1: 메인 직접 codex. fallback 2: critic opus | fallback PASS 또는 사용자 manual review OK |
+| `Q-FIX-PIVOT-FAIL` | layer-pivot 룰이 L0 도달 후에도 fix 실패 (`kzk-fix-scope-expansion §Fix layer pivot`) | halt + Q-FIX-PIVOT-FAIL entry. fallback: 외부 시스템 또는 사용자 manual 분석 | 사용자 결정 (분석 결과 기반 fix 재진입 또는 task abandon) |
 
 
 ## Rollback / revert policy

@@ -117,9 +117,9 @@ ac1_trigger_in_new_dir() {
 
 # ---------------------------------------------------------------------------
 # AC2 — CLAUDE.md marker block format
-# 14 kzk-* table rows present between BEGIN/END markers.
+# 18 kzk-* table rows present between BEGIN/END markers.
 # ---------------------------------------------------------------------------
-ac2_marker_and_14_rows() {
+ac2_marker_and_18_rows() {
   local ac="ac2"
   local cfile="$HOME/.claude/CLAUDE.md"
   if [ ! -f "$cfile" ]; then
@@ -138,11 +138,11 @@ ac2_marker_and_14_rows() {
   row_count=$(awk '/<!-- BEGIN kzk-harness skills -->/,/<!-- END kzk-harness skills -->/' "$cfile" \
     | grep -cE '^\| kzk-' || true)
   row_count="${row_count:-0}"
-  if [ "$row_count" -ne 14 ]; then
-    record_fail "$ac" "expected 14 '| kzk-' rows in marker block, found $row_count"
+  if [ "$row_count" -ne 18 ]; then
+    record_fail "$ac" "expected 18 '| kzk-' rows in marker block, found $row_count"
     return 1
   fi
-  record_pass "$ac" "14 kzk-* table rows in marker block"
+  record_pass "$ac" "18 kzk-* table rows in marker block"
 }
 
 # ---------------------------------------------------------------------------
@@ -455,7 +455,7 @@ run_ac() {
   local n="$1"
   case "$n" in
     1) ac1_trigger_in_new_dir ;;
-    2) ac2_marker_and_14_rows ;;
+    2) ac2_marker_and_18_rows ;;
     3) ac3_idempotent ;;
     4) ac4_symlink_dev_mode ;;
     5) ac5_no_main_context_read_storm ;;

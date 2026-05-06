@@ -1,6 +1,6 @@
 ---
 name: kzk-fix-scope-expansion
-version: 1.3.0
+version: 1.4.0
 description: "Fix scope expansion and Gate 4.5 sanity check — make sure to use this skill when a fix-start flow detects callsite mismatch or triggers Gate 4.5 (fix-scope-specific keywords). Note: 'fix 시작' and '버그 수정' direct triggers are owned by kzk-codebase-survey (the hub); this skill is cross-ref invoked from codebase-survey during fix-start flows. Direct triggers for this skill are callsite-mismatch-specific: 'callsite 전수', 'Gate 4.5', 'fix-scope-cache', 'KZK_GATE45_SKIP', 'callsite 누락'. Runs fix-scope-trigger.mjs hook (CRG detect-changes → grep fallback), writes .kzk-harness/fix-scope-cache.jsonl, and defines the pre-commit Gate 4.5 BLOCK. Default DISABLED until kzk-pre-merge-sync step 3. References harness-share.md §3.5."
 ---
 
@@ -106,6 +106,64 @@ Gate 4.5: callsite N곳 중 M곳 미수정.
 ```
 
 **Cache 부재**: N/A (fix-scope-trigger hook 비활성 또는 fix intent 아닌 commit).
+
+## Fix layer pivot (Phase 2)
+
+> Authoritative source: 현재 self-authoritative. harness-share.md §N 신설 시 그것이 우선.
+
+### Operational definitions (added cycle 47)
+
+- **"같은 방향 (same direction)"**: 두 연속 fix attempt 가 같은 root-cause label 을 공유한 경우. label 형식 = `<layer>:<symptom-key>` (예: `L1:tailscale-mtu-fragmentation`). label 충돌 시 = same direction.
+- **"실패 (failure)"**: 다음 중 하나 — (a) 추가한 test 가 red 상태로 남음, (b) 사용자 보고 증상이 fix 후 동일 (변화 없음), (c) fix 후 30 초 내 동일 stack trace 재발. (a)(b)(c) 모두 검증 가능 신호.
+- **레이어 라벨 사전** (L3 표 의미 = 본체 코드, 예시 텍스트 충돌 수정):
+  - L0 = 외부 설정 / OS / 네트워크 / 인프라 (kubelet config, /etc/, route table)
+  - L1 = wrapper / IaC / 배포 스크립트
+  - L2 = SW 내부 설정 (config file, env var consumed by app)
+  - L3 = 본체 application 소스 코드
+
+### When to escalate
+
+**Same-layer consecutive fail rule**: 동일 레이어에서 같은 방향 fix 가 2회 연속 실패 시 → 한 레이어 바깥으로 escalate.
+
+Layer 계층 (바깥 → 안):
+
+| 레이어 | 범위 예시 |
+|---|---|
+| **L0** | OS / 외부 환경 — route, DNS, firewall, env var, 시스템 권한 |
+| **L1** | wrapper / middleware config — proxy, reverse-proxy, load balancer |
+| **L2** | SW internal config — app config, feature flag, 설정 파일 |
+| **L3** | SW core logic — 소스 코드, 알고리즘, 데이터 구조 |
+
+탐색 순서: 문제가 발생한 레이어 → L0 방향으로 escalate.
+
+**예시 (Tailscale 케이스)**: Claude 가 L3 (본체 소스 코드) 에서 2회 실패 → L2 (SW 내부 설정) 확인 → L1 (wrapper) 확인 → L0 (route add) 에서 1줄 fix 성공.
+
+### Fix-verify hook 확장
+
+Fix-verify hook (§Fix-verify hook 참조) 실행 후, 동일 레이어에서 2회 연속 실패 감지 시:
+
+1. 현재 레이어 기록 (L0/L1/L2/L3)
+2. 한 레이어 바깥으로 이동, 해당 레이어에서 원인 재조사
+3. L0 도달 후에도 미해결 → `Q-FIX-PIVOT-FAIL` entry 를 `docs/harness/user-queue.md` `## OPEN` 섹션에 추가 후 halt
+
+### Q-FIX-PIVOT-FAIL entry 형식
+
+~~~markdown
+- [ ] YYYY-MM-DD HH:MM — Q-FIX-PIVOT-FAIL — <함수명/증상> 모든 레이어 escalate 후 미해결 (cycle N)
+~~~
+
+상세 항목은 entry 아래 sub-list:
+~~~markdown
+  - Context: <증상 + 레이어별 시도 내역 (L3→L2→L1→L0)>
+  - Tentative default: 사용자 직접 L0 환경 확인
+  - Impact: 자율실행 halt — 레이어 전환 없이 진행 불가
+~~~
+
+### Anti-patterns (G1/G2/G4)
+
+- G1: L3 단독 집중, L0 미검토 → layer 계층 순서대로 바깥부터 확인
+- G2: 실패 후 동일 방향으로 variation 반복 2회 → 즉시 레이어 전환
+- G4: "왜 안 되는지" 설명만 제공, 1줄 fix 미제공 → 진단은 sub-bullet, 첫 줄은 항상 실행 가능한 fix
 
 ## 자가-skip guard
 

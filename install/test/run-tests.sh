@@ -88,7 +88,7 @@ test_skill_files_landed() {
   count=$(find "$test_home/.claude/skills" -maxdepth 2 -name 'SKILL.md' \
     -path '*/kzk-*/*' 2>/dev/null | wc -l | tr -d ' ')
 
-  assert_eq "17 SKILL.md files landed" "17" "$count"
+  assert_eq "18 SKILL.md files landed" "18" "$count"
 
   rm -rf "$test_home"
 }
@@ -158,7 +158,7 @@ test_claude_md_marker() {
   local row_count
   row_count=$(awk '/<!-- BEGIN kzk-harness skills -->/,/<!-- END kzk-harness skills -->/' "$cfile" |
     grep -cE '^\| kzk-' || true)
-  assert_eq "17 kzk- rows in marker block" "17" "$row_count"
+  assert_eq "18 kzk- rows in marker block" "18" "$row_count"
 
   rm -rf "$test_home"
 }
