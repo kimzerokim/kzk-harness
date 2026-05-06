@@ -1,10 +1,10 @@
 ---
 name: kzk-codex-handoff
-version: 1.0.0
+version: 1.1.0
 description: "Codex CLI 호출 안정화 single source of truth — stdin pipe + --ephemeral + read-only + NDJSON file→jq + Preflight + 4 에러 fallback 사다리. Top triggers: 'codex CLI 호출', 'codex handoff', 'codex 안정화'. Body §Triggers for full list."
 ---
 
-> Authoritative source: harness-share.md TBD (Phase 2 에서 등록). On conflict, that wins.
+> Authoritative source: This skill is self-authoritative for codex CLI invocation discipline. Will migrate to `harness-share.md §32` in Phase 2.
 
 # kzk-codex-handoff
 
@@ -71,10 +71,10 @@ jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .it
 
 ## Timeout + stuck detection
 
-- `timeout: 300000` (5 min). Background-monitor per `kzk-background-monitoring`.
+- `timeout: 300000` (5 min). Background-monitor per `kzk-background-monitoring` (sister skill — codex exec stuck 감지 + 소유권 규칙 담당).
 - No first token in **60s** → kill + retry once.
 - No output in **5 min total** → stuck, kill + fallback to critic agent.
-- Empty stdout or non-zero exit: save error stub to verdict file ("codex exit <N>, stderr: <first 200 chars>") then fall back to `Agent(subagent_type="oh-my-claudecode:critic", prompt=<same review prompt>)` (model 생략 → 메인 opus 버전 상속).
+- Empty stdout or non-zero exit: save error stub to verdict file ("codex exit <N>, stderr: <first 200 chars>") then fall back to `Agent(subagent_type="oh-my-claudecode:critic" (omc 플러그인 Opus subagent — read-only 리뷰 전문, Write/Edit 불허), prompt=<same review prompt>)` (model 생략 → 메인 opus 버전 상속).
 
 ## Preflight (codex 호출 직전 환경 점검)
 
@@ -88,8 +88,6 @@ jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .it
 preflight fail (E0) → retry X, 사용자에게 환경 안내 + critic opus fallback. 호출 자체 차단.
 
 ## Fallback 사다리 (E0-E4)
-
-1차 codex review Cat 4 fix: E4 (일반 실패) 추가 — E2 (즉시 종료 + 무 stderr) 와 구분. Cycle 2 fix: E0 (Preflight fail) 신설 + E2/E4 detection 강화.
 
 | E# | Trigger | Detection | Retry | Fallback |
 |---|---|---|---|---|
@@ -111,7 +109,7 @@ E4 detection 강화: E2 와 OR 분기로 stderr 0 byte 라도 wall ≥ 2s 면 E4
 ```typescript
 // 기본 — explore sonnet 안에서 codex 실행
 Agent({
-  subagent_type: 'oh-my-claudecode:explore',
+  subagent_type: 'oh-my-claudecode:explore' /* omc 플러그인 Haiku subagent — read-only 파일/패턴 탐색 전문 */,
   model: 'sonnet',
   prompt: `
     §Codex CLI 호출 패턴 룰을 따라 codex exec 실행:
@@ -130,9 +128,9 @@ Agent({
 
 **Dispatch prompt 의무**: subagent dispatch prompt 안에 `§Codex CLI 호출 패턴` + `§Hard rules 5종` + `§Fallback 사다리` 룰 verbatim inject 의무 — fresh subagent 는 SKILL.md 를 자동으로 읽지 않음.
 
-**Subagent dispatch 자체 실패 처리** (cycle 1 review Cat 5(1) fix):
+**Subagent dispatch 자체 실패 처리**:
 
-dispatch fail (no response / timeout / subagent type unavailable) → `kzk-large-task-delegation §Stage 3 Q-VERIFIER-DISPATCH-FAIL` 패턴 재사용. fallback path: 메인 직접 codex 호출 (subagent 한 layer 우회 — 메인 컨텍스트 보호 가치 < dispatch 실패 frequency 일 때만). 그것도 실패 시 critic opus fallback. user-queue entry `Q-CODEX-DISPATCH-FAIL` 등록.
+dispatch fail (no response / timeout / subagent type unavailable) → `kzk-large-task-delegation` (sister skill — 3+ 파일 위임 + Q-VERIFIER-DISPATCH-FAIL 패턴 출처) `§Stage 3 Q-VERIFIER-DISPATCH-FAIL` 패턴 재사용. fallback path: 메인 직접 codex 호출 (subagent 한 layer 우회 — 메인 컨텍스트 보호 가치 < dispatch 실패 frequency 일 때만). 그것도 실패 시 critic opus fallback. `kzk-user-queue` (sister skill — 자율 실행 중 모호 결정을 user-queue.md 에 등록) 를 통해 user-queue entry `Q-CODEX-DISPATCH-FAIL` 등록.
 
 ## Prompt size guideline
 
@@ -153,6 +151,28 @@ dispatch fail (no response / timeout / subagent type unavailable) → `kzk-large
 
 1 round = ~2-3 min wall, ~25-30k tokens. 사용자 explicit OFF ("이번엔 codex 빼고") 만 skip. No silent skip.
 
+## Glossary
+
+- **SoT** (Source of Truth): 어떤 규칙/데이터의 단일 출처 문서. 충돌 시 SoT 가 우선.
+- **NDJSON** (Newline-Delimited JSON): 한 줄 = JSON 객체 하나인 스트림 포맷. `--json | jq` 직접 파이프 불가 이유.
+- **Preflight**: codex CLI 호출 직전 환경 점검 3항목 (which/version/sandbox). 실패 = E0.
+- **E0–E4**: codex 호출 실패 분류 코드. E0=preflight fail, E1=timeout 5분 stuck, E2=즉시 종료 + 무 stderr, E3=빈 응답 stdout 0 byte, E4=일반 실패 exit ≠ 0 + stderr 있음.
+- **oh-my-claudecode:critic**: omc 플러그인 Opus 모델 read-only subagent — 코드/플랜 리뷰 전문. Write/Edit 불허.
+- **oh-my-claudecode:explore**: omc 플러그인 Haiku 모델 read-only subagent — 파일/패턴 탐색 전문. Write/Edit 불허.
+- **Q-CODEX-DISPATCH-FAIL**: codex subagent dispatch 자체 실패 (no response / timeout / subagent type unavailable) 시 `docs/harness/user-queue.md` 에 등록하는 halt entry. 본 SKILL 정의.
+- **Q-VERIFIER-DISPATCH-FAIL**: kzk-large-task-delegation §Stage 3 / kzk-pre-commit-gate Gate 5 의 verifier subagent dispatch 실패 시 등록되는 halt entry — 본 SKILL 이 재사용하는 기존 패턴.
+- **kzk-large-task-delegation**: 3+ 파일 / 200+ LoC 작업을 fresh subagent 로 위임하는 sister skill. `§Stage 3 Q-VERIFIER-DISPATCH-FAIL` 패턴 출처.
+- **kzk-background-monitoring**: codex exec 등 long-running task 의 stuck 감지 + 소유권 규칙 sister skill.
+- **kzk-spec-and-review**: spec/plan/design 작성 시 codex CLI cross-vendor review 수행하는 sister skill — 본 SKILL 의 호출 메커니즘 소비자.
+- **harness-share.md**: 모든 kzk-* 스킬의 공통 SoT 문서. 충돌 시 §N 이 개별 SKILL.md 보다 우선.
+
+## Changelog
+
+본 SKILL 의 운영 규칙은 본문에 현재 상태만 기술. 과거 변경 이력은 본 §Changelog 에 격리.
+
+- **2026-05-06 (Phase 1 / Cycle 36)**: 신설. kzk-spec-and-review §Codex execution shape + §Prompt size guideline 본문을 본 SKILL 로 이전. Codex review 13 issues + 4 critical fix 모두 inline 적용 — E4 분기 (`exit ≠ 0 AND stderr ≥ 1 byte OR wall ≥ 2s`) 추가, E0 Preflight 신설, Q-CODEX-DISPATCH-FAIL halt entry 신설.
+- **2026-05-06 (Cycle 38)**: §Glossary + §Changelog 신설. inline gloss 7 위치 추가. TBD → self-authoritative (Phase 2 §32 migrate 명시). version 1.0.0 → 1.1.0.
+
 ## Anti-patterns
 
 - `--json | jq` direct pipe (NDJSON parse fail)
@@ -164,6 +184,7 @@ dispatch fail (no response / timeout / subagent type unavailable) → `kzk-large
 
 ## Interaction with other kzk-*
 
-- **kzk-spec-and-review** — review-specific 부분 (§Codex prompt skeleton / §Verdict file convention / §Cost/cadence / §Artifact retention / §Anti-patterns) 만 거기 유지. 호출 메커니즘은 본 스킬 SoT.
+- **kzk-spec-and-review** (sister skill — spec/plan codex cross-vendor review 담당): review-specific 부분 (§Codex prompt skeleton / §Verdict file convention / §Cost/cadence / §Artifact retention / §Anti-patterns) 만 거기 유지. 호출 메커니즘은 본 스킬 SoT (SoT = Source of Truth, 단일 출처 문서).
 - **kzk-large-task-delegation §Pre-implementation plan-critic loop** — codex 호출 부분 본 스킬 §Codex CLI 호출 패턴 cross-ref.
 - **kzk-background-monitoring** — 5min stuck detection 시 background-monitor 호출.
+- **kzk-autonomous-boundary** (sister skill — branch contract / halt conditions / autonomous mode boundaries 정의): Q-CODEX-DISPATCH-FAIL halt entry 를 §Halt conditions 표에 등록 의무 (Phase 2 작업).
