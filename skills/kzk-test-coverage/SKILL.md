@@ -1,6 +1,6 @@
 ---
 name: kzk-test-coverage
-version: 1.4.0
+version: 1.5.0
 description: "TDD-strict and 100% coverage on changed files — make sure to use this skill for any new feature or bugfix requiring TDD discipline, coverage gap reporting, or when 'test first', '테스트 먼저', 'red-green', or 'coverage exemption' appear. Enforces Red→Green→Refactor→Commit sequence: failing test written before implementation read. Anti-self-verification rule: in autonomous mode, main context cannot enter TDD red stage directly — must dispatch via fresh sonnet (halt entry Q-TDD-MAIN if violated). 100% line+branch coverage on touched files; legacy code in touched files counts. Exemptions (boot files, .d.ts, decorator-only) must be declared in PR description. References harness-share.md §11."
 ---
 
@@ -90,4 +90,4 @@ Required PR description line format per exemption: `Coverage exemption: <file> �
 - **kzk-user-queue**: when a coverage gap is queued due to time constraint, use the entry template from that skill (`Q-COV-<FILE>` prefix).
 - **kzk-pre-commit-gate**: Gate 3 (module test pass) is the execution; this skill is the coverage threshold applied to that same test run on touched files.
 - **kzk-large-task-delegation**: two-stage review step 4 (coverage on touched files) references this skill's exemption rules.
-- **kzk-autonomous-boundary**: 자율 mode 판별 키워드 / 환경변수 룰을 본 skill §Anti-pattern Layer b 에서 정의. autonomous-boundary 의 halt 룰과 통합 (`Q-TDD-MAIN` 큐 entry). **본 Plan A 는 contract only — kzk-autonomous-boundary skill 본문 수정은 Plan A 범위 밖. autonomous-boundary skill 의 halt 룰 표 / Q-TDD-MAIN cross-ref update 는 별도 follow-up 작업 (Plan C 통합 또는 fast-follow). split-brain 위험 인지 — Plan A frozen 시 follow-up issue 등록 의무.**
+- **kzk-autonomous-boundary**: 자율 mode 판별 키워드 / 환경변수 룰을 본 skill §Anti-pattern Layer b 에서 정의. autonomous-boundary 의 halt 룰과 통합 (`Q-TDD-MAIN` 큐 entry).

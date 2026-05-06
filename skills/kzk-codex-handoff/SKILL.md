@@ -1,6 +1,6 @@
 ---
 name: kzk-codex-handoff
-version: 1.3.0
+version: 1.4.0
 description: "Codex CLI 호출 안정화 단일 SoT — make sure to use this skill whenever any other skill invokes the codex CLI, or when codex exec produces timeout/empty/NDJSON parse failures. Defines 5 hard rules: stdin pipe required, --json→file→jq (never direct pipe), --ephemeral always, short prompts via arg exception, plain text mode preferred. Covers E0 Preflight (which/version/sandbox), E1–E4 fallback ladder to critic opus, fresh-subagent dispatch shape, prompt size guidelines (<500 lines, <700-word response), and stuck detection (60s no-first-token, 5min total). Meta-skill — user triggers rare; auto-loaded by kzk-spec-and-review and kzk-large-task-delegation cross-ref. Self-authoritative (Phase 2: harness-share.md §32)."
 ---
 
@@ -98,12 +98,6 @@ dispatch fail → `kzk-large-task-delegation §Stage 3 Q-VERIFIER-DISPATCH-FAIL`
 - **Q-CODEX-DISPATCH-FAIL**: subagent dispatch 자체 실패 시 user-queue halt entry.
 - **oh-my-claudecode:critic**: omc Opus read-only subagent. Write/Edit 불허.
 
-## Changelog
-
-- **Cycle 36**: 신설. E4 분기, E0 Preflight, Q-CODEX-DISPATCH-FAIL 신설.
-- **Cycle 38**: §Glossary + §Changelog 신설. version 1.1.0.
-- **Cycle 39**: model 상속 룰 (model 생략 → 메인 버전 상속) §Hard rules + §Fresh subagent 강조. version 1.2.0.
-- **Cycle 41**: 압축 — marginal value (model 상속 + verdict file) prominent. 일반 상식 부분 단락 압축. version 1.3.0.
 
 ## Anti-patterns
 

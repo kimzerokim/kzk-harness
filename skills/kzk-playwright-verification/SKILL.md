@@ -1,6 +1,6 @@
 ---
 name: kzk-playwright-verification
-version: 1.3.0
+version: 1.4.0
 description: "Playwright MCP visual verification and OAuth click-through — make sure to use this skill before every UI/CSS commit (Gate 4) and whenever browser_navigate, browser_take_screenshot, OAuth login screens, or 'Google 로그인' appear in the workflow. Build/test green ≠ visual PASS — Gate 4 catches unstyled shadcn primitives, padding-less badges, border-only cards. Enforces: 3+ representative pages, full-page screenshot, 0 console errors, explicit visual claim (named elements + named tokens). OAuth click-through is agent-driven — never stop to wait for user on login UI. MCP drop → 5-step self-recovery before halting. Narration mandate: 1-3 sentences after every tool call ≥2s. References harness-share.md §3 Gate 4."
 ---
 
@@ -96,9 +96,6 @@ If main context cannot see `mcp__playwright__*` in the deferred tool list (or `c
 
 These 5 steps are main-context responsibility; do not delegate to a subagent (subagents share the same MCP visibility limit).
 
-## Token-migration warning (shadcn + Tailwind v4)
-
-Official shadcn new-york blocks use **prefix-less** tokens (`--background / --primary / --sidebar`). When mixing with Tailwind v4 `@theme { --color-* }`, the bridge `@theme inline { --color-background: var(--background); ... }` is required. Renaming variables but moving the values does NOT make utility classes work. Always confirm against `/shadcn-ui/ui` via context7 before migrating tokens.
 
 ## Anti-patterns
 

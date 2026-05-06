@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-merge-sync
-version: 1.5.0
+version: 1.6.0
 description: "Pre-merge and milestone checklist — make sure to use this skill before any gh pr create (PR-flow) or before each user-visible milestone commit (direct-main flow). Enforces 4 mandatory steps: (1) CLAUDE.md sync (Tech Stack / Project Structure / API Endpoints / Database / Key Rules / Env Vars), (2) deepinit run and manifest refresh, (3) regression-recall + fix-scope-trigger hook auto-enable after all 5 plans merge (fail-closed: jq check + duplicate guard + exit-code gate), (4) full freshness sweep via kzk-freshness-guard. PR description must include 'CLAUDE.md updated to match current state' and 'deepinit ran'. Skipping deepinit on direct-main flow is a violation. References harness-share.md §14.5 + §15."
 ---
 
@@ -87,14 +87,7 @@ Checkpoint: PR description (PR-flow) 또는 milestone commit message (direct-mai
 
 ## 4. Freshness sweep
 
-> Cross-ref: `kzk-freshness-guard` §자동 호출 지점
-
-merge/milestone 직전 전체 메타 문서 CRG 기반 최종 검증:
-
-1. `crg-utils.getChangedFiles('base')` → branch 전체 변경 파일
-2. `crg-utils.findStaleMetaDocs(changedFiles)` → stale 메타 문서 감지
-3. stale 발견 시: auto-fix dispatch (Gate 0.5 와 동일 전략) → fix 후 추가 commit
-4. stale 없음 → PASS, merge 진행
+> See `kzk-freshness-guard` §Detection Logic — branch-wide stale sweep (getChangedFiles('base') → findStaleMetaDocs → auto-fix dispatch → PASS). Cross-ref: `kzk-freshness-guard` §자동 호출 지점 'kzk-pre-merge-sync' row.
 
 ## Interaction with other kzk-*
 

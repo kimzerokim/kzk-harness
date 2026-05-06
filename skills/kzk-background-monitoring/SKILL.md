@@ -1,6 +1,6 @@
 ---
 name: kzk-background-monitoring
-version: 1.3.0
+version: 1.4.0
 description: "Background task ownership discipline — make sure to use this skill whenever spawning a background process via run_in_background, Monitor tool, codex exec, or any CLI invocation ≥5 seconds. The spawning agent owns the task until terminal state (success/failure/kill) — 'is it done?' from the user is a violation. Governs stuck detection thresholds (subagent ≥5 min, Bash ≥3 min, codex no first token in 60s), kill+diagnose+retry procedure, subagent completion verification with receipt line, and session-resume restate-before-dispatch rule. Narration mandate: 1-3 sentences after every long-running tool call. References harness-share.md §23."
 ---
 
@@ -9,8 +9,6 @@ description: "Background task ownership discipline — make sure to use this ski
 # kzk-background-monitoring
 
 ## Stuck detection thresholds
-
-> **Marginal value** — baseline misses the Bash 3 min threshold. These numbers are non-negotiable.
 
 | Task type | Stuck threshold |
 |---|---|
@@ -21,8 +19,6 @@ description: "Background task ownership discipline — make sure to use this ski
 Additional signals: CPU 0%, stderr shows `Reading additional input from stdin...`, wall time ≥ 2× expected.
 
 ## Narration mandate
-
-> **Marginal value** — every long-running tool call requires narration; silence = stuck appearance.
 
 **After every tool with response time ≥ 2s: output 1-3 sentences of interpretation + named next action BEFORE the next call.**
 

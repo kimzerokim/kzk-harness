@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.7.0
+version: 1.8.0
 description: "Pre-commit gate — make sure to use this skill before every commit, whether autonomous or interactive. Runs up to 9 sequential gates: Gate 0 (AGENTS.md sync, when hierarchy present), Gate 0.5 (freshness guard CRG stale check), Gate 1 (ai-slop-cleaner), Gate 1.5 (secrets scan AKIA/ASIA), Gate 1.6 (production code-first staged-path check), Gate 2 (build green), Gate 3 (module test pass), Gate 4 (Playwright visual if frontend changed), Gate 4.5 (fix-scope callsite sanity), Gate 5 (fresh-agent verifier for 3+ file commits and high-risk tags). One failure blocks the commit. Skip conditions per gate are explicit — no silent skips. Covers doc-only fast path, KZK_GATE05_SKIP, KZK_GATE45_SKIP, env-exception, INVALID_VERDICT handling. References harness-share.md §3."
 ---
 
@@ -27,19 +27,9 @@ Failure → fix the AGENTS.md, re-stage, new commit. NEVER amend.
 
 ### Gate 0.5 — Freshness guard
 
-> Cross-ref: `kzk-freshness-guard` §Pre-commit Gate 0.5
-
-staged 코드 파일 → CRG 심볼 역참조 → 메타 문서 stale 감지.
-
-1. `crg-utils.getChangedFiles('staged')` → staged 파일 목록
-2. `crg-utils.findStaleMetaDocs(stagedFiles)` → stale 메타 문서 목록
-3. 결과 분기:
-   - **stale 없음** → PASS
-   - **stale 발견** → BLOCK + 사용자에게 stale 목록 + 이유 표시 + auto-fix dispatch (문서 종류별 전략 — `kzk-freshness-guard` §Auto-fix 참조) + fix된 메타 문서 restage
-   - **partial failure** (일부 fix 성공, 일부 실패) → 성공분만 stage + 실패분 WARN + user-queue entry
-4. skip: `KZK_GATE05_SKIP=1` env → 전체 skip
-
-**CRG 미설치 시**: degraded grep mode + WARN (silent skip 금지). `crg-utils.ensureCRG()` 결과에 따라 자동 분기.
+> See `kzk-freshness-guard` §Detection Logic for the full procedure (staged 파일 → CRG 심볼 역참조 → stale 감지 → auto-fix dispatch → restage). `KZK_GATE05_SKIP=1` env 로 bypass.
+>
+> **CRG 미설치 시**: degraded grep mode + WARN (silent skip 금지). `crg-utils.ensureCRG()` 결과에 따라 자동 분기.
 
 ## Gate 1 — ai-slop-cleaner
 
@@ -114,25 +104,7 @@ Exception: change is solely under `src/**/*.test.{tsx,ts}` — Gate 4 may be ski
 
 ## Gate 4.5 — Fix Scope Sanity Check (Plan B)
 
-> Authoritative source: harness-share.md §3.5. On conflict, that wins.
-
-**Trigger**: `.kzk-harness/fix-scope-cache.jsonl` 존재 시 (fix-scope-trigger hook 이 활성이고 fix intent commit 일 때).
-
-**Skip**: `KZK_GATE45_SKIP=1` env var 설정 시 N/A (사유 commit body 기재 권고).
-
-**Cache policy**: JSONL append/list — 현재 cycle commit SHA (`$(git rev-parse HEAD)`) key 의 모든 항목 union 체크. `last-fix-wins` 아님.
-
-**Sanity check**: callsite list ⊄ `git diff --cached --name-only` → BLOCK.
-
-BLOCK 시 메시지:
-```
-Gate 4.5: callsite N곳 중 M곳 미수정.
-누락 의도를 commit body 에 명시하거나 해당 callsite 도 수정.
-```
-
-**Cache 부재**: N/A (fix-scope-trigger hook 비활성 또는 fix intent 아닌 commit).
-
-See `kzk-fix-scope-expansion` for the full fix-scope rules and `harness-share.md §3.5` as canonical SoT.
+> See `kzk-fix-scope-expansion` §Gate 4.5 for the full procedure (Trigger / Skip / Cache / Sanity / BLOCK message). SoT: `harness-share.md §3.5`. `KZK_GATE45_SKIP=1` env 로 bypass.
 
 ## Gate 5 — Fresh-agent verifier (Plan C rev2)
 
@@ -153,12 +125,7 @@ Commit 직전 final check. `kzk-large-task-delegation` §Three-stage review §St
    - diff base = `git diff --cached` (Gate 5 단위)
    - acceptance 발췌 = current plan §Acceptance Criteria SoT 우선 (없으면 raw user criteria)
    - VERDICT 파싱 정규식 `^VERDICT: (PASS|FAIL|PARTIAL)$`
-3. **Verdict 처리**:
-   - PASS → commit 진행 + commit body 에 verifier 인용
-   - PARTIAL → commit BLOCK + 메인 추가 fix cycle. 같은 thread 2 consecutive PARTIAL → FAIL escalate
-   - FAIL → commit BLOCK + 메인 fix cycle. **2 consecutive FAIL on same thread → halt + `Q-VERIFIER-FAIL`**
-   - INVALID_VERDICT (첫 줄 형식 위반) → commit BLOCK + `Q-VERIFIER-INVALID` user-queue
-   - Dispatch fail (subagent 응답 없음 / timeout) → commit BLOCK + `Q-VERIFIER-DISPATCH-FAIL` user-queue. fallback: `oh-my-claudecode:code-reviewer` → 그것도 실패 시 사용자 직접 review
+3. **Verdict 처리**: See `kzk-large-task-delegation` §Three-stage review §PASS/FAIL/PARTIAL 처리 table — same logic. diff base = `--cached` (Gate 5) vs `HEAD~1` (Stage 3).
 
 ### Stage 3 vs Gate 5 분리 (중복 호출 차단)
 

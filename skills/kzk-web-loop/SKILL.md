@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.7.0
+version: 1.8.0
 description: "Autonomous web page improvement loop — make sure to use this skill whenever the user says 'web loop', '웹 루프 시작', '계속 돌려', '자율 개선', or '무한 루프'. Runs self-directed cycles indefinitely: (1a) TOOL RUNNER subagent (sonnet) collects test/Playwright/console data, (1b) EVALUATOR subagent (opus) prioritizes P0/P1/P2 issues, (2) picks top issue not yet fixed this cycle, (3) ambiguous decisions → user-queue with tentative default, (4a) P0 fast path → executor direct, (4b) P1/P2 → codebase-survey + writing-plans + subagent-driven-development, (5) harness-flow-progress.md append + regression memory retro. Playwright is optional enhancement with cascade recovery — never halts on MCP drop. Reviewer FAIL 2× = skip issue, pick next (overrides kzk-autonomous-loop halt rule). References harness-share.md §25."
 ---
 
@@ -71,17 +71,11 @@ cycle commit 직후, harness-flow-progress 갱신 다음 step 으로 회고 entr
 
 > "learn add: key=cycle-N-<axis>, type=pattern, insight=<evaluator paragraph 한 줄 요약>, confidence=<verifier 결과 0-10>, source=retro"
 
-동시에 sidecar (`.kzk-harness/regression-meta.jsonl`) 에 append. **file_snapshot canonical source** = cycle 끝 evaluator 가 cycle 내 첫 변경 파일에 대해 `git rev-parse HEAD:<file>` 로 sentinel SHA 캡처:
-
-```jsonl
-{"key":"cycle-N-<axis>","file_snapshot":"<path>:<line>@<git rev-parse HEAD:path>","related_cycles":[N],"dismiss_count":0,"last_dismissed_at":null,"archived":false,"stale":false}
-```
-
-sidecar append 는 `install/lib/sidecar-write.mjs` 의 `mutateSidecar()` 통과 의무 (atomic write).
+동시에 sidecar (`.kzk-harness/regression-meta.jsonl`) 에 append (atomic write via `install/lib/sidecar-write.mjs`).
 
 **gstack plugin 미설치 또는 ~/.gstack/projects/ 부재 시**: stderr WARN 출력 + `harness-flow-progress.md` cycle entry 본문에 `regression memory 비활성 (gstack 미설치)` 의무 표기. cycle 진행 자체는 계속 (회고 entry 만 누락).
 
-**참조**: `kzk-regression-memory` §Cycle 회고 통합 5W1H — Where 행이 본 step. file_snapshot canonical source 정의.
+> JSONL template + file_snapshot canonical source: `kzk-regression-memory` §Cycle 회고 통합 5W1H — Where 행 참조.
 
 **6. Back to step 1a.**
 
@@ -223,16 +217,7 @@ This allows the loop to resume correctly after rate-limit wakeups and context re
 
 ## Subagent Dispatch Requirements
 
-Every tool runner, evaluator, planner, critic, and executor dispatch prompt must include (per `kzk-large-task-delegation`):
-
-- Scope: file paths + line ranges
-- Branch name (never `main` — per `kzk-autonomous-boundary`)
-- Required reading: `CLAUDE.md`, spec doc path, harness-share.md §25
-- Rules: TDD strict, context7 mandate, `kzk-pre-commit-gate` (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise), DO-NOT-MODIFY paths
-- Commit convention: English conventional commits, no Co-Authored-By
-- Working directory absolute path
-- Return format on success
-- Halt condition: BLOCKED → user-queue entry
+> All dispatch prompts include the mandatory fields from `kzk-large-task-delegation` §Subagent prompt requirements, plus web-loop additions: `harness-share.md §25` as required reading, branch name (never `main`), 6-gate or 5-gate pre-commit rule (6 gates if AGENTS.md hierarchy present; 5 gates otherwise).
 
 ## Halt Conditions
 

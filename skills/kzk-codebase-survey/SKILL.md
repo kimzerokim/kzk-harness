@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.10.0
+version: 1.11.0
 description: "Mandatory pre-planning deep codebase explorer — make sure to use this skill before any spec, plan, major design draft, or fix. This is the hub for fix-start flows: when the user says 'fix 시작', '버그 수정', or 'callsite 전수', invoke this skill first; it then lazy-invokes kzk-fix-scope-expansion (CRG callsite query) and kzk-freshness-guard (stale report check). Runs 8 steps via oh-my-claudecode:explore subagent: CRG index verify, scope expansion, deep parallel Read, library detection, context7 docs load, pattern extraction, TypeScript contracts, report save. 5+ file reads are forbidden in main context — always delegate here. References harness-share.md §26."
 ---
 
@@ -246,17 +246,11 @@ spec 작성 / plan 작성 / library 변경의 preparation phase 에서 reference
 - **raw 파일 내용이 메인 컨텍스트로 직접 유입되는 것 자체가 갭** — 축약 summary 도 200 words 상한.
 - 3-4 파일 이하 read 도 preparation 목적이면 EXPLORER 우선 권장 (must 아님, 단 5+ 는 must).
 
-### Anti-pattern — cycle7-handoff style
+### Anti-pattern — Main direct-read during preparation
 
-cycle7-handoff transcript 에서 메인이 cycle 6 spec / Gridly research / 핵심 코드 7+ 파일을 직접 read 한 사례가 확인됨. 이 패턴은 다음과 같이 나타난다:
+메인이 Bash(ls/find) → Read 를 연속 호출하거나 같은 응답에서 3+ 파일 read 시도 시 즉시 EXPLORER subagent dispatch 로 전환.
 
-- 메인이 spec 작성을 위해 reference 코드 파일 여러 개를 순서대로 직접 read
-- 메인이 Bash(ls/find) → Read 를 연속으로 호출해 reference 목록 수집
-- 메인이 같은 응답에서 3+ 파일 read 시도 (preparation 목적 여부 무관)
-
-이 중 하나라도 감지되면 즉시 EXPLORER subagent dispatch 로 전환. 이미 read 한 파일 내용은 요약 형태로만 보관 (raw 내용 참조 중단).
-
-Cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit`, `kzk-autonomous-boundary §Q-MAIN-DIRECT-EDIT`.
+> Full signal list + 대응: `kzk-large-task-delegation` §Anti-pattern §Main direct-edit. `kzk-autonomous-boundary` §Q-MAIN-DIRECT-EDIT.
 
 ## Interaction with other kzk-*
 

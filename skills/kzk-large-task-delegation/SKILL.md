@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.14.0
+version: 1.15.0
 description: "Large task delegation — make sure to use this skill for any request involving 3+ file edits, 200+ LoC changes, 5+ file reads for verification/audit, or multi-stage workflows (build/test/Playwright/review). Main context = dispatch + review only; main never holds implementation or reads 5+ files directly. Governs scope estimation (mandatory 30-second estimate before any non-trivial edit), model routing (opus for plans/critic/verifier, sonnet for substantive implementation, haiku for mechanical), Stage 3 fresh-agent verifier (Gate 5 cite), Q-VERIFIER-FAIL/INVALID/DISPATCH-FAIL halt entries, and read-heavy audit dispatch shape. User phrases: '큰 작업', '버그 전수조사', '마무리 해줘', '사이클 자율', 'plan 쪼개', 'Stage 3'. References harness-share.md §4."
 ---
 
@@ -394,30 +394,6 @@ cache hit 룰:
 **메모리 only** — sidecar persistence 부재. Plan E fast-follow 후보 (별도 issue 등록 의무).
 
 **diff base 단일화**: Stage 3 = HEAD~1, Gate 5 = --cached. 두 시점 SHA 가 다르면 두 호출 — 보통 cycle 끝 commit 의 commit-then-Stage-3 흐름이면 동일 (HEAD~1 = 직전 commit, --cached = staged = 곧 commit 될 diff).
-
-#### Plan C self-bootstrap N/A 예외 (rev2 #1)
-
-Plan C 자체를 적용한 첫 commit (= 본 plan 의 task 7 commit) 은 Stage 3 / Gate 5 가 *적용되기 전* commit 이라 self-reference paradox. 1회만 N/A 허용:
-- commit body 에 명시: `Gate 5 N/A — Plan C self-bootstrap commit, applies from next commit.`
-- 사용자 명시 OK 받은 1회만 — 그 후 모든 commit 은 trigger 충족 시 의무 적용
-
-## Session-6 lesson (do not repeat)
-
-(2026-04-20, ui-migration-shadcn M7 HALT recovery): main context directly ran Edit + Bash + Playwright for M2/M4/M6 cleanup. Result: (1) main-context token bloat, (2) linter timestamp race → repeated Edit failures, (3) quality regressions — token gaps, `a` rule override, accent collisions all missed.
-
-Re-prevention:
-
-1. Detect "large" → immediately invoke `/superpowers:subagent-driven-development`
-2. Skill demands `docs/plans/<name>.md` first (2-5 task TDD format)
-3. Fresh subagent dispatch = `Agent` tool + `subagent_type="oh-my-claudecode:executor"` + `model="sonnet"` (default for implementation; see Model routing table) + frozen plan path + context7 mandate + Pre-commit Gates 0, 1, 1.5, 2, 3, 4 all in prompt
-4. Main reviews subagent return → gate check → commit+push, OR re-dispatch fresh subagent on failure
-5. 2 consecutive subagent failures → halt + user-queue entry. Main does NOT take over.
-
-## Session-28 lesson (skill-load chain)
-
-(2026-05-04, gridless grid bug bash): user said "이외에 스프레드 시트 기능 버그들 모두 개선해줘. 플랜 여러개로 쪼개고, 사이클 자율로 돌면서 사용성 버그 모두 잡아줘." Main loaded `kzk-codebase-survey` + `kzk-autonomous-boundary` correctly, dispatched the codebase survey to `oh-my-claudecode:explore` correctly — then proceeded to read 11+ files, edit 4 source files, run Playwright + docker rebuild **all directly in main**, never loading `kzk-large-task-delegation` and never dispatching an executor subagent for the actual fix. Token bloat + uncatchable regressions risk back.
-
-Root cause: trigger keyword gap — '사용성 버그', '여러 plan 으로 쪼개', '사이클 자율' did not match this skill's description. Fixed in v1.2.0 (description trigger expansion) + `install/hooks/keyword-detector.mjs` activation (Cycle 28).
 
 **Skill-load chain rule:** if `kzk-codebase-survey` is triggered for any task that will lead to edits (i.e., not a pure question), `kzk-large-task-delegation` MUST be loaded in the same turn. Survey alone defines *what to read*; delegation defines *who reads it and who writes back*. Loading survey without delegation = main has read context + no dispatch contract = anti-pattern by construction.
 

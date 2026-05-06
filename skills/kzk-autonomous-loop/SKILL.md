@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-loop
-version: 1.2.0
+version: 1.3.0
 description: "Autonomous loop continuation rules — make sure to use this skill whenever a rate-limit hit, context-budget warning, or multi-Plan sequence requires the agent to keep running without stopping. Governs three specific continuity scenarios: (1) 5-hour rate-limit polling via ScheduleWakeup(delaySeconds=600), (2) auto /compact at ≥80% context with one-line restate, (3) Plan A→B→…→N auto-continuation with open-PR conflict guard. Polite stops are forbidden inside autonomous scope — this skill is the anti-polite-stop contract. References harness-share.md §12/§13/§14. Cross-ref kzk-autonomous-boundary for halt conditions."
 ---
 
@@ -49,14 +49,9 @@ Sequence Plan A → Plan B → ... → Plan N in one autonomous session:
 
 Each Plan boundary records pass/fail in `harness-flow-progress.md` Session N "체크포인트 Log" (see `harness-share.md` §7 for Session N template). Plan-by-Plan PRs (no batch merge) — if a plan is later found to have the wrong direction (user feedback reverses approach after merge), other plans' PRs remain independent and unaffected. Ambiguous decisions go to `docs/harness/user-queue.md` (see `kzk-user-queue`). Crossing un-applied policy areas (e.g. plan written before PRD v1.13) → halt + user-queue entry; do NOT silently rewrite policy.
 
-## Halt conditions (re-stated; canonical source: `kzk-autonomous-boundary`)
+## Halt conditions
 
-- reviewer/critic 2 consecutive FAIL (Exception: `kzk-web-loop` overrides this — skip issue, pick next; see `harness-share.md` §25 "Reviewer FAIL override")
-- build/test 3 consecutive FAIL
-- `main` access required next step
-- user-queue decision required
-
-Anything else → continue.
+> See `kzk-autonomous-boundary` §Halt conditions (canonical). Anything else → continue.
 
 ## Visibility (Session-12 lesson)
 

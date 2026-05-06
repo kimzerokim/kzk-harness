@@ -1,6 +1,6 @@
 ---
 name: kzk-fix-scope-expansion
-version: 1.2.0
+version: 1.3.0
 description: "Fix scope expansion and Gate 4.5 sanity check — make sure to use this skill when a fix-start flow detects callsite mismatch or triggers Gate 4.5 (fix-scope-specific keywords). Note: 'fix 시작' and '버그 수정' direct triggers are owned by kzk-codebase-survey (the hub); this skill is cross-ref invoked from codebase-survey during fix-start flows. Direct triggers for this skill are callsite-mismatch-specific: 'callsite 전수', 'Gate 4.5', 'fix-scope-cache', 'KZK_GATE45_SKIP', 'callsite 누락'. Runs fix-scope-trigger.mjs hook (CRG detect-changes → grep fallback), writes .kzk-harness/fix-scope-cache.jsonl, and defines the pre-commit Gate 4.5 BLOCK. Default DISABLED until kzk-pre-merge-sync step 3. References harness-share.md §3.5."
 ---
 
@@ -109,10 +109,7 @@ Gate 4.5: callsite N곳 중 M곳 미수정.
 
 ## 자가-skip guard
 
-`hook-shared.shouldSkip(prompt, env)` 재사용 — 자가개선 루프 자기오염 차단.
-동사구만 매칭 (명사 단독 `자가개선` 등 false positive 차단 — spec rev5 §Axis A Layer b).
-
-자세한 패턴은 `install/lib/hook-shared.mjs` §SELF_IMPROVE_VERBPHRASES.
+> `hook-shared.shouldSkip(prompt, env)` 재사용. 패턴 단일 SoT: `install/lib/hook-shared.mjs` §SELF_IMPROVE_VERBPHRASES. Cross-ref: `kzk-regression-memory` §자가-skip guard.
 
 ## Default DISABLED 정책
 

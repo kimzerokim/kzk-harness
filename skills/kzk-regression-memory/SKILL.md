@@ -1,6 +1,6 @@
 ---
 name: kzk-regression-memory
-version: 1.2.0
+version: 1.3.0
 description: "Regression memory auto-recall — make sure to use this skill when a fix starts and past similar fixes should be surfaced, or when managing the regression memory lifecycle (dismiss, archive, stale check, cycle retro). Hooks into UserPromptSubmit via regression-recall.mjs to inject past fix context before the fix begins. Storage: gstack /learn JSONL (primary) + .kzk-harness/regression-meta.jsonl sidecar (dismiss_count, stale, archived). Decay formula: confidence * 0.85^dismiss_count; archived/decayed-below-4 entries filtered. Self-improvement loop auto-skipped via KZK_HARNESS_SELF_IMPROVEMENT=1. Dismiss CLI: node install/bin/kzk-regression-memory.mjs dismiss <key>. Default DISABLED until kzk-pre-merge-sync step 3. References harness-share.md §29."
 ---
 
@@ -128,13 +128,7 @@ node install/bin/kzk-regression-memory.mjs dismiss <key>
 
 ## Default DISABLED 정책
 
-**D commit 시점**: hook 파일은 추가하지만 settings.json 등록 안 함. `--regression-recall` flag 호출 안 한 상태.
-
-**자동 enable on main 머지**: **5 plan (A→D→B→C→E)** 모두 끝나고 `kzk-pre-merge-sync` 의 마지막 step 에서 `install-global.sh --enable-hooks --regression-recall` 자동 호출 (사용자 confirm 게이트). `--regression-recall` 호출 시 keyword-detector 도 explicit dependency 자동 enable.
-
-**fail-closed** (codex #3 답): settings.json 등록 성공 + duplicate UserPromptSubmit append 없음 검증 실패 → merge block (exit non-zero). jq 부재 시 merge block.
-
-거부 path: 사용자 confirm 거부 → manual enable 안내 (`uninstall-global.sh` 의 reverse 참고). cycle 진행 자체는 영향 X. PR description 또는 milestone commit message 에 명시 의무.
+> See `kzk-pre-merge-sync` §3 for the enable gate, fail-closed verification, and user-confirm protocol (5 plan 완료 후 자동 enable, jq 부재/duplicate entry → merge block).
 
 ## Rollback (7 level — codex #10 답)
 

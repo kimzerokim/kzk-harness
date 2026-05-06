@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.5.0
+version: 1.6.0
 description: "Autonomous-mode boundary — make sure to use this skill whenever the user says 'ralph로 돌려', '끝까지 끝내줘', '자율실행', or any phrasing that requests autonomous multi-commit execution. Enforces the mandatory ASK-FIRST 3-slot branch/PR contract (branch destination, branch name, PR mode) before any autonomous or harness-driven multi-commit flow begins. Governs halt conditions (reviewer 2× FAIL, build 3× FAIL, main-access required), destructive-op guardrails (force-push, reset --hard, PR auto-merge), and Q-entry patterns (Q-TDD-MAIN, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-FAIL, Q-VERIFIER-INVALID, Q-VERIFIER-DISPATCH-FAIL). References harness-share.md §2."
 ---
 
@@ -63,9 +63,6 @@ Anything else → keep going (see `kzk-autonomous-loop` for polite-stop ban).
 | `Q-VERIFIER-DISPATCH-FAIL` | verifier subagent dispatch 자체 실패 (no response / timeout / subagent type unavailable) | BLOCK + user-queue entry `Q-VERIFIER-DISPATCH-FAIL — verifier dispatch 실패, fallback path 또는 사용자 직접 review 결정 필요`. fallback: `oh-my-claudecode:code-reviewer` 시도 | fallback PASS 또는 사용자 manual review OK |
 | `Q-CODEX-DISPATCH-FAIL` | codex subagent dispatch 자체 실패 (no response / timeout / subagent type unavailable) — `kzk-codex-handoff §Fresh subagent 호출 패턴` 정의 | BLOCK + user-queue entry `Q-CODEX-DISPATCH-FAIL — codex CLI dispatch 실패, 메인 직접 호출 또는 critic opus fallback 결정 필요`. fallback path 1: 메인 직접 codex 호출 (subagent layer 우회). fallback path 2: oh-my-claudecode:critic opus | path 1 또는 2 PASS 또는 사용자 manual review OK |
 
-### Q-TDD-MAIN 흡수 종료 (Plan A → Plan C cross-ref)
-
-Plan A rev2 frozen 의 follow-up 로 위임된 `Q-TDD-MAIN` cross-ref 등록은 본 Plan C task 3 에서 흡수 완료. **별도 follow-up 없음**. 이후 어떤 plan 도 Q-TDD-MAIN 의 halt 표 등록을 새로 건드리지 않는다 — split-brain 차단. 룰 본문 수정은 `kzk-test-coverage` §Anti-pattern 영역 한정.
 
 ## Rollback / revert policy
 
@@ -91,7 +88,7 @@ If the autonomous loop committed code that is later found to be wrong (reviewer 
 - **kzk-tool-retry**: When any Edit/Write/Bash fails during autonomous execution, apply 1-retry before halting or queuing. This skill defines halt conditions; kzk-tool-retry defines the single-call retry discipline that runs before those conditions are evaluated.
 - **kzk-autonomous-loop**: polite-stop ban and multi-Plan continuation rules. This skill defines what STOPS the loop; that one defines how the loop CONTINUES.
 - **kzk-user-queue**: halt conditions that require a user decision append entries here and await a DECISION line before resuming.
-- **kzk-test-coverage**: Plan A Layer (b) 자율 mode 메인 직접 TDD 금지 룰의 halt entry (`Q-TDD-MAIN`) 가 본 skill 의 §Halt conditions 표에 등록됨 (Plan C task 3, 흡수 종료).
+- **kzk-test-coverage**: Plan A Layer (b) 자율 mode 메인 직접 TDD 금지 룰의 halt entry (`Q-TDD-MAIN`) 가 본 skill 의 §Halt conditions 표에 등록됨.
 - **kzk-large-task-delegation / kzk-pre-commit-gate**: Plan C Stage 3 / Gate 5 verifier 관련 halt entry (`Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `Q-VERIFIER-DISPATCH-FAIL`) 가 본 skill §Halt conditions 표에 등록됨.
 - **kzk-large-task-delegation / kzk-codebase-survey**: 메인 직접 multi-file edit / 5+ 파일 read 시도 halt entry (`Q-MAIN-DIRECT-EDIT`) 가 본 skill §Halt conditions 표에 등록됨. cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit` / `kzk-codebase-survey §Preparation phase delegation`.
 - **kzk-codex-handoff**: `Q-CODEX-DISPATCH-FAIL` halt entry 의 정의 출처. 본 skill §Halt conditions 표가 그 entry 를 등록.
