@@ -997,15 +997,15 @@ Run before any brainstorming or planning phase. Reads the full codebase scope (d
 
 ### code-review-graph (optional, recommended)
 
-If available (`code-review-graph --version` exits 0), use for scope expansion and blast radius analysis:
-- `code-review-graph query --file <target>` — forward dependency graph
-- `code-review-graph blast-radius --file <target>` — reverse deps (who imports target)
+If available (`code-review-graph --version` exits 0), use for scope expansion via MCP tools (preferred) or index health checks:
+- **MCP (preferred):** `code-review-graph install` registers an MCP server; use `query_graph`, `get_impact_radius`, `semantic_search_nodes` tools.
+- **CLI callsite query no longer supported** — `query` and `blast-radius` subcommands were removed. CLI only: `code-review-graph status` (index health), `code-review-graph serve` (spawn MCP over stdio).
 - Install: `pip install code-review-graph && code-review-graph install && code-review-graph build` (run once per project)
-- Fallback: grep-based scope expansion if not installed.
+- Fallback: MCP unavailable → grep-based scope expansion (see SKILL.md step 2.5 for template-literal variant).
 
 ### EXPLORER steps (Step 0.5 + Step 1–8)
 
-1a. Scope expansion (target files → transitive imports → feature dir → tests). **If code-review-graph available:** use `query` + `blast-radius` commands. **Fallback:** `grep -r "from '.*<module-name>'" --include="*.ts" -l`.
+1a. Scope expansion (target files → transitive imports → feature dir → tests). **If code-review-graph MCP available:** use `query_graph` + `get_impact_radius` tools. **Fallback:** `grep -r "from '.*<module-name>'" --include="*.ts" -l`; for template-literal callsites also grep by path prefix or binding name (see SKILL.md step 2.5).
 1b. Deep read all files in parallel (full file, no excerpts) + `git log -5 <file>`
 2. Library detection (parse imports → external packages only)
 3. Library knowledge: context7 docs → kzk/superpowers skill → web_search fallback

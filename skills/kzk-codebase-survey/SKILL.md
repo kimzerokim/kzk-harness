@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.13.0
+version: 1.14.0
 description: "Mandatory pre-planning deep codebase explorer — make sure to use this skill before any spec, plan, major design draft, or fix. This is the hub for fix-start flows: when the user says 'fix 시작', '버그 수정', or 'callsite 전수', invoke this skill first; it then lazy-invokes kzk-fix-scope-expansion (CRG callsite query) and kzk-freshness-guard (stale report check). Runs 8 steps via oh-my-claudecode:explore subagent: CRG index verify, scope expansion, deep parallel Read, library detection, context7 docs load, pattern extraction, TypeScript contracts, report save. 5+ file reads are forbidden in main context — always delegate here. References harness-share.md §26."
 ---
 
@@ -79,17 +79,25 @@ If Step 0.5 was skipped entirely (interactive mode without prior survey call thi
 3. `get_impact_radius(target=<file>)` — blast-radius scoring
 4. Same feature-dir + test-file inclusion rules as below
 
-**If CLI available (exit 0) but no MCP:**
-1. `code-review-graph query --file <target>` — forward dependency graph
-2. `code-review-graph blast-radius --file <target>` — reverse deps (who imports target)
-3. Include all files in the same feature directory (closest named folder boundary — defined as the nearest ancestor directory whose name is not a generic structural folder such as `src/`, `lib/`, `app/`, `components/`, `pages/`)
-4. Include all co-located test files (`*.test.*`, `*.spec.*`)
+**Path priority (revised cycle 47): MCP tools → grep. Pure-CLI callsite query is no longer supported (CRG `query`/`blast-radius` subcommands removed; only `serve` mode exposes callsite data over MCP).**
 
-**Fallback (not installed):**
-1. Parse all `import`/`require`/`from` statements in the target files
+**If CLI available (exit 0) but no MCP:**
+1. First try `ToolSearch(query="+code-review-graph")` to surface MCP tools — they auto-register on `code-review-graph install` but may not be loaded yet.
+2. If still no MCP tools, the binary's CLI does NOT expose callsite query directly. Two options:
+   a. Spawn `code-review-graph serve` as a subprocess and connect via MCP (only worth it for large surveys — overhead ~5s startup).
+   b. Skip CRG entirely, use grep fallback below.
+3. `code-review-graph status` (always available) can still verify index health and Files/Nodes/Edges count.
+
+**Fallback (CRG not installed or no MCP after step above):**
+1. Parse all `import`/`require`/`from` statements in the target files.
 2. Trace one transitive hop: `grep -r "from '.*<module-name>'" --include="*.ts" --include="*.tsx" -l`
-3. Include all files in the same feature directory (same definition as above — nearest non-generic ancestor)
-4. Include all co-located test files (`*.test.*`, `*.spec.*`)
+2.5. **template-literal callsite hop** — when looking for callers of a route/endpoint or any function whose call sites use `${var}` interpolation, the literal URL/symbol won't match a static grep. Try variant patterns:
+   - For URLs: grep the path prefix up to the first `${` or `:param` boundary (e.g., `api\.(post|get|put|patch|delete)\(['"\`]\/api\/grids\/`).
+   - For symbols imported then template-injected: grep for the imported binding name in body files (e.g., `\bgridId\b` in API client files).
+   - For backtick template literals broadly: `grep -rE "['\"\`].*\$\{" --include="*.ts" --include="*.tsx"` then narrow with the symbol name.
+   Document the chosen variant in the Survey report's "Scope" section so callers can sanity-check the heuristic.
+3. Include all files in the same feature directory (same definition as above — nearest non-generic ancestor).
+4. Include all co-located test files (`*.test.*`, `*.spec.*`).
 
 If code-review-graph is not installed, note "code-review-graph not available — using grep fallback" in report header.
 
