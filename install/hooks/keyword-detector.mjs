@@ -30,6 +30,12 @@ const RULES = [
     triggers: [
       "codebase survey", "코드베이스 탐색", "deep explore", "survey first", "before planning",
       "구현 확인", "spec vs implementation", "spec 체크", "스펙 체크", "하나하나 확인", "ralph로 체크",
+    ],
+  },
+  {
+    skills: ["kzk-codebase-survey"],
+    why: "단순 survey 요청 (자연 발화) — large-task-delegation 동반 X (사용자 결정 2026-05-06: 단순 survey 만)",
+    triggers: [
       "코드 서베이", "코드서베이", "서베이 해줘", "서베이해줘", "code survey", "코드베이스 서베이", "코드 survey",
     ],
   },
