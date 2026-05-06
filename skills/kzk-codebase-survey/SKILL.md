@@ -1,7 +1,7 @@
 ---
 name: kzk-codebase-survey
-version: 1.8.0
-description: "Mandatory pre-planning deep codebase read — full import scope, context7 docs, TypeScript contracts, fix-time callsite expansion. Top triggers: 'codebase survey', '코드베이스 탐색', 'spec 검증', '하나하나 확인', 'before planning', 'fix 시작', 'callsite 전수', 'preparation phase delegation'. Body §Triggers for full list."
+version: 1.9.0
+description: "Mandatory pre-planning deep codebase read — full import scope, context7 docs, TypeScript contracts, fix-time callsite expansion. Top triggers: 'codebase survey', '코드 서베이', '코드베이스 탐색', 'spec 검증', '하나하나 확인', 'before planning', 'fix 시작', 'callsite 전수', 'preparation phase delegation'. Body §Triggers for full list."
 ---
 
 > Authoritative source: `harness-share.md` §26. On conflict, that wins.
