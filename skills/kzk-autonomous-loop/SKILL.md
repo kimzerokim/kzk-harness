@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-loop
-version: 1.3.0
+version: 1.5.0
 description: "Autonomous loop continuation rules — make sure to use this skill whenever a rate-limit hit, context-budget warning, or multi-Plan sequence requires the agent to keep running without stopping. Governs three specific continuity scenarios: (1) 5-hour rate-limit polling via ScheduleWakeup(delaySeconds=600), (2) auto /compact at ≥80% context with one-line restate, (3) Plan A→B→…→N auto-continuation with open-PR conflict guard. Polite stops are forbidden inside autonomous scope — this skill is the anti-polite-stop contract. References harness-share.md §12/§13/§14. Cross-ref kzk-autonomous-boundary for halt conditions."
 ---
 
@@ -44,6 +44,21 @@ Sequence Plan A → Plan B → ... → Plan N in one autonomous session:
   - `superpowers:verification-before-completion` — commit-time evidence required
 - Independent 2+ tasks → `superpowers:dispatching-parallel-agents`
 - No mid-run progress reports. Final summary only when all Plans finish OR a halt condition fires.
+
+### Multi-plan CRG refresh 의무
+
+multi-Plan continuation (Plan A→B→…→N) 시작 시 + 각 plan 사이 CRG refresh 의무:
+
+1. **시작 시 (Plan A 직전)**: `code-review-graph build` full rebuild — 이전 cycle commit 반영. 시간 ~30초–2분.
+2. **각 plan 끝나는 시점 (commit 직후)**: `code-review-graph update` incremental — `kzk-pre-commit-gate §Post-commit CRG refresh` 적용. session cache invalidate (`CRG_LAST_BUILT_SHA` reset).
+3. **새 plan 시작 직전 (Plan B 진입 전)**: `code-review-graph status` 로 cache 검증. `CRG_LAST_BUILT_SHA` 가 reset 상태 (cache miss) 이면 `(f)` 룰 재발동 → incremental update 후 진입. cache hit 이면 신뢰하고 진입.
+4. **session 안 동일 plan 안 추가 CRG call**: `kzk-codebase-survey §Step 0.5 (f)` session cache 신뢰. 반복 build X.
+
+**요약**: plan 끝 = commit → CRG update → cache invalidate. 새 plan 시작 직전 = cache miss 확인 → (f) 재발동 → reload. 둘 다 명시 의무.
+
+**Anti-pattern**: 이전 plan commit 반영 없이 새 plan 진입 — stale CRG 로 fix-scope-expansion / codebase-survey 가 outdated callsite 보고 위험.
+
+**Skip 조건**: `KZK_CRG_NO_REFRESH=1` env (CI / debug 용).
 
 ## Plan-boundary checkpoints
 

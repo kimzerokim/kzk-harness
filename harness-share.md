@@ -236,6 +236,32 @@ source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `doc
 
 Staged diff = only `*.md` (skills / harness-share / CLAUDE / README / progress / docs/) + no source file → run only Gate 1.5 (secrets) + verify-install AC2 (marker row count). Full gate set runs once at cycle close. See `kzk-pre-commit-gate §Doc-only patch policy`.
 
+## 3.5. CRG Auto-refresh Policy
+
+code-review-graph 인덱스를 항상 최신 상태로 유지하는 정책. fix-scope-expansion (Gate 4.5) 의 정확성 보장 — stale CRG = false-positive callsite mismatch 또는 누락 위험.
+
+### session 처음 CRG call 시
+
+`kzk-codebase-survey §Step 0.5 (f)` 적용:
+1. `code-review-graph status` 로 `Built at commit: <sha>` vs `git rev-parse HEAD` 비교
+2. drift > 0 시 `code-review-graph update` (incremental) 실행. 실패 시 `code-review-graph build` (full) fallback.
+3. session cache update — `CRG_LAST_BUILT_SHA`, `CRG_FILES`, `CRG_NODES`
+4. 이후 동일 session 안 추가 CRG call 은 cache 신뢰 (반복 build X)
+
+### multi-Plan continuation 시작 + 각 plan 사이
+
+`kzk-autonomous-loop §Multi-plan CRG refresh` 적용:
+- Plan A 직전: `code-review-graph build` full rebuild
+- 각 plan 사이: `code-review-graph update` incremental (실패 시 full build fallback)
+
+### commit 직후
+
+`kzk-pre-commit-gate §Post-commit CRG refresh` 적용 (incremental update + session cache invalidate — `CRG_LAST_BUILT_SHA` reset).
+
+### Skip 조건
+
+`KZK_CRG_NO_REFRESH=1` env (CI / debug 용).
+
 ### Gate 5 — Fresh-agent verifier (Plan C rev2)
 
 자율실행 mode / large-task delegation 끝 / **메인 직접 commit 모든 case** / high-risk tag (auth/payment/migration/public API) / 3+ 파일 multi-file 의 commit 직전:

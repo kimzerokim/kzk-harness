@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.11.0
+version: 1.13.0
 description: "Mandatory pre-planning deep codebase explorer — make sure to use this skill before any spec, plan, major design draft, or fix. This is the hub for fix-start flows: when the user says 'fix 시작', '버그 수정', or 'callsite 전수', invoke this skill first; it then lazy-invokes kzk-fix-scope-expansion (CRG callsite query) and kzk-freshness-guard (stale report check). Runs 8 steps via oh-my-claudecode:explore subagent: CRG index verify, scope expansion, deep parallel Read, library detection, context7 docs load, pattern extraction, TypeScript contracts, report save. 5+ file reads are forbidden in main context — always delegate here. References harness-share.md §26."
 ---
 
@@ -39,11 +39,29 @@ Parse for `Files: <N>`, `Nodes: <N>`, `Edges: <N>`, `Last updated: <ISO>`, `Buil
 
 **(c) Build if empty or stale.**
 - Empty: run `code-review-graph build` (foreground — block on it).
-- Stale: if `Built at commit: <sha>` differs from `git rev-parse HEAD` AND `git rev-list --count <sha>..HEAD` > 10 → run `code-review-graph build` to refresh. Single-commit drift is fine; trust the existing index.
+- Stale: if `Built at commit: <sha>` differs from `git rev-parse HEAD` AND `git rev-list --count <sha>..HEAD` > 0 AND this is the **first CRG call this session** → run `code-review-graph update` (incremental). If `update` fails or drift is very large (> 50 commits) → fall back to `code-review-graph build` (full).
 
 **(d) Verify after build.** Re-run `code-review-graph status` and confirm `Files > 0` AND `Nodes > 0`. If still empty after a build → set `CRG_AVAILABLE=false`, queue `Q-CRG-EMPTY-INDEX — build produced 0 nodes, investigate`, proceed to grep fallback.
 
 **(e) Cache for session.** Set `CRG_AVAILABLE=true`, `CRG_FILES=<N>`, `CRG_NODES=<N>`, `CRG_LAST_BUILT_SHA=<sha>`. Subsequent survey calls within the same session trust this cache; only re-run `status` if > 30 minutes elapsed OR new commits detected since `CRG_LAST_BUILT_SHA`.
+
+**Cache invalidate triggers** (`CRG_LAST_BUILT_SHA` reset → 다음 CRG call 시 `(f)` 재발동):
+- commit 성공 직후 (`kzk-pre-commit-gate §Post-commit CRG refresh` 적용)
+- multi-Plan continuation 의 plan 사이 (`kzk-autonomous-loop §Multi-plan CRG refresh` 적용)
+- 30분 경과 (기존 룰)
+- new commits detected since `CRG_LAST_BUILT_SHA`
+
+**(f) Auto-refresh on first CRG call (session-scoped)**
+
+session 안 처음 CRG 호출 시 (Step 0.5 cache 미설정 또는 cache 만료) 자동 refresh:
+1. `code-review-graph status` 로 `Built at commit: <sha>` vs `git rev-parse HEAD` 비교
+2. drift > 0 commit (`git rev-list --count <sha>..HEAD`) 시 incremental update — `code-review-graph update` 실행 (CLI `update` subcommand — incremental, changed files only). `update` 실패 시 full `code-review-graph build` fallback.
+3. session cache update — `CRG_LAST_BUILT_SHA=<new sha>`, `CRG_FILES=<N>`, `CRG_NODES=<N>`
+4. session 동안 추가 CRG call 은 cache 신뢰 (반복 build X)
+
+**Anti-pattern** — drift > 0 인데 "작은 drift 라서 skip" (이전 룰 ">10 commit drift" 너무 보수적 — 삭제됨). 작업 처음 CRG call 시 *항상* refresh 의무.
+
+**Skip 조건**: `KZK_CRG_NO_REFRESH=1` env (CI / debug 용).
 
 **Anti-pattern**: trusting build log output alone. The build log shows the most recent incremental pass — it can read tiny numbers even when the full graph is healthy. Only `status` is authoritative.
 

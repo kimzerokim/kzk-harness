@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.15.0
+version: 1.16.0
 description: "Large task delegation — make sure to use this skill for any request involving 3+ file edits, 200+ LoC changes, 5+ file reads for verification/audit, or multi-stage workflows (build/test/Playwright/review). Main context = dispatch + review only; main never holds implementation or reads 5+ files directly. Governs scope estimation (mandatory 30-second estimate before any non-trivial edit), model routing (opus for plans/critic/verifier, sonnet for substantive implementation, haiku for mechanical), Stage 3 fresh-agent verifier (Gate 5 cite), Q-VERIFIER-FAIL/INVALID/DISPATCH-FAIL halt entries, and read-heavy audit dispatch shape. User phrases: '큰 작업', '버그 전수조사', '마무리 해줘', '사이클 자율', 'plan 쪼개', 'Stage 3'. References harness-share.md §4."
 ---
 
@@ -220,6 +220,7 @@ Every dispatch prompt must include:
 - Halt condition (blocked → user-queue entry)
 - **Recall 결과 inject** (Plan D): subagent dispatch prompt 의 Rules block 에 메인이 받은 [REGRESSION RECALL] system-reminder 가 있으면, 해당 텍스트를 verbatim 으로 dispatch prompt 에 inject. **size cap 200 char** — reminder 가 200 char 초과 시 truncate (hits 우선순위 high → low confidence_decayed 로 정렬 후 cumulative length 200 도달까지) + warning footer (`[truncated: <N> more hits]`). subagent 가 fix 작업 시 recall 결과 read. 매칭 정확성은 subagent 가 검토.
 - **§Code-quality-discipline boilerplate (Plan F)**: harness-share.md §32 의 dispatch prompt boilerplate (DRY/YAGNI/KISS + Deletion test + Depth + obsolete test) 를 Rules block 에 자동 inject. 누락 = §Three-stage review FAIL.
+- **§CRG refresh boilerplate**: multi-Plan continuation 시작 시 + 각 plan 사이 `code-review-graph build`/`update` 의무 (kzk-autonomous-loop §Multi-plan CRG refresh + kzk-codebase-survey §Step 0.5 (f) cross-ref). 누락 = stale CRG risk.
 
 ### Sonnet executor — extra plan-detail requirements
 

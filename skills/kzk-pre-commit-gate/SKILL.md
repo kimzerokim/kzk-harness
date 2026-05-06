@@ -1,7 +1,7 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.9.0
-description: "Pre-commit gate — make sure to use this skill before every commit, whether autonomous or interactive. Runs up to 9 sequential gates: Gate 0 (AGENTS.md sync, when hierarchy present), Gate 0.5 (freshness guard CRG stale check), Gate 1 (ai-slop-cleaner), Gate 1.5 (secrets scan AKIA/ASIA), Gate 1.6 (production code-first staged-path check), Gate 2 (build green), Gate 3 (module test pass), Gate 4 (Playwright visual if frontend changed), Gate 4.5 (fix-scope callsite sanity), Gate 5 (fresh-agent verifier for 3+ file commits and high-risk tags). One failure blocks the commit. Skip conditions per gate are explicit — no silent skips. Covers doc-only fast path, KZK_GATE05_SKIP, KZK_GATE45_SKIP, env-exception, INVALID_VERDICT handling. References harness-share.md §3."
+version: 1.10.0
+description: "Pre-commit gate — make sure to use this skill before every commit, whether autonomous or interactive. Runs up to 9 sequential gates: Gate 0 (AGENTS.md sync, when hierarchy present), Gate 0.5 (freshness guard CRG stale check), Gate 1 (ai-slop-cleaner), Gate 1.5 (secrets scan AKIA/ASIA), Gate 1.6 (production code-first staged-path check), Gate 2 (build green), Gate 3 (module test pass), Gate 4 (Playwright visual if frontend changed), Gate 4.5 (fix-scope callsite sanity), Gate 5 (fresh-agent verifier for 3+ file commits and high-risk tags). One failure blocks the commit. Skip conditions per gate are explicit — no silent skips. Covers doc-only fast path, KZK_GATE05_SKIP, KZK_GATE45_SKIP, env-exception, INVALID_VERDICT handling. Post-commit CRG rebuild required after every successful commit (incremental update + session cache invalidate). References harness-share.md §3."
 ---
 
 > Authoritative source: `harness-share.md` §3. On conflict, that wins.
@@ -205,3 +205,31 @@ Non-autonomous (default): every commit waits for user OK after gates pass. No au
 - **kzk-web-loop**: Owns the override exception that lets the loop bypass full Gate 0–4 in indefinite-loop mode (see kzk-web-loop §Failure Handling).
 - **kzk-pre-merge-sync**: Consumes the gate-PASS line this skill emits in the PR footer.
 - **kzk-production-access** (Axis E): Gate 1.6 룰 본문은 kzk-production-access §Production state changes 가 SoT.
+
+## Post-commit CRG refresh
+
+commit 직후 CRG rebuild 의무 — 새 commit 의 변경을 CRG 인덱스에 반영. 다음 작업이 stale CRG 를 보지 않게.
+
+### 절차
+
+commit 성공 직후 (`git commit` exit 0):
+1. `code-review-graph update` (incremental, default `--base HEAD~1`) — 방금 commit 한 변경만 update
+2. `code-review-graph status` 로 verify (`Built at commit: <new sha>` 확인)
+3. session cache invalidate — `kzk-codebase-survey §Step 0.5 (e)` 의 `CRG_LAST_BUILT_SHA` reset → 다음 CRG call 시 `(f)` 룰 재발동
+
+### Skip 조건
+
+- `KZK_CRG_NO_REFRESH=1` env (CI / debug)
+- doc-only commit (소스 코드 변경 X — CRG 영향 없음)
+- commit 자체 X (사용자 abort 또는 hook fail)
+
+### Anti-pattern
+
+- commit 후 CRG update skip → 다음 plan / 다음 fix-start 가 stale CRG 사용 → false-positive callsite mismatch
+- post-commit hook 으로 자동화 안 함 → 메인이 의식적으로 update 의무. autonomous mode 에서 commit 직후 update 명시.
+
+### Cross-ref
+
+- **kzk-codebase-survey §Step 0.5 (e)/(f)**: session cache invalidate + auto-refresh on first call after invalidate
+- **kzk-autonomous-loop §Multi-plan CRG refresh**: plan 끝 (= commit) → CRG update → 새 plan 시작 시 cache miss → reload
+- **harness-share.md §3.5 CRG auto-refresh policy**: 통합 SoT
