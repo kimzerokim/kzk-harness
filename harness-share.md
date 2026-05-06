@@ -1139,3 +1139,74 @@ node install/bin/kzk-regression-memory.mjs dismiss <key>
 - **결과 연결**: design doc → Step 1 Required reading + Step 2 LOCKED PRIOR DECISIONS.
 - **Skip**: "brainstorming 스킵" / "skip brainstorming" → Step 0 즉시 이동.
 - **CRG 검증**: brainstorming 완료 후 design doc 의 코드 참조를 `crg-utils.extractDocRefs()` + `validateLineRefs()` 로 검증.
+
+---
+
+## §32 Code Quality Discipline (DRY/YAGNI/KISS + 모듈 깊이 + 베스트 프랙티스)
+
+모든 코드 작업 (executor sonnet dispatch / spec-and-review Step 1 draft / 메인 직접 1-2 LoC fix) default 룰. dispatch prompt boilerplate 자동 inject. mattpocock improve-codebase-architecture (LANGUAGE.md / DEEPENING.md / INTERFACE-DESIGN.md) 의 핵심 패턴 통합.
+
+### 1. 코드 작성 *전* — 3 self-question (DRY/YAGNI/KISS)
+
+코드 작성 시작 전 다음 3 질문에 *명시적 답*:
+
+1. **DRY**: 같은 코드 codebase 안 이미 있나? `grep -rn` + CRG `semantic_search_nodes` 검증
+2. **YAGNI**: 진짜 *지금* 필요? 사용자 요청 deduce minimum 만
+3. **KISS**: 가장 단순? 동일 의도 더 짧은 표현 가능?
+
+### 2. 모듈 신규 — Deletion test 통과 시만 OK
+
+새 file / module / helper 만들기 *전*:
+- 기존 sister module interface (export type / function 시그니처) 확인 — grep + 본문 read
+- 기존 안 추가 가능 → 거기 추가 (default)
+- 새 module **정당화 (Deletion test)** — mattpocock improve-codebase-architecture DEEPENING.md:
+  > "If complexity reappears across N callers after deletion, the module justified its existence through depth."
+- 호출자 N ≥ 2 + 호출자 file 인용 시만 OK. N < 2 = "hypothetical seam" — 만들지 X
+
+### 3. Depth before width — interface 우선
+
+새 module 만든다면:
+- **Depth = interface 속성** (mattpocock LANGUAGE.md): "Depth is a property of the interface, not the implementation"
+- shallow module 신호 (interface ↔ 구현 1:1) — 호출자 N < 2 시 deepening 여지 없음. 만들지 X
+- **Design It Twice** — 큰 구조 변경 시만: 3+ 인터페이스 안 병렬 검토 (executor sonnet 다중 dispatch). 작은 helper 는 1 안 OK
+
+### 4. 베스트 프랙티스 확인 의무
+
+코드 작성 *전*:
+- 외부 lib 사용 시 — `mcp__plugin_context7_context7__resolve-library-id` + `query-docs` 의무 (kzk-codebase-survey §Step 4 패턴)
+- 외부 lib **의존성 분류** (Dependency 4-tier — mattpocock DEEPENING.md): in-process / local-substitutable / remote-owned / true-external 중 어느 것? 분류에 따라 seam 정당화 다름
+- 내부 codebase pattern — 같은 파일/디렉토리 *similar pattern* read (kzk-codebase-survey §Step 5 Pattern Extraction 인용)
+
+### 5. 코드 작성 *후* — self-review checklist
+
+commit / 다음 단계 전:
+
+- [ ] 책임 중복 X (DRY)
+- [ ] 사용자 요청 외 추가 X (YAGNI)
+- [ ] 더 짧은 표현 검토 (KISS)
+- [ ] 새 모듈 신설 = Deletion test 통과 (N ≥ 2 호출자 명시)
+- [ ] Depth = interface 속성 검증 (shallow 1:1 X)
+- [ ] 외부 lib context7 / 내부 pattern 인용
+- [ ] **deepened module 추가 시** 이전 shallow module 의 obsolete unit test 삭제 (mattpocock DEEPENING.md "Once tests exist at the deepened module's interface, old shallow-module unit tests become obsolete and should be deleted." — kzk-test-coverage cross-ref)
+
+### 6. dispatch prompt boilerplate (executor sonnet 자동 inject)
+
+다음 boilerplate 를 모든 코드 작성 dispatch prompt 의 Rules block 에 inject. kzk-large-task-delegation §Anti-self-verification boilerplate 패턴 재사용.
+
+```
+[CODE QUALITY DISCIPLINE — harness-share.md §32]
+코드 작성 시:
+- 전: DRY/YAGNI/KISS 3 self-question 명시
+- 전: 모듈 신규 — Deletion test (N ≥ 2 호출자 인용) 통과 시만 OK. 그 외 기존 interface 추가
+- 전: 외부 lib context7 + 의존성 4-tier 분류 / 내부 codebase same pattern 인용
+- 큰 구조 변경: 3+ 인터페이스 안 (Design It Twice) 병렬 검토
+- 후: self-review checklist 7 항목 (Deletion test + Depth + obsolete test 포함)
+위반 시 task BLOCKED 반환 + plan revision 요청.
+```
+
+### 7. Cross-ref
+
+- **kzk-large-task-delegation §Subagent prompt requirements**: 모든 executor dispatch prompt 안 본 §32 boilerplate inject 의무
+- **kzk-spec-and-review Step 1 (Draft)**: draft prompt 안 본 §32 boilerplate inject 의무
+- **kzk-codebase-survey §Step 4-5**: 베스트 프랙티스 확인의 구체 절차 출처
+- **kzk-test-coverage**: deepened module 후 obsolete unit test 삭제 의무 출처

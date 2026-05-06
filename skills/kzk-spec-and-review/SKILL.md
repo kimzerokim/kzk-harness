@@ -1,6 +1,6 @@
 ---
 name: kzk-spec-and-review
-version: 2.8.0
+version: 2.9.0
 description: "Spec, plan, and major design authoring with mandatory cross-vendor codex review — make sure to use this skill whenever the user says 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm', or 'architecture review'. Step -1 (brainstorming via superpowers:brainstorming) runs on exploratory keywords; Step 0 (kzk-codebase-survey precondition + kzk-freshness-guard check) is mandatory before drafting; Steps 1-3 (draft via executor sonnet → codex CLI consult via kzk-codex-handoff → synthesize + categorize 🔴/🟡/⚪) complete the loop. Verdict file saved to docs/research/codex-reviews/ or docs/plans/. Chat-history-only verdict does not count. References harness-share.md §22 + §22.5."
 ---
 
@@ -44,6 +44,7 @@ A spec / plan / design draft built without codebase context is the same root cau
 ## Pattern (3-pass) — runs after Step 0
 
 1. **Draft** — main orchestrates; actual md file writing dispatches to `oh-my-claudecode:executor` (sonnet). Prompt must include survey report path from Step 0 as "Required reading: <path>" (not just file-listed — the draft must actually cite findings from the survey). Main drafts only when ≤ 5 LoC total change (typo, single-line append).
+   - harness-share.md §32 Code Quality Discipline boilerplate inject 의무 (DRY/YAGNI/KISS + Deletion test + Depth + obsolete test). 위반 시 spec revision 요청.
 2. **Codex consult** — run `codex exec` CLI directly (see kzk-codex-handoff §Codex CLI 호출 패턴). CLI not available (`command not found`) or stuck per kzk-codex-handoff §Codex CLI 호출 패턴 (60s no first token → retry; 5 min total → kill) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", prompt=<same review prompt>)` (model 생략 → 메인 opus 버전 상속). **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
 3. **Synthesize** — main categorizes each codex point as 🔴 즉시 fix / 🟡 spec 단계 디테일 / ⚪ push-back (cite reasons per bucket). Then dispatch revision edits per §Spec/plan revision dispatch below. Main never directly Edit/Write the md file for 2+ edits.
 

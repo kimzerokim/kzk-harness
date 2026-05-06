@@ -1,6 +1,6 @@
 ---
 name: kzk-background-monitoring
-version: 1.2.0
+version: 1.3.0
 description: "Background task ownership discipline — make sure to use this skill whenever spawning a background process via run_in_background, Monitor tool, codex exec, or any CLI invocation ≥5 seconds. The spawning agent owns the task until terminal state (success/failure/kill) — 'is it done?' from the user is a violation. Governs stuck detection thresholds (subagent ≥5 min, Bash ≥3 min, codex no first token in 60s), kill+diagnose+retry procedure, subagent completion verification with receipt line, and session-resume restate-before-dispatch rule. Narration mandate: 1-3 sentences after every long-running tool call. References harness-share.md §23."
 ---
 
@@ -8,77 +8,63 @@ description: "Background task ownership discipline — make sure to use this ski
 
 # kzk-background-monitoring
 
-## Scope
+## Stuck detection thresholds
 
-- `Bash run_in_background: true`
-- `Monitor` tool
-- `codex exec` and any external CLI invoked as long-running
-- Subagent dispatch (notifications arrive but stuck is still possible)
-- `npm install`, `docker build`, `pnpm test`, full-suite `vitest`, anything ≥ 5s
+> **Marginal value** — baseline misses the Bash 3 min threshold. These numbers are non-negotiable.
+
+| Task type | Stuck threshold |
+|---|---|
+| **Bash background** | **≥ 3 min** no output growth |
+| Subagent dispatch | ≥ 5 min no completion |
+| codex / streaming | No first token in **60s**, or no new output in 5 min total |
+
+Additional signals: CPU 0%, stderr shows `Reading additional input from stdin...`, wall time ≥ 2× expected.
+
+## Narration mandate
+
+> **Marginal value** — every long-running tool call requires narration; silence = stuck appearance.
+
+**After every tool with response time ≥ 2s: output 1-3 sentences of interpretation + named next action BEFORE the next call.**
+
+Examples: what the result means, whether it succeeded, what happens next. See `kzk-playwright-verification` for per-tool narration shape table.
 
 ## Action contract
 
-1. **At spawn**: state expected duration in one sentence ("codex consult ~2-3 min"). Move on to other productive work.
-2. **Active polling**: choose by duration:
-   - ≤ 5 min: `Bash run_in_background` + auto completion notification
-   - longer / uncertain: `Monitor` with stdout filter that catches success AND every failure signature (`grep -E "Error|FAIL|Traceback|tokens used|exit code"`)
-   - manual loop: `until <terminal-condition>; do sleep N; done` — `terminal-condition` covers both success and failure
-3. **Stuck detection** — declare stuck on any of:
-   - Output file size has not grown (thresholds: subagent ≥ 5 min; Bash background ≥ 3 min; codex / streaming tools: no first token within 60s, or no new output within 5 min total)
-   - Process CPU usage 0
-   - stderr shows hang signals like `Reading additional input from stdin...`
-   - Wall time exceeds 2× the expected duration
-4. **Stuck handling — kill + diagnose + retry. Do not wait for user input.**
-   - `pkill -f <command-pattern>` to free the slot
-   - Inspect stderr / output file / process state for root cause
-   - Change the call shape (prompt as arg vs stdin, heredoc escape, env var, smaller prompt)
-   - One retry. Second failure → user report + alternative proposal. Do not silently re-spawn forever.
-5. **Error detection**: stderr or non-zero exit → immediate user report. Silent failure is forbidden.
-6. **Completion**: process the result and proceed. Autonomous = next task. Interactive = user-facing report.
-
-## Anti-patterns
-
-- ❌ "Background에 띄웠어요. 알림 받으면 처리할게요" → silence until user re-asks
-- ❌ Waiting for the OS / harness timeout when stuck is already obvious
-- ❌ Output file 0 byte for 5+ min and no action
-- ❌ Ignoring `Reading additional input from stdin...` and similar hang signals
-- ❌ `Monitor` filter that only matches the success path (failure is silent)
-- ❌ Refusing to kill+retry; instead asking the user "should I cancel?"
-- ❌ Polite-stop ("Background task is still running. Should I wait?") — that's the violation
+1. **At spawn**: state expected duration in one sentence. Move on to other work.
+2. **Active polling**: ≤ 5 min → `Bash run_in_background`; longer/uncertain → `Monitor` with filter catching both success AND failure signatures (`grep -E "Error|FAIL|Traceback|tokens used|exit code"`).
+3. **Stuck handling — kill + diagnose + retry. No user input.**
+   - `pkill -f <command-pattern>` → inspect stderr/output/process state → change call shape → one retry.
+   - Second failure → user report + alternative proposal. No silent re-spawn.
+4. **Error detection**: stderr or non-zero exit → immediate user report. Silent failure forbidden.
 
 ## Stuck-diagnosis quick set
 
 ```bash
-ls -la <output-file>                     # size + mtime
+ls -la <output-file>                      # size + mtime
 ps -p <pid> -o lstart,etime,pcpu,state    # process state
-cat <stderr-file>                         # error / hang signal
+cat <stderr-file>                          # error / hang signal
 ```
-
-## Codex consult special case
-
-For Codex specifically, see `kzk-spec-and-review` §Codex execution shape (60s-to-first-token rule, 5 min total stuck threshold, mitigation steps).
 
 ## Subagent completion verification
 
-When an `Agent()` call returns, output a receipt line BEFORE processing results:
-
+When `Agent()` returns, output receipt line BEFORE processing:
 ```
 Subagent [name] returned — [N chars / result summary]. Processing result...
 ```
+If result is empty or truncated → `Q-SUBAGENT-EMPTY-[name]` to `docs/harness/user-queue.md`, continue.
 
-Then verify:
-1. Result is non-empty and matches expected return format (e.g. evaluator should have a numbered issue list)
-2. If result is empty or clearly truncated (ends mid-sentence, no conclusion): treat as BLOCKED → append `Q-SUBAGENT-EMPTY-[name]` to `docs/harness/user-queue.md` and continue to next task
-3. Do NOT silently assume a completed-looking state is actual completion — always read and confirm the result before marking the task done
+**Session resume**: after ScheduleWakeup / rate-limit wakeup, read `harness-flow-progress.md` and output: `"Resuming: Cycle N, last: [issue], queue: [N remaining], next action: [X]"`.
 
-**Session resume after ScheduleWakeup / rate-limit:** At the first turn after a wakeup, before any new dispatch, read `harness-flow-progress.md` and output one-line state restatement: `"Resuming: Cycle N, last: [issue], queue: [N remaining], next action: [X]"`. This makes the resume point visible to both the user and the next tool call chain.
+## Anti-patterns
 
-## Narration mandate (cross-link with kzk-playwright-verification)
-
-Every Playwright tool result AND every long-running tool with response time ≥ 2s requires 1-3 sentence interpretation + named next action BEFORE the next call. Silence between tool calls = stuck appearance. See `kzk-playwright-verification` for the per-tool narration shape table; this skill enforces that the same discipline applies to non-Playwright long-running tools (Bash long-running, Agent dispatch, build, test).
+- ❌ Silence until user re-asks ("알림 받으면 처리할게요")
+- ❌ Output file 0 byte for 3+ min (Bash) / 5+ min (subagent) and no action
+- ❌ `Monitor` filter matching only the success path
+- ❌ Asking user "should I cancel?" instead of autonomous kill+retry
+- ❌ No narration between long-running tool calls
 
 ## Interaction with other kzk-*
 
-- **kzk-tool-retry** governs single-call retry policy. This skill governs spawn-time-to-terminal lifecycle.
-- **kzk-autonomous-loop** uses this skill's polling discipline for rate-limit windows and context-budget polling.
-- **kzk-playwright-verification** narration table is referenced from here for non-Playwright long-running tools.
+- **kzk-tool-retry**: single-call retry policy. This skill: spawn-to-terminal lifecycle.
+- **kzk-autonomous-loop**: uses this skill's polling discipline for rate-limit windows.
+- **kzk-playwright-verification**: narration shape table (Playwright tools) — same discipline applies here.

@@ -1,6 +1,6 @@
 ---
 name: kzk-codex-handoff
-version: 1.2.0
+version: 1.3.0
 description: "Codex CLI 호출 안정화 단일 SoT — make sure to use this skill whenever any other skill invokes the codex CLI, or when codex exec produces timeout/empty/NDJSON parse failures. Defines 5 hard rules: stdin pipe required, --json→file→jq (never direct pipe), --ephemeral always, short prompts via arg exception, plain text mode preferred. Covers E0 Preflight (which/version/sandbox), E1–E4 fallback ladder to critic opus, fresh-subagent dispatch shape, prompt size guidelines (<500 lines, <700-word response), and stuck detection (60s no-first-token, 5min total). Meta-skill — user triggers rare; auto-loaded by kzk-spec-and-review and kzk-large-task-delegation cross-ref. Self-authoritative (Phase 2: harness-share.md §32)."
 ---
 
@@ -8,30 +8,29 @@ description: "Codex CLI 호출 안정화 단일 SoT — make sure to use this sk
 
 # kzk-codex-handoff
 
+## Hard rules (5종)
+
+1. **Prompt via stdin pipe** (`cat file | codex exec ... -`). Never `codex exec "$VAR"` — shell escaping breaks on newlines/quotes/backticks.
+2. **`--json` output → file → jq**. Never `--json | jq` direct pipe — codex emits NDJSON, jq expects single JSON and chokes.
+3. **`--ephemeral`** always — prevents session file accumulation.
+4. **Short single-line exception**: `codex exec "short prompt" < /dev/null` safe. Multi-line → always stdin pipe.
+5. **Plain text mode preferred** for review — simpler, no NDJSON parsing. JSON mode only for structured fields (token counts, thread IDs).
+
 ## Codex CLI 호출 패턴
 
-### Plain text mode (review / consult 기본)
+### Plain text mode (기본)
 
 ```bash
-# 1. Write prompt to file (from §Codex prompt skeleton above)
 cat > /tmp/<topic>-review-prompt.txt << 'EOF'
 <prompt content>
 EOF
 
-# 2. Pipe stdin → codex exec, redirect stdout to file
-#    MUST use `-` arg so codex reads prompt from stdin (not shell $VAR expansion)
-#    MUST use --ephemeral to avoid session file clutter
 cat /tmp/<topic>-review-prompt.txt \
-  | codex exec \
-    -s read-only --ephemeral \
-    -C <repo-root> \
-    -c 'model_reasoning_effort="high"' \
-    - \
-    2>/tmp/codex-err.txt \
-    > /tmp/codex-out.txt
+  | codex exec -s read-only --ephemeral -C <repo-root> \
+    -c 'model_reasoning_effort="high"' - \
+    2>/tmp/codex-err.txt > /tmp/codex-out.txt
 CODEX_EXIT=$?
 
-# 3. Check exit + non-empty output
 if [ $CODEX_EXIT -ne 0 ] || [ ! -s /tmp/codex-out.txt ]; then
   # → §Fallback 사다리 진입
 fi
@@ -41,144 +40,83 @@ fi
 
 ```bash
 cat /tmp/<topic>-review-prompt.txt \
-  | codex exec \
-    -s read-only --ephemeral \
-    -C <repo-root> \
-    --json \
-    - \
-    2>/tmp/codex-err.txt \
-    > /tmp/codex-out.json
+  | codex exec -s read-only --ephemeral -C <repo-root> --json - \
+    2>/tmp/codex-err.txt > /tmp/codex-out.json
 
-# --json produces NDJSON (one JSON object per line), NOT a single JSON object.
-# NEVER pipe --json directly to jq — always redirect to file first.
 jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text' \
   /tmp/codex-out.json > /tmp/codex-out.txt
 ```
 
-## Hard rules (5종)
+## Preflight (E0 — 호출 직전 환경 점검)
 
-1. **Prompt via stdin pipe** (`cat file | codex exec ... -`). Never pass multi-line prompt as `codex exec "$VAR"` — shell escaping breaks on newlines, quotes, backticks.
-2. **`--json` output → file → jq**. Never `--json | jq` direct pipe — codex emits NDJSON (one JSON object per line), jq expects single JSON by default and chokes.
-3. **`--ephemeral`** always — prevents session file accumulation from automated runs.
-4. **Short single-line prompt exception**: `codex exec "short prompt" < /dev/null` is safe. Multi-line → always use stdin pipe.
-5. **Plain text mode preferred** for review use cases — simpler, no NDJSON parsing needed. Use JSON mode only when you need structured fields (token counts, thread IDs).
-
-## Timeout + stuck detection
-
-- `timeout: 300000` (5 min). Background-monitor per `kzk-background-monitoring` (sister skill — codex exec stuck 감지 + 소유권 규칙 담당).
-- No first token in **60s** → kill + retry once.
-- No output in **5 min total** → stuck, kill + fallback to critic agent.
-- Empty stdout or non-zero exit: save error stub to verdict file ("codex exit <N>, stderr: <first 200 chars>") then fall back to `Agent(subagent_type="oh-my-claudecode:critic" (omc 플러그인 Opus subagent — read-only 리뷰 전문, Write/Edit 불허), prompt=<same review prompt>)` (model 생략 → 메인 opus 버전 상속).
-
-## Preflight (codex 호출 직전 환경 점검)
-
-자가-점검 (self-check, Phase 2 영역) 과 구분 — 본 preflight 는 codex CLI 자체 환경 sanity check.
-
-3 항목 점검 (1초 안에 완료):
-1. `which codex` — CLI 미설치 시 즉시 fail
-2. `codex --version` — 0.128.0+ 확인 (이하 버전은 stdin pipe / NDJSON 동작 차이)
-3. sandbox 권한 확인 — `-s read-only` flag 사용 가능 검증 (실패 시 권한 상승 필요 안내)
-
-preflight fail (E0) → retry X, 사용자에게 환경 안내 + critic opus fallback. 호출 자체 차단.
+3 항목 (1초 완료): `which codex` → `codex --version` (0.128.0+) → `-s read-only` sandbox 확인.
+Preflight fail → retry X, 사용자 환경 안내 + critic opus fallback.
 
 ## Fallback 사다리 (E0-E4)
 
 | E# | Trigger | Detection | Retry | Fallback |
 |---|---|---|---|---|
-| **E0** | Preflight fail | which/version/sandbox 어느 하나 fail | retry X | 사용자 환경 안내 + critic opus |
-| E1 | timeout | wall > 300s | 1 retry | critic opus |
-| E2 | 즉시 종료 + 무 stderr | exit ≠ 0 AND stderr ≤ 1 byte AND wall < 2s | retry X | critic opus |
-| E3 | 빈 응답 | exit 0 AND stdout 0 byte | 1 retry | critic opus |
-| E4 | 일반 실패 | exit ≠ 0 AND (stderr > 1 byte OR wall ≥ 2s) | 0 retry | stub stderr 첫 200 char + critic opus |
+| **E0** | Preflight fail | which/version/sandbox 어느 하나 fail | X | 환경 안내 + critic opus |
+| E1 | timeout | wall > 300s | 1 | critic opus |
+| E2 | 즉시 종료 + 무 stderr | exit ≠ 0 AND **stderr ≤ 1 byte** AND **wall < 2s** | X | critic opus |
+| E3 | 빈 응답 | exit 0 AND stdout 0 byte | 1 | critic opus |
+| E4 | 일반 실패 | exit ≠ 0 AND (stderr > 1 byte OR wall ≥ 2s) | X | stub stderr 첫 200 char + critic opus |
 
-E2 detection 강화: `stderr ≤ 1 byte` + `wall < 2s` 조합 — race condition / buffering 회피 (구 기준 `stderr 0 byte` 는 newline 1바이트로 E4 오분류 위험).
-E4 detection 강화: E2 와 OR 분기로 stderr 0 byte 라도 wall ≥ 2s 면 E4 분류.
+E2 vs E4: `stderr ≤ 1 byte + wall < 2s` = E2 (race/buffering). `wall ≥ 2s` = E4 even if stderr empty.
 
-**공통 fallback 규칙**: fallback critic opus 응답도 verdict file 에 저장 (chat history 만으로는 불충분). model 생략 → 메인 opus 버전 상속.
+> **공통 fallback 규칙 — marginal value**: fallback critic opus 응답도 **verdict file 에 저장** (chat history 만으로는 불충분). Agent dispatch 시 **model 생략 → 메인 버전 상속** (model="opus" 명시 금지).
 
 ## Fresh subagent 호출 패턴
 
-메인이 직접 codex exec 호출 시 메인 컨텍스트 블로킹 + 오염. 기본 경로 = **fresh subagent dispatch**.
+기본 경로 = fresh subagent dispatch (메인 직접 호출 시 컨텍스트 블로킹 + 오염).
 
 ```typescript
-// 기본 — explore sonnet 안에서 codex 실행
 Agent({
-  subagent_type: 'oh-my-claudecode:explore' /* omc 플러그인 Haiku subagent — read-only 파일/패턴 탐색 전문 */,
-  model: 'sonnet',
-  prompt: `
-    §Codex CLI 호출 패턴 룰을 따라 codex exec 실행:
-    - prompt file: /tmp/<topic>-review-prompt.txt (내용 inline)
-    - repo root: <path>
-    - fallback: §Fallback 사다리 E1-E4 적용
-    - verdict 저장: <verdict-file-path>
-  `,
+  subagent_type: 'oh-my-claudecode:explore',
+  model: 'sonnet',   // ← model 생략하면 메인 버전 상속. opus 명시 금지.
+  prompt: `§Codex CLI 호출 패턴 + §Hard rules 5종 + §Fallback 사다리 verbatim inject 의무`,
 });
 ```
 
-| | 메인 직접 호출 | Fresh subagent (기본) |
-|---|---|---|
-| 메인 컨텍스트 | 블로킹 + 오염 | 보호 |
-| 허용 조건 | 5min 이내 단순 단발 review, 사용자 명시 | 기본 경로 |
-
-**Dispatch prompt 의무**: subagent dispatch prompt 안에 `§Codex CLI 호출 패턴` + `§Hard rules 5종` + `§Fallback 사다리` 룰 verbatim inject 의무 — fresh subagent 는 SKILL.md 를 자동으로 읽지 않음.
-
-**Subagent dispatch 자체 실패 처리**:
-
-dispatch fail (no response / timeout / subagent type unavailable) → `kzk-large-task-delegation` (sister skill — 3+ 파일 위임 + Q-VERIFIER-DISPATCH-FAIL 패턴 출처) `§Stage 3 Q-VERIFIER-DISPATCH-FAIL` 패턴 재사용. fallback path: 메인 직접 codex 호출 (subagent 한 layer 우회 — 메인 컨텍스트 보호 가치 < dispatch 실패 frequency 일 때만). 그것도 실패 시 critic opus fallback. `kzk-user-queue` (sister skill — 자율 실행 중 모호 결정을 user-queue.md 에 등록) 를 통해 user-queue entry `Q-CODEX-DISPATCH-FAIL` 등록.
+dispatch fail → `kzk-large-task-delegation §Stage 3 Q-VERIFIER-DISPATCH-FAIL` 패턴 재사용 → `Q-CODEX-DISPATCH-FAIL` to `docs/harness/user-queue.md`.
 
 ## Prompt size guideline
 
-큰 prompt = codex stdin 대기 또는 5min stuck 위험. timeout 빈도 줄이는 룰:
-
-- **Read 의무 = 검토 대상 plan/spec 본문 + cycle N-1 verdict 정제 file 만**. sister plan / spec 다른 본문은 *context only* (인용 / locked decision 만 prompt 안에 박음, full read 안 시킴).
-- **prompt 본문 < 500 lines**. 12 카테고리 → 6-8 max.
-- **응답 형식 < 700 단어**. "각 항목 짧은 진단 + 권고" 명시.
-- **plan 본문 자체가 1500+ LoC** 면 codex 가 read 만 5+ 분 → 미리 핵심 변경 부분만 발췌해서 prompt 에 inline. plan 전체 read 시키지 않음.
-- timeout (60s no first token, 5min total) 발생 시 fallback critic opus.
-
-지표: codex prompt 가 다음 중 하나 trigger 면 size 줄임 후 재시도:
-- prompt 자체 > 800 lines
-- "Read 의무" 가 4+ 파일
-- 검증 카테고리 12+
+- prompt 본문 < 500 lines, 응답 형식 < 700 단어.
+- Read 의무 = 검토 대상 plan/spec + cycle N-1 verdict 만. sister plan full read 금지.
+- plan 1500+ LoC → 핵심 부분만 발췌해서 inline.
+- Trigger (size 줄임 후 재시도): prompt > 800 lines / Read 의무 4+ 파일 / 카테고리 12+.
 
 ## Cost / cadence
 
-1 round = ~2-3 min wall, ~25-30k tokens. 사용자 explicit OFF ("이번엔 codex 빼고") 만 skip. No silent skip.
+1 round = ~2-3 min wall, ~25-30k tokens. 사용자 explicit OFF 만 skip. No silent skip.
 
 ## Glossary
 
-- **SoT** (Source of Truth): 어떤 규칙/데이터의 단일 출처 문서. 충돌 시 SoT 가 우선.
-- **NDJSON** (Newline-Delimited JSON): 한 줄 = JSON 객체 하나인 스트림 포맷. `--json | jq` 직접 파이프 불가 이유.
-- **Preflight**: codex CLI 호출 직전 환경 점검 3항목 (which/version/sandbox). 실패 = E0.
-- **E0–E4**: codex 호출 실패 분류 코드. E0=preflight fail, E1=timeout 5분 stuck, E2=즉시 종료 + 무 stderr, E3=빈 응답 stdout 0 byte, E4=일반 실패 exit ≠ 0 + stderr 있음.
-- **oh-my-claudecode:critic**: omc 플러그인 Opus 모델 read-only subagent — 코드/플랜 리뷰 전문. Write/Edit 불허.
-- **oh-my-claudecode:explore**: omc 플러그인 Haiku 모델 read-only subagent — 파일/패턴 탐색 전문. Write/Edit 불허.
-- **Q-CODEX-DISPATCH-FAIL**: codex subagent dispatch 자체 실패 (no response / timeout / subagent type unavailable) 시 `docs/harness/user-queue.md` 에 등록하는 halt entry. 본 SKILL 정의.
-- **Q-VERIFIER-DISPATCH-FAIL**: kzk-large-task-delegation §Stage 3 / kzk-pre-commit-gate Gate 5 의 verifier subagent dispatch 실패 시 등록되는 halt entry — 본 SKILL 이 재사용하는 기존 패턴.
-- **kzk-large-task-delegation**: 3+ 파일 / 200+ LoC 작업을 fresh subagent 로 위임하는 sister skill. `§Stage 3 Q-VERIFIER-DISPATCH-FAIL` 패턴 출처.
-- **kzk-background-monitoring**: codex exec 등 long-running task 의 stuck 감지 + 소유권 규칙 sister skill.
-- **kzk-spec-and-review**: spec/plan/design 작성 시 codex CLI cross-vendor review 수행하는 sister skill — 본 SKILL 의 호출 메커니즘 소비자.
-- **harness-share.md**: 모든 kzk-* 스킬의 공통 SoT 문서. 충돌 시 §N 이 개별 SKILL.md 보다 우선.
+- **NDJSON**: 한 줄 = JSON 객체 하나. `--json | jq` 불가 이유.
+- **E0–E4**: preflight fail / timeout / 즉시 종료 무stderr / 빈 응답 / 일반 실패.
+- **Q-CODEX-DISPATCH-FAIL**: subagent dispatch 자체 실패 시 user-queue halt entry.
+- **oh-my-claudecode:critic**: omc Opus read-only subagent. Write/Edit 불허.
 
 ## Changelog
 
-본 SKILL 의 운영 규칙은 본문에 현재 상태만 기술. 과거 변경 이력은 본 §Changelog 에 격리.
-
-- **2026-05-06 (Phase 1 / Cycle 36)**: 신설. kzk-spec-and-review §Codex execution shape + §Prompt size guideline 본문을 본 SKILL 로 이전. Codex review 13 issues + 4 critical fix 모두 inline 적용 — E4 분기 (`exit ≠ 0 AND stderr ≥ 1 byte OR wall ≥ 2s`) 추가, E0 Preflight 신설, Q-CODEX-DISPATCH-FAIL halt entry 신설.
-- **2026-05-06 (Cycle 38)**: §Glossary + §Changelog 신설. inline gloss 7 위치 추가. TBD → self-authoritative (Phase 2 §32 migrate 명시). version 1.0.0 → 1.1.0.
+- **Cycle 36**: 신설. E4 분기, E0 Preflight, Q-CODEX-DISPATCH-FAIL 신설.
+- **Cycle 38**: §Glossary + §Changelog 신설. version 1.1.0.
+- **Cycle 39**: model 상속 룰 (model 생략 → 메인 버전 상속) §Hard rules + §Fresh subagent 강조. version 1.2.0.
+- **Cycle 41**: 압축 — marginal value (model 상속 + verdict file) prominent. 일반 상식 부분 단락 압축. version 1.3.0.
 
 ## Anti-patterns
 
-- `--json | jq` direct pipe (NDJSON parse fail)
-- multi-line prompt 를 `"$VAR"` 로 넘김 (shell escaping 깨짐)
-- preflight skip — 환경 미점검 후 E2/E4 로 뭉개짐
-- subagent dispatch 실패 시 silent retry — `Q-CODEX-DISPATCH-FAIL` 등록 의무
-- E2 vs E4 detection 시 stderr 0 byte 만 체크 — wall time 보조 신호 누락
-- fallback critic opus 응답을 chat history 에만 남김 — verdict file 저장 의무
+- `--json | jq` direct pipe
+- multi-line prompt `"$VAR"` 로 전달 (shell escaping 깨짐)
+- preflight skip
+- `Q-CODEX-DISPATCH-FAIL` 미등록 silent retry
+- fallback critic opus 응답 chat history 에만 남김 (verdict file 저장 의무)
+- **`model="opus"` 명시** — model 생략으로 메인 버전 상속해야 함
 
 ## Interaction with other kzk-*
 
-- **kzk-spec-and-review** (sister skill — spec/plan codex cross-vendor review 담당): review-specific 부분 (§Codex prompt skeleton / §Verdict file convention / §Cost/cadence / §Artifact retention / §Anti-patterns) 만 거기 유지. 호출 메커니즘은 본 스킬 SoT (SoT = Source of Truth, 단일 출처 문서).
-- **kzk-large-task-delegation §Pre-implementation plan-critic loop** — codex 호출 부분 본 스킬 §Codex CLI 호출 패턴 cross-ref.
-- **kzk-background-monitoring** — 5min stuck detection 시 background-monitor 호출.
-- **kzk-autonomous-boundary** (sister skill — branch contract / halt conditions / autonomous mode boundaries 정의): Q-CODEX-DISPATCH-FAIL halt entry 를 §Halt conditions 표에 등록 의무 (Phase 2 작업).
+- **kzk-spec-and-review**: review-specific 부분 (§Codex prompt skeleton / §Verdict file convention) 거기 유지. 호출 메커니즘은 본 스킬 SoT.
+- **kzk-large-task-delegation**: codex 호출 부분 본 스킬 cross-ref. Q-VERIFIER-DISPATCH-FAIL 패턴 출처.
+- **kzk-background-monitoring**: stuck detection (60s/5min) 소유권 위임.
+- **kzk-autonomous-boundary**: Q-CODEX-DISPATCH-FAIL halt entry §Halt conditions 등록 (Phase 2).
