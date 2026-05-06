@@ -1,4 +1,0 @@
-- 분류: E2
-- 분류 근거 (detection 조건 verbatim 인용): "exit ≠ 0 AND stderr ≤ 1 byte AND wall < 2s"
-- 다음 step (retry / fallback): retry X → critic opus fallback
-- 인용 출처 (§section + line): §Fallback 사다리 (E0-E4) 표, line 96
