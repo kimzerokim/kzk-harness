@@ -46,7 +46,7 @@ skill 호출 형식:
 
 ## 2. Autonomous Execution Boundary
 
-사용자가 명시적으로 autonomous 모드 허가 (예: "ralph 로 돌려", "자는 동안 진행", "끝까지 끝내줘") 한 경우에만 진입.
+사용자가 명시적으로 autonomous 모드 허가 (예: "ralph로 돌려", "자는 동안 진행", "끝까지 끝내줘") 한 경우에만 진입.
 
 ### 허용 동작
 
@@ -1210,3 +1210,73 @@ commit / 다음 단계 전:
 - **kzk-spec-and-review Step 1 (Draft)**: draft prompt 안 본 §32 boilerplate inject 의무
 - **kzk-codebase-survey §Step 4-5**: 베스트 프랙티스 확인의 구체 절차 출처
 - **kzk-test-coverage**: deepened module 후 obsolete unit test 삭제 의무 출처
+
+---
+
+## §33 Autonomous-mode Detection SoT
+
+> Single source of truth for all autonomous-mode detection logic. All skills that gate on
+> autonomous mode (kzk-test-coverage, kzk-regression-memory, kzk-autonomous-boundary, etc.)
+> MUST cross-ref this section. Do not maintain a local keyword list — drift risk.
+
+### 우선순위 (높음 → 낮음)
+
+#### 1. 환경변수 (가장 신뢰 — hook + subagent 양쪽 공통)
+
+| 변수 | 값 | 의미 |
+|---|---|---|
+| `KZK_AUTONOMOUS` | `1` | 자율 실행 mode 진입 (Category A + B 모두 skip) |
+| `KZK_HARNESS_SELF_IMPROVEMENT` | `1` | 자가개선 cycle 전용 진입 (Category B skip — regression recall hook 차단) |
+
+환경변수가 set 된 경우 아래 동사구 grep 생략. 환경변수 우선.
+
+#### 2. Category A — 명시 trigger 동사구 (사용자 → 자율 mode 진입 선언)
+
+user prompt 에서 아래 동사구 중 하나 이상 매칭 시 → 자율 mode 진입 판단.
+
+1. `ralph로 돌려`
+2. `끝까지 끝내줘`
+3. `자는 동안 진행해`
+4. `자율실행해줘`
+5. `자율로 돌려`
+6. `web-loop 진입`
+7. `autonomous-loop 시작`
+8. `실행해놔야 queue 보지`
+
+#### 3. Category B — 자가-skip 동사구 (자가개선 cycle → recall hook inject 차단)
+
+user prompt 에서 아래 동사구 중 하나 이상 매칭 시 → self-improvement cycle 판단.
+regression-memory 의 UserPromptSubmit hook 이 inject 를 skip.
+
+1. `harness 개선 루프 시작`
+2. `harness loop 진입`
+3. `스킬 개선해줘`
+4. `자가개선 cycle 진입`
+5. `자가개선 돌려줘`
+6. `메타 cycle 진입`
+
+### 명사 단독 매칭 금지
+
+아래 단독 명사는 false positive 차단을 위해 매칭 금지:
+
+- `자가개선` 단독
+- `ralph` 단독
+- `메타 cycle` 단독
+- `자율` 단독
+- `autopilot` 단독
+
+동사구 + 목적격 결합 시에만 매칭. "ralph로 돌려" OK, "ralph" 단독 X.
+
+### 사용처 (cross-ref 의무)
+
+| Skill | 섹션 | 적용 Category |
+|---|---|---|
+| kzk-test-coverage | §Anti-pattern §자율 mode 메인 직접 TDD 금지 (자율 mode 판별) | A + C |
+| kzk-regression-memory | §자가-skip guard | B + C |
+| kzk-autonomous-boundary | frontmatter description + §Branch contract ASK FIRST | A + C |
+
+### Cross-ref
+
+- **kzk-test-coverage §자율 mode 메인 직접 TDD 금지**: Category A + C 매칭 시 메인 직접 TDD red 차단
+- **kzk-regression-memory §자가-skip guard**: Category B + C 매칭 시 hook inject skip
+- **kzk-autonomous-boundary §Branch contract ASK FIRST**: Category A + C 매칭 시 ASK FIRST 의무 진입

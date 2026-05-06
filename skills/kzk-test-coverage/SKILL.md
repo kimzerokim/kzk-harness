@@ -1,6 +1,6 @@
 ---
 name: kzk-test-coverage
-version: 1.5.0
+version: 1.6.0
 description: "TDD-strict and 100% coverage on changed files — make sure to use this skill for any new feature or bugfix requiring TDD discipline, coverage gap reporting, or when 'test first', '테스트 먼저', 'red-green', or 'coverage exemption' appear. Enforces Red→Green→Refactor→Commit sequence: failing test written before implementation read. Anti-self-verification rule: in autonomous mode, main context cannot enter TDD red stage directly — must dispatch via fresh sonnet (halt entry Q-TDD-MAIN if violated). 100% line+branch coverage on touched files; legacy code in touched files counts. Exemptions (boot files, .d.ts, decorator-only) must be declared in PR description. References harness-share.md §11."
 ---
 
@@ -56,12 +56,9 @@ Red 단계 (failing test 작성) 진입 시점에 implementation read 금지. �
   - "메인 직접 TDD 허락"
   - "anti-self-verification 룰 인지하고 진행"
 
-**자율 mode 판별** (spec rev6 wording 그대로 — `=0 override` 없음):
-1. 환경변수 `KZK_AUTONOMOUS=1` → 자율 mode (가장 신뢰)
-2. **환경변수 unset 시** 보조 키워드 매칭 — **동사구만**:
-   - "ralph 로 돌려", "web-loop 진입", "autonomous-loop 시작"
-   - "harness 개선 루프 시작", "자가개선 cycle 진입", "끝까지 끝내줘"
-   - **명사 단독** ("자가개선" 만, "ralph" 만) 매칭 금지 — 일반 prompt false positive 차단
+**자율 mode 판별**:
+> See harness-share.md §33 Autonomous-mode Detection SoT (Category A + C).
+> TDD 금지 적용 범위: Category A 동사구 또는 `KZK_AUTONOMOUS=1` 매칭 시.
 
 **enforcement layer**:
 - Layer (a) sonnet dispatch prompt 룰 — `kzk-large-task-delegation` 의 §Subagent prompt requirements 의 Rules block 에 자동 주입 (boilerplate 텍스트 본 SKILL.md 참조)

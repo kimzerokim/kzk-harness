@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.8.0
+version: 1.9.0
 description: "Pre-commit gate — make sure to use this skill before every commit, whether autonomous or interactive. Runs up to 9 sequential gates: Gate 0 (AGENTS.md sync, when hierarchy present), Gate 0.5 (freshness guard CRG stale check), Gate 1 (ai-slop-cleaner), Gate 1.5 (secrets scan AKIA/ASIA), Gate 1.6 (production code-first staged-path check), Gate 2 (build green), Gate 3 (module test pass), Gate 4 (Playwright visual if frontend changed), Gate 4.5 (fix-scope callsite sanity), Gate 5 (fresh-agent verifier for 3+ file commits and high-risk tags). One failure blocks the commit. Skip conditions per gate are explicit — no silent skips. Covers doc-only fast path, KZK_GATE05_SKIP, KZK_GATE45_SKIP, env-exception, INVALID_VERDICT handling. References harness-share.md §3."
 ---
 
@@ -136,7 +136,7 @@ Commit 직전 final check. `kzk-large-task-delegation` §Three-stage review §St
 
 ### Doc-only commit 예외
 
-source code 변경 없는 doc-only commit 은 Gate 5 N/A (Gate 0–4 의 doc-only 예외와 동일).
+> See `## Doc-only commit exception and patch policy` below for the single source of truth.
 
 ### Plan C self-bootstrap N/A (rev2 #1)
 
@@ -146,38 +146,28 @@ Plan C 자체 적용 첫 commit 은 N/A 1회만 — commit body 에 명시 의�
 
 Gate 5 PASS 시 사용자 confirm 없이 commit 허용 (다른 gate 와 동일). FAIL / BLOCK / INVALID / dispatch fail 시 halt + user-queue.
 
-## Doc-only commit exception
+## Doc-only commit exception and patch policy
 
-If the commit touches **no** source code — only docs/configs/screenshots (`*.md`, `docs/**`, `CLAUDE.md`, `DESIGN.md`, `harness-flow-progress.md`, `skills/**/*.md`, `.claude/skills/**/*.md`, `docs/screenshots/**`) — then:
+If the commit touches **no** source code — only docs/configs (`*.md`, `docs/**`, `CLAUDE.md`, `DESIGN.md`, `harness-flow-progress.md`, `skills/**/*.md`, `.claude/skills/**/*.md`, `docs/screenshots/**`) — then apply the minimal gate set:
 
-- Gate 0 (AGENTS.md sync) N/A unless the doc commit itself adds/removes files under a source root (rare)
+- Gate 0 (AGENTS.md sync) N/A unless the doc commit itself adds/removes files under a source root
+- Gate 1 (ai-slop-cleaner) only on touched md if needed
+- Gate 1.5 (secrets scan) **always required**
 - Gate 2 (build) skipped
 - Gate 3 (test) skipped
-- Gate 1 (ai-slop-cleaner) only on the touched md if needed
 - Gate 4 N/A
-- Autonomous mode: commit without user prompt
-- Non-autonomous: still confirm with user
+- Gate 5 N/A
+- Verify: `bash install/verify-install.sh --ac 2` (kzk marker block row count, ≤ 5s)
 
-Any single source-code line in the same commit revokes this exception → run all applicable gates (6 if AGENTS.md hierarchy present; 5 otherwise).
+Doc-only commits go straight to commit after Gate 1.5 + AC2.
 
-**AGENTS.md / README.md classification**: these are `.md` files but follow this rule — standalone update (no source file add/delete in the same commit) = doc-only OK, Gate 0 not triggered. Same commit as a Gate 0 trigger (source file add/delete) = doc-only exception revoked by the source change, run all applicable gates.
+Any single source-code line in the same commit revokes this exception → run all applicable gates.
 
-Note: skill files (`skills/**/*.md`) count as doc-only ONLY when modifying an existing skill. ADDING a new skill triggers Gate 0 **only when an AGENTS.md hierarchy is present** (same conditional as §Gate 0), plus the README.md / CLAUDE.md skill-count update flow described in CLAUDE.md "Skill Development Rules". `.claude/skills/**/*.md` is the legacy OMC path — same rules apply.
+**AGENTS.md / README.md**: standalone update (no source add/delete) = doc-only OK. Same commit as source add/delete = exception revoked.
 
-## Doc-only patch policy
+**Skill files** (`skills/**/*.md`): doc-only ONLY for existing skill edits. ADDING a new skill triggers Gate 0 (if AGENTS.md hierarchy present) + README/CLAUDE.md skill-count update flow.
 
-When the staged diff touches ONLY the following paths, gate down to a minimal verification set:
-
-- `skills/kzk-*/SKILL.md`, `harness-share.md`, `CLAUDE.md`, `README.md`, `harness-flow-progress.md`, `docs/**/*.md`
-- AND no source file (`*.ts`, `*.tsx`, `*.js`, `*.mjs`, `*.py`, `*.sh`) added or modified
-
-Minimal set:
-1. Gate 1.5 secrets scan — always required
-2. `bash install/verify-install.sh --ac 2` — kzk marker block row count (≤ 5s)
-
-Skip the install/test full suite + AC3/6/7 + Gate 2/3/4. The full suite runs once at cycle close (last commit before global update).
-
-Doc-only commits go straight to commit after Gate 1.5 + AC2. Save token + wall-clock cost (~30s × cycle-close commits saved).
+**Autonomous mode**: commit without user prompt when gates pass. Non-autonomous: confirm with user.
 
 ## Autonomous-mode commit policy
 

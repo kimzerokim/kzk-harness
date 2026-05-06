@@ -1,6 +1,6 @@
 ---
 name: kzk-regression-memory
-version: 1.3.0
+version: 1.4.0
 description: "Regression memory auto-recall — make sure to use this skill when a fix starts and past similar fixes should be surfaced, or when managing the regression memory lifecycle (dismiss, archive, stale check, cycle retro). Hooks into UserPromptSubmit via regression-recall.mjs to inject past fix context before the fix begins. Storage: gstack /learn JSONL (primary) + .kzk-harness/regression-meta.jsonl sidecar (dismiss_count, stale, archived). Decay formula: confidence * 0.85^dismiss_count; archived/decayed-below-4 entries filtered. Self-improvement loop auto-skipped via KZK_HARNESS_SELF_IMPROVEMENT=1. Dismiss CLI: node install/bin/kzk-regression-memory.mjs dismiss <key>. Default DISABLED until kzk-pre-merge-sync step 3. References harness-share.md §29."
 ---
 
@@ -88,21 +88,12 @@ node install/bin/kzk-regression-memory.mjs dismiss <key>
 
 **왜**: rev1 은 `dismiss` 명령 언급만 (mutation 없음). dismiss_count / last_dismissed_at / archived 가 dead field → spec/plan split-brain. CLI mutation path 추가로 dead field 차단.
 
-## 자가-skip guard (codex #5 답 — 동사구만)
+## 자가-skip guard
 
-자율실행 cycle 의 메인 prompt 면 inject 안 함:
+자율실행 cycle 의 메인 prompt 면 inject 안 함.
 
-- **환경변수** `KZK_HARNESS_SELF_IMPROVEMENT=1` → 즉시 skip (가장 신뢰)
-- **환경변수** `KZK_AUTONOMOUS=1` → 즉시 skip (spec rev6 §자율 mode 판별 #1 우선순위와 통일)
-- user prompt 에서 **self-improvement 동사구** grep — 매칭되면 skip:
-  - `harness 개선 루프 시작`
-  - `스킬 개선해줘`
-  - `harness loop 진입`
-  - `자가개선 cycle 진입`
-  - `자가개선 돌려줘`
-  - `메타 cycle 진입`
-  - `ralph 로 돌려`
-- **명사 단독 금지** (`자가개선`, `메타 cycle`, `ralph`) — 일반 prompt false positive 차단
+> See harness-share.md §33 Autonomous-mode Detection SoT (Category B + C).
+> 본 hook: Category B 동사구 또는 `KZK_HARNESS_SELF_IMPROVEMENT=1` / `KZK_AUTONOMOUS=1` 매칭 시 즉시 skip.
 
 이유: D recall hook 이 자가개선 cycle 에서 발동하면 자기 자신의 진행을 inject 로 오염. 자율 cycle 진행 차단.
 

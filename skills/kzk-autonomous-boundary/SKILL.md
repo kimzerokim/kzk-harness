@@ -1,7 +1,7 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.6.0
-description: "Autonomous-mode boundary — make sure to use this skill whenever the user says 'ralph로 돌려', '끝까지 끝내줘', '자율실행', or any phrasing that requests autonomous multi-commit execution. Enforces the mandatory ASK-FIRST 3-slot branch/PR contract (branch destination, branch name, PR mode) before any autonomous or harness-driven multi-commit flow begins. Governs halt conditions (reviewer 2× FAIL, build 3× FAIL, main-access required), destructive-op guardrails (force-push, reset --hard, PR auto-merge), and Q-entry patterns (Q-TDD-MAIN, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-FAIL, Q-VERIFIER-INVALID, Q-VERIFIER-DISPATCH-FAIL). References harness-share.md §2."
+version: 1.7.0
+description: "Autonomous-mode boundary — make sure to use this skill whenever the user's prompt matches the Category A trigger phrases in harness-share.md §33 Autonomous-mode Detection SoT (canonical: 'ralph로 돌려', '끝까지 끝내줘', etc.), or any phrasing that requests autonomous multi-commit execution. Enforces the mandatory ASK-FIRST 3-slot branch/PR contract (branch destination, branch name, PR mode) before any autonomous or harness-driven multi-commit flow begins. Governs halt conditions (reviewer 2× FAIL, build 3× FAIL, main-access required), destructive-op guardrails (force-push, reset --hard, PR auto-merge), and Q-entry patterns (Q-TDD-MAIN, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-FAIL, Q-VERIFIER-INVALID, Q-VERIFIER-DISPATCH-FAIL). References harness-share.md §2 + §33."
 ---
 
 > Authoritative source: repo `CLAUDE.md` "Autonomous Execution Boundary" + `harness-share.md` §2. On conflict, those win.
@@ -56,12 +56,12 @@ Anything else → keep going (see `kzk-autonomous-loop` for polite-stop ban).
 
 | Trigger | Reason | Action | Resume |
 |---|---|---|---|
-| `Q-TDD-MAIN` | 자율 mode 의 메인 컨텍스트가 직접 TDD red 단계 진입 시도 (Plan A Layer b cross-ref) | halt + user-queue entry `Q-TDD-MAIN — 자율 cycle 의 메인 직접 TDD 시도, fresh sonnet dispatch 재시작 필요`. 메인 직접 test 작성 즉시 중단. cross-ref: `kzk-test-coverage` §Anti-pattern §자율 mode 메인 직접 TDD 금지 / `kzk-large-task-delegation` §Anti-self-verification boilerplate | fresh sonnet dispatch PASS (test 작성을 subagent 가 수행) 또는 사용자 명시 override (1회만, queue 에 OK 기록) |
-| `Q-MAIN-DIRECT-EDIT` | 자율 mode / harness self-improvement / 라이브러리 변경에서 메인 컨텍스트가 직접 Edit/Write 로 코드/스킬 변경 시도 — Q-TDD-MAIN 의 일반화. 신호: 5+ 파일 read 또는 multi-file edit (3+ 파일 / 200+ LoC). | halt + user-queue entry `Q-MAIN-DIRECT-EDIT — 메인 직접 작업 시도, EXPLORER/EXECUTOR subagent dispatch 재시작 필요`. 메인 직접 Edit 즉시 중단. cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit` / `kzk-codebase-survey §Preparation phase delegation` | fresh executor subagent dispatch PASS 또는 사용자 명시 override (1회만, queue 에 OK 기록) |
-| `Q-VERIFIER-FAIL` | `kzk-large-task-delegation` §Stage 3 / `kzk-pre-commit-gate` §Gate 5 의 verifier 가 같은 thread = `(plan_path, acceptance_id, verification_round)` 안에서 2 consecutive FAIL (PARTIAL 2회 같은 지적사항이면 FAIL escalate 포함) | halt + user-queue entry `Q-VERIFIER-FAIL — verifier 2 consecutive FAIL on thread (<plan>:<acceptance_id>:<round>), 사용자 결정 필요 (verifier 지적 무시 / 추가 fix / plan revision)`. commit BLOCK 유지 | PASS 또는 user-approved plan revision (rev bump 명시) — 둘 중 하나만 thread reset |
-| `Q-VERIFIER-INVALID` | verifier 응답 첫 줄이 `VERDICT: PASS\|FAIL\|PARTIAL` 정규식 매칭 실패 (prose only, 형식 위반, empty 등) | fail-closed BLOCK + user-queue entry `Q-VERIFIER-INVALID — verifier 응답 형식 위반, 사용자 결정 필요 (manual verify / retry with stricter prompt / plan revision)` | retry verifier (stricter prompt) PASS 또는 사용자 manual verify OK 또는 plan revision |
-| `Q-VERIFIER-DISPATCH-FAIL` | verifier subagent dispatch 자체 실패 (no response / timeout / subagent type unavailable) | BLOCK + user-queue entry `Q-VERIFIER-DISPATCH-FAIL — verifier dispatch 실패, fallback path 또는 사용자 직접 review 결정 필요`. fallback: `oh-my-claudecode:code-reviewer` 시도 | fallback PASS 또는 사용자 manual review OK |
-| `Q-CODEX-DISPATCH-FAIL` | codex subagent dispatch 자체 실패 (no response / timeout / subagent type unavailable) — `kzk-codex-handoff §Fresh subagent 호출 패턴` 정의 | BLOCK + user-queue entry `Q-CODEX-DISPATCH-FAIL — codex CLI dispatch 실패, 메인 직접 호출 또는 critic opus fallback 결정 필요`. fallback path 1: 메인 직접 codex 호출 (subagent layer 우회). fallback path 2: oh-my-claudecode:critic opus | path 1 또는 2 PASS 또는 사용자 manual review OK |
+| `Q-TDD-MAIN` | 자율 mode 의 메인 컨텍스트가 직접 TDD red 단계 진입 시도 | halt + Q-TDD-MAIN entry. cross-ref: `kzk-test-coverage` §자율 mode 메인 직접 TDD 금지 | fresh sonnet dispatch PASS 또는 사용자 명시 override (1회만) |
+| `Q-MAIN-DIRECT-EDIT` | 자율 mode 에서 메인이 직접 Edit/Write 로 코드/스킬 변경 시도 (신호: 5+ 파일 read / 3+ 파일 edit / 200+ LoC) | halt + Q-MAIN-DIRECT-EDIT entry. cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit` | fresh executor subagent dispatch PASS 또는 사용자 명시 override (1회만) |
+| `Q-VERIFIER-FAIL` | verifier 가 같은 thread `(plan_path, acceptance_id, round)` 에서 2 consecutive FAIL | halt + Q-VERIFIER-FAIL entry. commit BLOCK 유지 | PASS 또는 user-approved plan revision (rev bump 명시) |
+| `Q-VERIFIER-INVALID` | verifier 응답 첫 줄이 `VERDICT: PASS\|FAIL\|PARTIAL` 정규식 매칭 실패 | fail-closed BLOCK + Q-VERIFIER-INVALID entry | retry (stricter prompt) PASS 또는 사용자 manual verify OK |
+| `Q-VERIFIER-DISPATCH-FAIL` | verifier subagent dispatch 자체 실패 (timeout / unavailable) | BLOCK + Q-VERIFIER-DISPATCH-FAIL entry. fallback: `oh-my-claudecode:code-reviewer` | fallback PASS 또는 사용자 manual review OK |
+| `Q-CODEX-DISPATCH-FAIL` | codex subagent dispatch 자체 실패 — `kzk-codex-handoff §Fresh subagent 호출 패턴` 정의 | BLOCK + Q-CODEX-DISPATCH-FAIL entry. fallback 1: 메인 직접 codex. fallback 2: critic opus | fallback PASS 또는 사용자 manual review OK |
 
 
 ## Rollback / revert policy
@@ -75,13 +75,10 @@ If the autonomous loop committed code that is later found to be wrong (reviewer 
 
 ## Branch policy detail
 
-- The branch contract is per-session, not hardcoded. Common shapes:
-  - PR-flow on `feature/<topic>` (most projects' default)
-  - PR-flow on a repo-specific name (`harness-test` for kzk-harness's own self-test convention)
-  - Direct-main, no PR (small docs / config sweeps the user explicitly authorized — kzk-harness self-improvement runs in this mode when the user says so)
-  - Direct on a non-main feature branch, no PR (long-lived experiment branch)
-- Under PR-flow: **One Plan = one PR (no batch).** First plan-direction error → other plans stay protected. PR description must include `CLAUDE.md updated to match current state` + `deepinit ran` lines (see `kzk-pre-merge-sync`).
-- Under direct-main / direct-no-PR flow: same atomic-commit discipline applies. `kzk-pre-merge-sync` checks run before user-visible milestone commits (see that skill).
+> See CLAUDE.md "Autonomous Execution Boundary" for branch shape examples (PR-flow / direct-main / direct-no-PR / long-lived branch).
+
+- Under PR-flow: **One Plan = one PR (no batch).** PR description must include `CLAUDE.md updated` + `deepinit ran` (see `kzk-pre-merge-sync`).
+- Under direct-main flow: atomic-commit discipline applies; `kzk-pre-merge-sync` checks before milestone commits.
 
 ## Interaction with other kzk-*
 

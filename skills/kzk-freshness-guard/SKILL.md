@@ -1,6 +1,6 @@
 ---
 name: kzk-freshness-guard
-version: 1.1.0
+version: 1.2.0
 description: "Stale 메타 문서 자동 감지 + CRG 심볼 역참조 + auto-fix — make sure to use this skill at Gate 0.5 (pre-commit staged-path stale check), kzk-spec-and-review Step 0 (spec/plan reference freshness), and kzk-pre-merge-sync §4 (pre-merge full sweep). For fix-start flows, this skill is invoked via kzk-codebase-survey (the hub) — 'fix 시작' direct trigger routes through codebase-survey, not here directly. Direct triggers for this skill: 'stale 체크', 'freshness guard', 'Gate 0.5', 'KZK_GATE05_SKIP', 'stale doc', pre-merge sweep. Detection logic: CRG reverseRefs → meta-doc grep → line-ref validation. Auto-fix per doc type (AGENTS.md row update, CLAUDE.md section rewrite, spec/survey line-ref refresh). References harness-share.md §30."
 ---
 
@@ -60,6 +60,40 @@ description: "Stale 메타 문서 자동 감지 + CRG 심볼 역참조 + auto-fi
 | spec/survey | line ref 갱신 + 코드 설명 반영 | executor (sonnet) |
 | auto-memory | CRG 사실 검증 → 삭제/갱신 | 메인 판단 후 Write |
 | plan | frozen → 갱신 금지, WARN만 | WARN only |
+
+## File path reference resilience (fallback path lookup)
+
+stale 메타 문서 reference 의 file path 가 *not found* 일 때:
+
+### 1. 명시 path missing → 즉시 halt 금지
+
+명시 path 부재 시 즉시 ERROR / 사용자 prompt X. 다른 경로 탐색 의무 — file rename / 디렉토리 이동 가능성.
+
+### 2. Fallback lookup 절차
+
+a. **file basename 추출** — path 의 마지막 segment (예: `TextCellEditor.test.tsx`)
+b. **lookup 시작점 = repo root 만** — `git rev-parse --show-toplevel`. 다른 repo / system-wide path 탐색 X. (사용자 결정: "이상한 곳" 부터 시작 금지)
+c. **search 명령 (우선순위)**:
+   1. `git ls-files | grep -F "<basename>"` — git tracked file (primary)
+   2. `find <repo-root> -name "<basename>" -type f -not -path '*/node_modules/*' -not -path '*/.git/*'` — gitignored 포함 fallback (예: untracked 새 파일)
+d. **결과 처리**:
+   - **1 hit**: 그 path 로 reference update + WARN (`path moved: <old> → <new>`)
+   - **다중 hit**: 가장 가까운 path 선택 (depth 짧은 / staged file 와 같은 디렉토리). WARN + 채택 path 명시
+   - **0 hit**: file 자체 부재 (rename 가능성 0) → ERROR + reference 제거 권고 + user-queue `Q-FILE-MISSING-<basename>` entry 등록
+
+### 3. Anti-pattern
+
+- ❌ 명시 path not found → 즉시 사용자에게 "이 path 없는데 어떻게 할까요?" — fallback 의무 수행 후 결과 보고
+- ❌ 명시 path 부터 시작 → 부재 → halt — 다른 경로 탐색 후 halt
+- ❌ system-wide find / 다른 repo (`~/web/...`, `~/Library/...`) 탐색 — 항상 현재 repo root 부터
+
+### 4. Trigger 시점
+
+본 절차는 다음 trigger 에서 발동:
+- §Detection Logic 의 staged file ↔ 메타 문서 reference 매칭 시 path 비교
+- Gate 0.5 pre-commit 단계 stale check (kzk-pre-commit-gate cross-ref)
+- pre-merge sweep (kzk-pre-merge-sync §4 cross-ref)
+- 사용자 명시 stale 체크 trigger
 
 ## Pre-commit Gate 0.5
 

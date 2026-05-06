@@ -4,4 +4,4 @@ Pending decisions that require user input before resuming autonomous execution.
 
 ---
 
-- Q-AUTONOMOUS-SOT (2026-05-06 cycle 43 audit) — autonomous-mode detection 동사구 list 가 kzk-test-coverage / kzk-regression-memory / kzk-autonomous-boundary 3 SKILL 분산. drift risk. 권고: harness-share.md §autonomous-mode-detection SoT 신설 + 3 SKILL cross-ref. status: PENDING — 사용자 architecture 결정 필요. resolution: cycle 44+ 후속.
+- Q-AUTONOMOUS-SOT (2026-05-06 cycle 43 audit) — status: RESOLVED (cycle 44). harness-share.md §33 신설 (Autonomous-mode Detection SoT). kzk-test-coverage §자율 mode 판별, kzk-regression-memory §자가-skip guard, kzk-autonomous-boundary frontmatter → §33 cross-ref. canonical form "ralph로 돌려" (붙여쓰기) 채택.
