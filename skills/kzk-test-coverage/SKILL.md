@@ -1,18 +1,12 @@
 ---
 name: kzk-test-coverage
-version: 1.3.0
-description: "TDD-strict + 100% line+branch coverage on changed files — failing test FIRST (red), impl (green), refactor, commit. Top triggers: 'TDD', 'test first', '테스트 먼저', 'test coverage', 'coverage exemption', '자율 mode TDD', 'test-from-implementation', 'self-verification'. Body §Triggers for full list."
+version: 1.4.0
+description: "TDD-strict and 100% coverage on changed files — make sure to use this skill for any new feature or bugfix requiring TDD discipline, coverage gap reporting, or when 'test first', '테스트 먼저', 'red-green', or 'coverage exemption' appear. Enforces Red→Green→Refactor→Commit sequence: failing test written before implementation read. Anti-self-verification rule: in autonomous mode, main context cannot enter TDD red stage directly — must dispatch via fresh sonnet (halt entry Q-TDD-MAIN if violated). 100% line+branch coverage on touched files; legacy code in touched files counts. Exemptions (boot files, .d.ts, decorator-only) must be declared in PR description. References harness-share.md §11."
 ---
 
 > Authoritative source: `harness-share.md` §11. On conflict, that wins.
 
 # kzk-test-coverage
-
-## Triggers
-
-`test coverage`, `test:cov`, `100% coverage`, `변경 파일 cov`, `coverage exemption`, `tdd`, `TDD`, `test first`, `테스트 먼저`, `테스트부터`, `failing test`, `red-green`, `테스트 추가`, `테스트 추가해줘`, `test 추가`, `coverage 추가`, `test-from-implementation`, `자율 mode TDD`, `self-verification`, `자기검증 차단`, `anti-self-verification`.
-
-Autonomous session = 100% line + branch coverage on the files the session changed. Legacy code in those files counts too — touched = raised.
 
 ## Workflow
 

@@ -1,18 +1,12 @@
 ---
 name: kzk-codex-handoff
-version: 1.1.0
-description: "Codex CLI 호출 안정화 single source of truth — stdin pipe + --ephemeral + read-only + NDJSON file→jq + Preflight + 4 에러 fallback 사다리. Top triggers: 'codex CLI 호출', 'codex handoff', 'codex 안정화'. Body §Triggers for full list."
+version: 1.2.0
+description: "Codex CLI 호출 안정화 단일 SoT — make sure to use this skill whenever any other skill invokes the codex CLI, or when codex exec produces timeout/empty/NDJSON parse failures. Defines 5 hard rules: stdin pipe required, --json→file→jq (never direct pipe), --ephemeral always, short prompts via arg exception, plain text mode preferred. Covers E0 Preflight (which/version/sandbox), E1–E4 fallback ladder to critic opus, fresh-subagent dispatch shape, prompt size guidelines (<500 lines, <700-word response), and stuck detection (60s no-first-token, 5min total). Meta-skill — user triggers rare; auto-loaded by kzk-spec-and-review and kzk-large-task-delegation cross-ref. Self-authoritative (Phase 2: harness-share.md §32)."
 ---
 
 > Authoritative source: This skill is self-authoritative for codex CLI invocation discipline. Will migrate to `harness-share.md §32` in Phase 2.
 
 # kzk-codex-handoff
-
-## Triggers
-
-`codex CLI 호출`, `codex handoff`, `codex 안정화`, `codex 호출 보정`, `codex stdin pipe`, `codex --ephemeral`, `codex NDJSON`, `codex preflight`, `codex fallback`, `codex E0`, `codex E1`, `codex E2`, `codex E3`, `codex E4`, `Q-CODEX-DISPATCH-FAIL`.
-
-Meta-skill — 사용자 직접 trigger 거의 없음. 다른 스킬이 cross-ref 시 자동 로드.
 
 ## Codex CLI 호출 패턴
 

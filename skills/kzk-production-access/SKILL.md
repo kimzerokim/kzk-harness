@@ -1,18 +1,12 @@
 ---
 name: kzk-production-access
-version: 1.2.0
-description: "Production/external-infra access boundary + credential-handling — explicit-instruction rule, destructive-op guardrails, AWS STS triage, code-first production state mutation, 멱등성 의무. Top triggers: 'AWS', 'SSM', 'production', 'aws-vault', 'credential', 'migration', 'IaC', 'schema change', 'code-first', '멱등성', 'idempotent', 'drift', 'forward-only'. Body §Triggers for full list."
+version: 1.3.0
+description: "Production and external infrastructure access boundary — make sure to use this skill whenever the user mentions AWS, SSM, production DB, migration, IaC (Terraform / CloudFormation / Pulumi), schema change, or credential handling. Default is forbidden including read-only. Two permission categories: (a) read-only inspection requires explicit user instruction; (b) state mutation (DB schema, IAM, S3, Lambda env) — AI authors script only, user or CI executes. Idempotency mandatory on all production scripts (IF NOT EXISTS, ON CONFLICT DO NOTHING, describe-* conditional). Drift resolution = forward-only migration, never production state rollback. STS credentials (ASIA prefix) single-use only; permanent IAM keys (AKIA prefix) refuse + advise revocation. References harness-share.md §2."
 ---
 
 > Authoritative source: `harness-share.md` §2 (and §2 하위 subsection `§Production state changes — code-first + 멱등성`). On conflict, that wins.
 
 # kzk-production-access
-
-## Triggers
-
-`AWS`, `AWS 접속`, `SSM`, `SSM Session Manager`, `production`, `destructive`, `DB drop`, `snapshot`, `credential`, `ASIA prefix`, `AKIA prefix`, `aws-vault`, `migration`, `schema change`, `IaC`, `Terraform`, `CloudFormation`, `Pulumi`, `code-first`, `멱등성`, `idempotent`, `IF NOT EXISTS`, `drift`, `forward-only migration`.
-
-Default = forbidden. Read-only included.
 
 ## Permission model (rev2 — Plan E)
 

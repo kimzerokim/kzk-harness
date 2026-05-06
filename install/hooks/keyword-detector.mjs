@@ -40,6 +40,13 @@ const RULES = [
     ],
   },
   {
+    skills: ["kzk-codebase-survey"],
+    why: "fix-start hub — codebase-survey lazy-invokes fix-scope-expansion + freshness-guard internally",
+    triggers: [
+      "fix 시작", "버그 수정", "에러 fix", "regression fix", "버그 수정 시작",
+    ],
+  },
+  {
     skills: ["kzk-spec-and-review"],
     why: "spec / plan / major-design authoring requires Step 0 survey + Steps 1-3 codex review",
     triggers: [

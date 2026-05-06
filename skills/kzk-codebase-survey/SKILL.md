@@ -1,20 +1,12 @@
 ---
 name: kzk-codebase-survey
-version: 1.9.0
-description: "Mandatory pre-planning deep codebase read — full import scope, context7 docs, TypeScript contracts, fix-time callsite expansion. Top triggers: 'codebase survey', '코드 서베이', '코드베이스 탐색', 'spec 검증', '하나하나 확인', 'before planning', 'fix 시작', 'callsite 전수', 'preparation phase delegation'. Body §Triggers for full list."
+version: 1.10.0
+description: "Mandatory pre-planning deep codebase explorer — make sure to use this skill before any spec, plan, major design draft, or fix. This is the hub for fix-start flows: when the user says 'fix 시작', '버그 수정', or 'callsite 전수', invoke this skill first; it then lazy-invokes kzk-fix-scope-expansion (CRG callsite query) and kzk-freshness-guard (stale report check). Runs 8 steps via oh-my-claudecode:explore subagent: CRG index verify, scope expansion, deep parallel Read, library detection, context7 docs load, pattern extraction, TypeScript contracts, report save. 5+ file reads are forbidden in main context — always delegate here. References harness-share.md §26."
 ---
 
 > Authoritative source: `harness-share.md` §26. On conflict, that wins.
 
 # kzk-codebase-survey
-
-## Triggers
-
-`codebase survey`, `코드베이스 탐색`, `deep explore`, `survey first`, `before planning`, `spec 검증`, `spec verification`, `구현 확인`, `구현 검증`, `버그 전수조사`, `implementation audit`, `spec vs implementation`, `spec 체크`, `스펙 체크`, `하나하나 확인`, `ralph로 체크`, `fix 시작`, `버그 수정`, `에러 fix`, `regression fix`, `callsite 전수`, `함수 수정 영향`, `freshness check`, `stale survey`.
-
-Mandatory pre-brainstorming and pre-planning deep read. Solves the root cause of feature gaps in plans: the planner only sees a short file list, not the full codebase context, external library APIs, or TypeScript type contracts.
-
-**Run before:** `superpowers:brainstorming`, `kzk-spec-and-review` (spec / plan / major design draft — Step 0 precondition), `kzk-large-task-delegation` planner dispatch, `kzk-web-loop` P1/P2 `writing-plans` step, implementation verification (spec ↔ code matching, bug sweep, existing-system audit — main context dispatches here instead of reading directly).
 
 ## EXPLORER Agent
 

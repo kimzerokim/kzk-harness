@@ -1,16 +1,12 @@
 ---
 name: kzk-pre-merge-sync
-version: 1.4.0
-description: "Pre-merge/milestone checklist — sync CLAUDE.md + run deepinit before any user-visible milestone. Top triggers: 'merge', 'PR 직전', 'deepinit', 'CLAUDE.md sync', 'milestone marker'. Body §Triggers for full list."
+version: 1.5.0
+description: "Pre-merge and milestone checklist — make sure to use this skill before any gh pr create (PR-flow) or before each user-visible milestone commit (direct-main flow). Enforces 4 mandatory steps: (1) CLAUDE.md sync (Tech Stack / Project Structure / API Endpoints / Database / Key Rules / Env Vars), (2) deepinit run and manifest refresh, (3) regression-recall + fix-scope-trigger hook auto-enable after all 5 plans merge (fail-closed: jq check + duplicate guard + exit-code gate), (4) full freshness sweep via kzk-freshness-guard. PR description must include 'CLAUDE.md updated to match current state' and 'deepinit ran'. Skipping deepinit on direct-main flow is a violation. References harness-share.md §14.5 + §15."
 ---
 
 > Authoritative source: `harness-share.md` §14.5 + §15. On conflict, that wins.
 
 # kzk-pre-merge-sync
-
-## Triggers
-
-`merge`, `merge 전`, `feature branch`, `PR`, `PR 직전`, `deepinit`, `Pre-Merge`, `milestone marker`, `CLAUDE.md update`, `CLAUDE.md sync`, `manifest 재생성`.
 
 Two checks before any user-visible milestone, regardless of branch contract (see `kzk-autonomous-boundary` §Branch contract):
 

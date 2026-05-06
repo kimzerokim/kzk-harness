@@ -1,18 +1,12 @@
 ---
 name: kzk-fix-scope-expansion
-version: 1.1.0
-description: "Fix scope expansion — fix 시작 시 함수/심볼 callsite 전수 조회 (CRG 우선 + grep fallback) + Gate 4.5 sanity check. Top triggers: 'fix 시작', 'callsite 전수', 'Gate 4.5', 'fix-scope-cache', 'callsite mismatch', 'KZK_GATE45_SKIP'. Body §Triggers for full list."
+version: 1.2.0
+description: "Fix scope expansion and Gate 4.5 sanity check — make sure to use this skill when a fix-start flow detects callsite mismatch or triggers Gate 4.5 (fix-scope-specific keywords). Note: 'fix 시작' and '버그 수정' direct triggers are owned by kzk-codebase-survey (the hub); this skill is cross-ref invoked from codebase-survey during fix-start flows. Direct triggers for this skill are callsite-mismatch-specific: 'callsite 전수', 'Gate 4.5', 'fix-scope-cache', 'KZK_GATE45_SKIP', 'callsite 누락'. Runs fix-scope-trigger.mjs hook (CRG detect-changes → grep fallback), writes .kzk-harness/fix-scope-cache.jsonl, and defines the pre-commit Gate 4.5 BLOCK. Default DISABLED until kzk-pre-merge-sync step 3. References harness-share.md §3.5."
 ---
 
 > Authoritative source: harness-share.md §3.5. On conflict, that wins.
 
 # kzk-fix-scope-expansion
-
-## Triggers
-
-`fix 시작`, `callsite 전수`, `Gate 4.5`, `fix-scope-cache`, `callsite mismatch`, `KZK_GATE45_SKIP`,
-`버그 수정`, `에러 fix`, `regression fix`, `함수 수정 영향`, `fix-start`, `fix scope`, `한 callsite`,
-`호출자 전수`, `callsite 누락`, `fix 범위`, `fix scope 누수`.
 
 ## Why
 

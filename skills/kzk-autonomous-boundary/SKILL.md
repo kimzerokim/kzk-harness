@@ -1,18 +1,12 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.4.0
-description: "Autonomous-mode boundary — ASK-FIRST 3-slot branch/PR contract, halt conditions, destructive-op guardrails. Top triggers: 'ralph로 돌려', '자율실행', 'main 직접', '끝까지 끝내줘', 'branch contract'. Body §Triggers for full list."
+version: 1.5.0
+description: "Autonomous-mode boundary — make sure to use this skill whenever the user says 'ralph로 돌려', '끝까지 끝내줘', '자율실행', or any phrasing that requests autonomous multi-commit execution. Enforces the mandatory ASK-FIRST 3-slot branch/PR contract (branch destination, branch name, PR mode) before any autonomous or harness-driven multi-commit flow begins. Governs halt conditions (reviewer 2× FAIL, build 3× FAIL, main-access required), destructive-op guardrails (force-push, reset --hard, PR auto-merge), and Q-entry patterns (Q-TDD-MAIN, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-FAIL, Q-VERIFIER-INVALID, Q-VERIFIER-DISPATCH-FAIL). References harness-share.md §2."
 ---
 
 > Authoritative source: repo `CLAUDE.md` "Autonomous Execution Boundary" + `harness-share.md` §2. On conflict, those win.
 
 # kzk-autonomous-boundary
-
-## Triggers
-
-`autonomous`, `ralph로 돌려`, `ralph로 체크`, `ralph로 확인`, `자는 동안 진행`, `실행해놔야 queue 보지`, `끝까지 끝내줘`, `branch contract`, `feature branch boundary`, `main 직접 접근`, `main에 바로 커밋`, `reviewer FAIL`, `자율실행`, `자율 실행`, `자율로 돌려`, `Q-TDD-MAIN`, `Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `Q-VERIFIER-DISPATCH-FAIL`, `verifier 2 FAIL`, `verifier consecutive FAIL halt`, `verification thread halt`, `INVALID_VERDICT halt`.
-
-Autonomous mode = explicit user permission only. Triggers: "ralph로 돌려", "자는 동안 진행해", "실행해놔야 queue 보지", "끝까지 끝내줘". No autonomous mode = no auto-commits, no agent dispatch chains.
 
 ## Allowed actions (autonomous mode ON)
 
@@ -67,6 +61,7 @@ Anything else → keep going (see `kzk-autonomous-loop` for polite-stop ban).
 | `Q-VERIFIER-FAIL` | `kzk-large-task-delegation` §Stage 3 / `kzk-pre-commit-gate` §Gate 5 의 verifier 가 같은 thread = `(plan_path, acceptance_id, verification_round)` 안에서 2 consecutive FAIL (PARTIAL 2회 같은 지적사항이면 FAIL escalate 포함) | halt + user-queue entry `Q-VERIFIER-FAIL — verifier 2 consecutive FAIL on thread (<plan>:<acceptance_id>:<round>), 사용자 결정 필요 (verifier 지적 무시 / 추가 fix / plan revision)`. commit BLOCK 유지 | PASS 또는 user-approved plan revision (rev bump 명시) — 둘 중 하나만 thread reset |
 | `Q-VERIFIER-INVALID` | verifier 응답 첫 줄이 `VERDICT: PASS\|FAIL\|PARTIAL` 정규식 매칭 실패 (prose only, 형식 위반, empty 등) | fail-closed BLOCK + user-queue entry `Q-VERIFIER-INVALID — verifier 응답 형식 위반, 사용자 결정 필요 (manual verify / retry with stricter prompt / plan revision)` | retry verifier (stricter prompt) PASS 또는 사용자 manual verify OK 또는 plan revision |
 | `Q-VERIFIER-DISPATCH-FAIL` | verifier subagent dispatch 자체 실패 (no response / timeout / subagent type unavailable) | BLOCK + user-queue entry `Q-VERIFIER-DISPATCH-FAIL — verifier dispatch 실패, fallback path 또는 사용자 직접 review 결정 필요`. fallback: `oh-my-claudecode:code-reviewer` 시도 | fallback PASS 또는 사용자 manual review OK |
+| `Q-CODEX-DISPATCH-FAIL` | codex subagent dispatch 자체 실패 (no response / timeout / subagent type unavailable) — `kzk-codex-handoff §Fresh subagent 호출 패턴` 정의 | BLOCK + user-queue entry `Q-CODEX-DISPATCH-FAIL — codex CLI dispatch 실패, 메인 직접 호출 또는 critic opus fallback 결정 필요`. fallback path 1: 메인 직접 codex 호출 (subagent layer 우회). fallback path 2: oh-my-claudecode:critic opus | path 1 또는 2 PASS 또는 사용자 manual review OK |
 
 ### Q-TDD-MAIN 흡수 종료 (Plan A → Plan C cross-ref)
 
@@ -99,3 +94,4 @@ If the autonomous loop committed code that is later found to be wrong (reviewer 
 - **kzk-test-coverage**: Plan A Layer (b) 자율 mode 메인 직접 TDD 금지 룰의 halt entry (`Q-TDD-MAIN`) 가 본 skill 의 §Halt conditions 표에 등록됨 (Plan C task 3, 흡수 종료).
 - **kzk-large-task-delegation / kzk-pre-commit-gate**: Plan C Stage 3 / Gate 5 verifier 관련 halt entry (`Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `Q-VERIFIER-DISPATCH-FAIL`) 가 본 skill §Halt conditions 표에 등록됨.
 - **kzk-large-task-delegation / kzk-codebase-survey**: 메인 직접 multi-file edit / 5+ 파일 read 시도 halt entry (`Q-MAIN-DIRECT-EDIT`) 가 본 skill §Halt conditions 표에 등록됨. cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit` / `kzk-codebase-survey §Preparation phase delegation`.
+- **kzk-codex-handoff**: `Q-CODEX-DISPATCH-FAIL` halt entry 의 정의 출처. 본 skill §Halt conditions 표가 그 entry 를 등록.

@@ -1,17 +1,12 @@
 ---
 name: kzk-freshness-guard
-version: 1.0.0
-description: "Stale 메타 문서 자동 감지 + CRG 기반 심볼 역참조 + auto-fix — 모든 프로젝트 범용. Top triggers: 'stale 체크', 'freshness', '문서 신선도', 'stale check', 'freshness guard'. Body §Triggers for full list."
+version: 1.1.0
+description: "Stale 메타 문서 자동 감지 + CRG 심볼 역참조 + auto-fix — make sure to use this skill at Gate 0.5 (pre-commit staged-path stale check), kzk-spec-and-review Step 0 (spec/plan reference freshness), and kzk-pre-merge-sync §4 (pre-merge full sweep). For fix-start flows, this skill is invoked via kzk-codebase-survey (the hub) — 'fix 시작' direct trigger routes through codebase-survey, not here directly. Direct triggers for this skill: 'stale 체크', 'freshness guard', 'Gate 0.5', 'KZK_GATE05_SKIP', 'stale doc', pre-merge sweep. Detection logic: CRG reverseRefs → meta-doc grep → line-ref validation. Auto-fix per doc type (AGENTS.md row update, CLAUDE.md section rewrite, spec/survey line-ref refresh). References harness-share.md §30."
 ---
 
 > Authoritative source: `harness-share.md` §30. On conflict, that wins.
 
 # kzk-freshness-guard
-
-## Triggers
-
-`stale 체크`, `freshness`, `문서 신선도`, `stale check`, `freshness guard`,
-`stale doc`, `meta stale`, `문서 갱신`, `doc refresh`, `freshness scan`.
 
 ## Why
 

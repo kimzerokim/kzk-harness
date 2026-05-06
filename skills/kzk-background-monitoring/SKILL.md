@@ -1,18 +1,12 @@
 ---
 name: kzk-background-monitoring
-version: 1.1.0
-description: "Agent owns every background task it spawns — active monitoring until completion, stuck detection, never waits for user to ask. Top triggers: 'background', 'run_in_background', 'stuck', 'is it done', 'background task hung'. Body §Triggers for full list."
+version: 1.2.0
+description: "Background task ownership discipline — make sure to use this skill whenever spawning a background process via run_in_background, Monitor tool, codex exec, or any CLI invocation ≥5 seconds. The spawning agent owns the task until terminal state (success/failure/kill) — 'is it done?' from the user is a violation. Governs stuck detection thresholds (subagent ≥5 min, Bash ≥3 min, codex no first token in 60s), kill+diagnose+retry procedure, subagent completion verification with receipt line, and session-resume restate-before-dispatch rule. Narration mandate: 1-3 sentences after every long-running tool call. References harness-share.md §23."
 ---
 
 > Authoritative source: `harness-share.md` §23. On conflict, that wins.
 
 # kzk-background-monitoring
-
-## Triggers
-
-`background`, `monitor`, `long-running`, `stuck`, `codex consult`, `is it done`, `background task hung`, `run_in_background`, `Monitor tool`.
-
-Once you spawn a background task, you own it until it terminates (success, failure, or kill). The user asking "어떻게 됐어?" is a violation, not a check-in.
 
 ## Scope
 

@@ -1,18 +1,12 @@
 ---
 name: kzk-large-task-delegation
-version: 1.12.0
-description: "Large tasks (3+ files / 200+ LoC / 5+ file read / multi-stage) dispatch to fresh subagents — main never executes. Top triggers: '큰 작업', '버그 전수조사', '사이클 자율', 'plan 쪼개', 'subagent dispatch', 'Stage 3', 'fresh-agent verifier', 'verifier dispatch', 'INVALID_VERDICT', 'Body §Anti-pattern Main direct-edit'. Body §Triggers for full list."
+version: 1.13.0
+description: "Large task delegation — make sure to use this skill for any request involving 3+ file edits, 200+ LoC changes, 5+ file reads for verification/audit, or multi-stage workflows (build/test/Playwright/review). Main context = dispatch + review only; main never holds implementation or reads 5+ files directly. Governs scope estimation (mandatory 30-second estimate before any non-trivial edit), model routing (opus for plans/critic/verifier, sonnet for substantive implementation, haiku for mechanical), Stage 3 fresh-agent verifier (Gate 5 cite), Q-VERIFIER-FAIL/INVALID/DISPATCH-FAIL halt entries, and read-heavy audit dispatch shape. User phrases: '큰 작업', '버그 전수조사', '마무리 해줘', '사이클 자율', 'plan 쪼개', 'Stage 3'. References harness-share.md §4."
 ---
 
 > Authoritative source: `harness-share.md` §4. On conflict, that wins.
 
 # kzk-large-task-delegation
-
-## Triggers
-
-`large task`, `subagent dispatch`, `3+ file edits`, `200+ LoC`, `opus/sonnet routing`, `subagent-driven`, `큰 작업`, `fresh subagent`, `메인 컨텍스트`, `여러 파일 동시 편집`, `Plan scope 전체`, `read-heavy audit`, `spec verification`, `구현 검증`, `버그 전수조사`, `implementation audit`, `5+ file read`, `마무리 해줘`, `전수 검토`, `끝내줘`, `사용성 버그`, `사용성 회귀`, `QA scan`, `여러 plan 으로 쪼개`, `플랜 여러개로 쪼개`, `plan 쪼개`, `사이클 자율`, `사이클로 자율`, `사이클 돌면서`, `버그들 모두`, `모두 잡아줘`, `Stage 3`, `fresh-agent verifier`, `verifier dispatch`, `verifier model routing`, `PASS FAIL PARTIAL`, `Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `INVALID_VERDICT`, `verification thread`.
-
-Large work runs in fresh subagents via `/superpowers:subagent-driven-development`. Main context = dispatch + review + commit. Main never holds the implementation.
 
 ## "Large" — main is forbidden, subagent required
 

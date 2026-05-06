@@ -1,20 +1,12 @@
 ---
 name: kzk-spec-and-review
-version: 2.7.0
-description: "Spec/plan/major-design authoring with mandatory codex CLI cross-vendor review (Step 0 codebase-survey precondition). Top triggers: 'spec 잡자', 'plan draft', 'codex review', '여러 plan', '메타 plan', 'brainstorming', 'Step -1', 'brainstorm mode'. Body §Triggers for full list."
+version: 2.8.0
+description: "Spec, plan, and major design authoring with mandatory cross-vendor codex review — make sure to use this skill whenever the user says 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm', or 'architecture review'. Step -1 (brainstorming via superpowers:brainstorming) runs on exploratory keywords; Step 0 (kzk-codebase-survey precondition + kzk-freshness-guard check) is mandatory before drafting; Steps 1-3 (draft via executor sonnet → codex CLI consult via kzk-codex-handoff → synthesize + categorize 🔴/🟡/⚪) complete the loop. Verdict file saved to docs/research/codex-reviews/ or docs/plans/. Chat-history-only verdict does not count. References harness-share.md §22 + §22.5."
 ---
 
 > Authoritative source: `harness-share.md` §22 + §22.5 (Step 0 survey precondition references §26). On conflict, that wins.
 
 # kzk-spec-and-review
-
-## Triggers
-
-`spec 잡자`, `spec 작성`, `spec draft`, `plan draft`, `plan 작성`, `design draft`, `major design`, `architecture review`, `codex review`, `codex consult`, `cross-verify`, `플랜 만들`, `plan 만들`, `여러 plan`, `플랜 여러개`, `메타 plan`, `meta plan`, `spec 만들`, `brainstorming`, `brainstorm`, `Step -1`, `brainstorm mode`.
-
-Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable or produces no parseable output (parse fail — see kzk-codex-handoff §Codex CLI 호출 패턴).
-
-Every meaningful design artifact gets a second opinion from a different model before it ships. Self-review and codex catch different classes of issue — both are needed.
 
 ## Step -1 — Brainstorming (conditional)
 

@@ -1,18 +1,12 @@
 ---
 name: kzk-user-queue
-version: 1.1.0
-description: "Autonomous-run ambiguous-decision queue — append with tentative defaults, interactive Stage 1/2/3 review on user return. Top triggers: 'user-queue', '모호 결정', 'Q-COV', 'Interactive Queue Review', 'Stage 3'. Body §Triggers for full list."
+version: 1.2.0
+description: "Autonomous-run ambiguous-decision queue — make sure to use this skill whenever an autonomous cycle encounters an ambiguous decision, tool double-failure, coverage gap, or any situation requiring a user decision that cannot be resolved immediately. Append a Pending entry with tentative default and proceed — never stop. Path: docs/harness/user-queue.md (git-tracked). Entry template includes: Context, Options, Tentative default, Override mechanism, Impact. On user return: Stage 1 (classify Pending into A/B/C), Stage 2 (GROUP A interactive 1-by-1 highest-impact first), Stage 3 (Resolution loop max 3 iterations). Queue producers: kzk-tool-retry (Q-TOOL), kzk-test-coverage (Q-COV), kzk-web-loop (Q-WEBLOOP), kzk-autonomous-boundary (Q-TDD-MAIN etc). References harness-share.md §6."
 ---
 
 > Authoritative source: `harness-share.md` §6. On conflict, that wins.
 
 # kzk-user-queue
-
-## Triggers
-
-`user-queue`, `Q-COV`, `Q-TOOL`, `Q-WEBLOOP`, `Q-SUBAGENT`, `Q-INSTALL`, `Q-PLUGIN`, `Pending`, `Resolved`, `DECISION`, `Interactive Queue Review`, `Stage 3`, `모호 결정`.
-
-Path: `docs/harness/user-queue.md`. Three sections: `## Pending`, `## Resolved`, and `## Escalated`. Git-tracked.
 
 ## Append-during-autonomous protocol
 

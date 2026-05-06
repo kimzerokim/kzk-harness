@@ -1,18 +1,12 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.6.0
-description: "Up-to-10-step Pre-commit Gate (AGENTS.md sync / freshness guard / ai-slop / secrets / production code-first / build / test / Playwright / fix-scope sanity / fresh-agent verifier). Top triggers: 'commit', 'pre-commit', 'Gate 0', 'AGENTS.md sync', 'Gate 0.5', 'freshness guard', 'stale', 'Gate 1.6', 'production code-first', 'staged-path trigger', 'env-exception', 'Gate 4.5', 'fix-scope-cache', 'callsite mismatch', 'KZK_GATE45_SKIP', 'doc-only', 'Gate 5', 'verifier', 'fresh-agent verification', 'INVALID_VERDICT'. Body §Triggers for full list."
+version: 1.7.0
+description: "Pre-commit gate — make sure to use this skill before every commit, whether autonomous or interactive. Runs up to 9 sequential gates: Gate 0 (AGENTS.md sync, when hierarchy present), Gate 0.5 (freshness guard CRG stale check), Gate 1 (ai-slop-cleaner), Gate 1.5 (secrets scan AKIA/ASIA), Gate 1.6 (production code-first staged-path check), Gate 2 (build green), Gate 3 (module test pass), Gate 4 (Playwright visual if frontend changed), Gate 4.5 (fix-scope callsite sanity), Gate 5 (fresh-agent verifier for 3+ file commits and high-risk tags). One failure blocks the commit. Skip conditions per gate are explicit — no silent skips. Covers doc-only fast path, KZK_GATE05_SKIP, KZK_GATE45_SKIP, env-exception, INVALID_VERDICT handling. References harness-share.md §3."
 ---
 
 > Authoritative source: `harness-share.md` §3. On conflict, that wins.
 
 # kzk-pre-commit-gate
-
-## Triggers
-
-`commit`, `pre-commit`, `Gate 0`, `Gate 0.5`, `Gate 1`, `Gate 1.5`, `Gate 2`, `Gate 3`, `Gate 4`, `Gate 4.5`, `AGENTS.md sync`, `freshness guard`, `stale`, `KZK_GATE05_SKIP`, `ai-slop-cleaner`, `secrets scan`, `autonomous commit`, `doc-only exception`, `fix-scope-cache`, `callsite mismatch`, `KZK_GATE45_SKIP`, `Gate 5`, `verifier`, `fresh-agent verification`, `Stage 3 cite`, `Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `Q-VERIFIER-DISPATCH-FAIL`, `INVALID_VERDICT`.
-
-Every commit passes up to 9 gates in order (0, 0.5, 1, 1.5, 2, 3, 4, 4.5, 5 — Gate 0 only when AGENTS.md hierarchy present, so 8 gates otherwise). One failure → commit blocked.
 
 ## Gate 0 — Touched-files AGENTS.md sync
 
