@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-fix-scope-expansion",
+  "evals": [
+    {
+      "id": 1,
+      "name": "gate-4-5-block-on-uncovered-callsites",
+      "prompt": "commit 하려는데 Gate 4.5 가 BLOCK 됐어. fix-scope-cache.jsonl 에 callsite 3곳이 있는데 staged 파일에는 2곳밖에 없대. 어떻게 처리해?",
+      "expected_output": "Gate 4.5 BLOCK 메시지 확인 후 두 가지 선택지 제시: (1) 누락된 callsite 도 수정, (2) commit body 에 의도적 skip 명시. KZK_GATE45_SKIP=1 env 로 bypass 가능.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "cites_gate_4_5_block_rule",
+          "text": "Response cites Gate 4.5 BLOCK condition: callsite list ⊄ git diff --cached --name-only per §Gate 4.5"
+        },
+        {
+          "id": "specifies_fix_scope_cache_jsonl",
+          "text": "Response references .kzk-harness/fix-scope-cache.jsonl as the cache source for callsite list"
+        },
+        {
+          "id": "presents_two_resolution_options",
+          "text": "Response presents both resolution options: (1) modify the missing callsite, (2) document intentional skip in commit body"
+        },
+        {
+          "id": "mentions_kzk_gate45_skip",
+          "text": "Response mentions KZK_GATE45_SKIP=1 env var as the bypass mechanism with note to document the reason"
+        },
+        {
+          "id": "specifies_block_message_format",
+          "text": "Response includes or references the exact BLOCK message format: 'Gate 4.5: callsite N곳 중 M곳 미수정'"
+        }
+      ]
+    }
+  ]
+}

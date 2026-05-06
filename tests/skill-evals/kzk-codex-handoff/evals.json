@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-codex-handoff",
+  "evals": [
+    {
+      "id": 1,
+      "name": "codex-immediate-exit-empty-stderr-classify-e2",
+      "prompt": "codex 호출했더니 exit 1이 나왔는데 stderr 는 완전히 비어있고 wall time 이 1초도 안 됐어. 이거 어느 분류야? retry 해야 해?",
+      "expected_output": "E2 분류 (즉시 종료 + 무 stderr: exit ≠ 0 AND stderr ≤ 1 byte AND wall < 2s). retry 없음. critic opus fallback 으로 진행.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "classifies_as_e2",
+          "text": "Response classifies this as E2 (즉시 종료 + 무 stderr) per §Fallback 사다리: exit ≠ 0 AND stderr ≤ 1 byte AND wall < 2s"
+        },
+        {
+          "id": "specifies_no_retry_for_e2",
+          "text": "Response states retry = X (no retry) for E2 classification"
+        },
+        {
+          "id": "specifies_critic_opus_fallback",
+          "text": "Response specifies fallback to oh-my-claudecode:critic (opus, model 생략 → 메인 버전 상속) as the E2 fallback path"
+        },
+        {
+          "id": "cites_e2_detection_criteria",
+          "text": "Response cites the E2 detection criteria: stderr ≤ 1 byte AND wall < 2s — distinguishing it from E4 (stderr > 1 byte OR wall ≥ 2s)"
+        },
+        {
+          "id": "specifies_verdict_file_save",
+          "text": "Response specifies that the fallback critic opus response must be saved to a verdict file, not only kept in chat history"
+        }
+      ]
+    }
+  ]
+}

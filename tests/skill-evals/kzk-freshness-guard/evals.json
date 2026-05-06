@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-freshness-guard",
+  "evals": [
+    {
+      "id": 1,
+      "name": "pre-commit-gate-0-5-stale-meta-doc-block-and-autofix",
+      "prompt": "지금 commit 하려고 Gate 0.5 돌렸더니 CLAUDE.md 가 stale 이래. 어떻게 처리해?",
+      "expected_output": "Gate 0.5 BLOCK 후 stale 목록과 이유 표시. CLAUDE.md 는 executor (sonnet) 에게 변경 섹션 재작성 dispatch. fix 된 문서 restage 후 commit 재시도.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "cites_gate_0_5_block_flow",
+          "text": "Response applies Gate 0.5 flow: staged files → CRG symbol reverse-ref → stale meta doc detection → BLOCK per §Pre-commit Gate 0.5"
+        },
+        {
+          "id": "specifies_autofix_strategy_claude_md",
+          "text": "Response specifies the CLAUDE.md auto-fix strategy: dispatch executor (sonnet) to rewrite only the changed section, per §Auto-fix 전략"
+        },
+        {
+          "id": "specifies_restage_after_fix",
+          "text": "Response specifies restaging the fixed meta document after auto-fix before allowing the commit to proceed"
+        },
+        {
+          "id": "mentions_kzk_gate05_skip",
+          "text": "Response mentions KZK_GATE05_SKIP=1 as the skip mechanism if the user wants to bypass Gate 0.5"
+        },
+        {
+          "id": "no_silent_skip",
+          "text": "Response does NOT silently skip or ignore the stale detection — silent skip is explicitly forbidden per §CRG 미설치 시 동작"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-user-queue",
+  "evals": [
+    {
+      "id": 1,
+      "name": "ambiguous-decision-append-proceed-with-tentative-default",
+      "prompt": "자율 루프 돌다가 API rate limit 처리 방식이 애매해. exponential backoff 쓸지 fixed delay 쓸지 결정해야 하는데 사용자한테 물어봐야 하나?",
+      "expected_output": "자율 실행 중이므로 멈추지 않고 tentative default 선택 후 docs/harness/user-queue.md 에 Q-entry append. flag/config 로 parametrize 해서 구현. 사용자 복귀 시 Stage 1/2/3 review.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "appends_queue_entry_and_proceeds",
+          "text": "Response appends a Pending entry to docs/harness/user-queue.md and proceeds immediately — does not stop the autonomous run per §Append-during-autonomous protocol"
+        },
+        {
+          "id": "entry_uses_template_format",
+          "text": "Response uses the entry template format with Context, Options, Tentative default, Override mechanism, Impact fields per §Entry template"
+        },
+        {
+          "id": "implements_via_flag_not_hardcode",
+          "text": "Response specifies implementing the tentative default via flag/config/parameter (not hardcoded) so user can override without rollback per step 3 of §Append-during-autonomous protocol"
+        },
+        {
+          "id": "specifies_interactive_review_on_return",
+          "text": "Response specifies Stage 1 (classify) → Stage 2 (GROUP A interactive 1-by-1) → Stage 3 (resolution loop) on user return per §Interactive Queue Review"
+        },
+        {
+          "id": "no_stopping_to_ask_user",
+          "text": "Response explicitly does not stop the loop to wait for user input — the 'keep proceeding' contract is the core rule"
+        }
+      ]
+    }
+  ]
+}

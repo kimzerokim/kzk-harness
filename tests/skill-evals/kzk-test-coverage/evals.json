@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-test-coverage",
+  "evals": [
+    {
+      "id": 1,
+      "name": "tdd-red-green-refactor-failing-test-before-implementation",
+      "prompt": "자율 mode 에서 새 validateEmail 함수 구현해줘. TDD 로 해줘.",
+      "expected_output": "Red (failing test 먼저 작성, spec 에서 도출) → Green (최소 구현) → Refactor → Commit 순서 의무. 자율 mode 이므로 메인이 직접 red 단계 진입 금지 — fresh sonnet dispatch 필수.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "failing_test_written_first",
+          "text": "Response mandates writing a failing test BEFORE any implementation code per §TDD sequence step 1 (Red)"
+        },
+        {
+          "id": "autonomous_mode_main_cannot_enter_red",
+          "text": "Response applies the autonomous mode rule: main context cannot directly enter TDD red stage — must dispatch via fresh sonnet (kzk-large-task-delegation) per §자율 mode 메인 직접 TDD 금지"
+        },
+        {
+          "id": "red_stage_forbidden_reads",
+          "text": "Response specifies what is forbidden to read at red stage: implementation body, sibling function bodies, existing test files per §Anti-pattern — Test-from-implementation"
+        },
+        {
+          "id": "self_check_spec_derived",
+          "text": "Response includes or references the self-check: 'is this test derived from spec/acceptance criteria, not from the current implementation shape?'"
+        },
+        {
+          "id": "halt_entry_q_tdd_main_on_violation",
+          "text": "Response specifies halt + Q-TDD-MAIN user-queue entry if main attempts direct TDD red stage in autonomous mode"
+        }
+      ]
+    }
+  ]
+}

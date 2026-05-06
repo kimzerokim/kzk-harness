@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-pre-commit-gate",
+  "evals": [
+    {
+      "id": 1,
+      "name": "commit-request-runs-all-gates-sequentially",
+      "prompt": "auth 모듈 리팩토링 끝났어. 지금 commit 해도 돼? 파일 4개 바꿨고 frontend tsx 파일도 포함돼 있어.",
+      "expected_output": "Gate 0 (AGENTS.md sync) → Gate 0.5 (freshness guard) → Gate 1 (ai-slop) → Gate 1.5 (secrets scan) → Gate 1.6 (production code-first) → Gate 2 (build) → Gate 3 (test) → Gate 4 (Playwright, tsx 포함이므로 필수) → Gate 4.5 (fix-scope cache 있으면) → Gate 5 (3+ 파일이므로 verifier 필수) 순서로 진행.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "runs_gates_sequentially_0_to_5",
+          "text": "Response runs gates in sequential order 0 → 0.5 → 1 → 1.5 → 1.6 → 2 → 3 → 4 → 4.5 → 5 without skipping any applicable gate"
+        },
+        {
+          "id": "gate_4_mandatory_for_tsx",
+          "text": "Response identifies Gate 4 (Playwright visual verification) as mandatory because tsx files are included in the changed set per §Gate 4"
+        },
+        {
+          "id": "gate_5_mandatory_for_3plus_files",
+          "text": "Response identifies Gate 5 (fresh-agent verifier) as mandatory because 4 files were changed (≥3 files threshold) per §Gate 5 trigger condition (a)"
+        },
+        {
+          "id": "gate_0_checks_agents_md",
+          "text": "Response checks Gate 0 AGENTS.md sync for added/removed files in the commit per §Gate 0"
+        },
+        {
+          "id": "no_auto_commit_without_all_gates",
+          "text": "Response does NOT allow the commit to proceed until all applicable gates pass — one failure blocks the commit"
+        }
+      ]
+    }
+  ]
+}

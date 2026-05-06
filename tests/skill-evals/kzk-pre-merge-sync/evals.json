@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-pre-merge-sync",
+  "evals": [
+    {
+      "id": 1,
+      "name": "pre-pr-checklist-claude-md-deepinit-mandatory",
+      "prompt": "feature/auth-refactor 브랜치 작업 다 끝났어. PR 만들려고 하는데 뭐 체크해야 해?",
+      "expected_output": "PR 생성 전 4단계 필수 실행: (1) CLAUDE.md 섹션 sync, (2) deepinit 실행 + manifest refresh, (3) hook auto-enable 확인 (5 plan 완료 시), (4) freshness sweep. PR description 에 'CLAUDE.md updated' + 'deepinit ran' 줄 필수.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "mandates_claude_md_sync",
+          "text": "Response mandates CLAUDE.md sync covering Tech Stack, Project Structure, API Endpoints, Database, Key Rules, Env Vars per §1. CLAUDE.md sync"
+        },
+        {
+          "id": "mandates_deepinit_run",
+          "text": "Response mandates running Skill('oh-my-claudecode:deepinit') before gh pr create per §2"
+        },
+        {
+          "id": "specifies_pr_description_required_lines",
+          "text": "Response specifies that PR description must include literal lines 'CLAUDE.md updated to match current state' and 'deepinit ran'"
+        },
+        {
+          "id": "specifies_freshness_sweep",
+          "text": "Response includes step 4 freshness sweep via kzk-freshness-guard before merge per §4. Freshness sweep"
+        },
+        {
+          "id": "skipping_deepinit_is_violation",
+          "text": "Response explicitly states that skipping deepinit is a violation even in direct-main flow per §2 note"
+        }
+      ]
+    }
+  ]
+}

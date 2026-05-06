@@ -15,3 +15,6 @@
 .windsurfrules
 /AGENTS.md
 /GEMINI.md
+
+# skill-creator eval workspace (one-shot artifacts)
+.eval-workspace/

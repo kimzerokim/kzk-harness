@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-large-task-delegation",
+  "evals": [
+    {
+      "id": 1,
+      "name": "multi-file-bug-sweep-scope-estimate-then-executor-dispatch",
+      "prompt": "스프레드시트 기능 사용성 버그들 모두 개선해줘. plan 여러 개로 쪼개고, 사이클 자율로 돌면서 다 잡아줘.",
+      "expected_output": "메인이 직접 파일 편집하지 않고, 30초 scope estimate 후 라우팅 결정. 3+ 파일 예상이면 spec-and-review-first → executor sonnet dispatch. 메인은 orchestration + review 만.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "runs_scope_estimation_first",
+          "text": "Response runs 30-second scope estimation as the mandatory first action before any Edit/Write/Read per §Scope estimation"
+        },
+        {
+          "id": "routes_to_executor_sonnet",
+          "text": "Response routes to executor (oh-my-claudecode:executor, model=sonnet) for substantive implementation, not haiku or main-direct"
+        },
+        {
+          "id": "main_does_not_direct_edit",
+          "text": "Response does NOT have main context directly performing Edit/Write operations on source files — delegation is mandated for 3+ files"
+        },
+        {
+          "id": "cites_session_28_lesson",
+          "text": "Response applies the skill-load chain rule from §Session-28 lesson: codebase-survey trigger must co-load large-task-delegation"
+        },
+        {
+          "id": "specifies_stage_3_verifier",
+          "text": "Response specifies Stage 3 fresh-agent verifier dispatch for 3+ file commits per §Three-stage review §Stage 3"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-tool-retry",
+  "evals": [
+    {
+      "id": 1,
+      "name": "edit-file-not-read-yet-auto-reread-no-user-prompt",
+      "prompt": "Edit 하려는데 'File has not been read yet' 에러가 났어. 어떻게 해야 해?",
+      "expected_output": "사용자에게 재시도 여부 묻지 않고 즉시 Read 호출 후 동일 Edit 재시도. edit-read-guard hook block 이면 자동 복구 패턴 적용.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "immediate_read_then_retry",
+          "text": "Response prescribes immediately calling Read on the file, then re-issuing the Edit — no user prompt between per §Edit / Write — 'File has not been read yet'"
+        },
+        {
+          "id": "no_ask_user_to_retry",
+          "text": "Response explicitly forbids asking the user '재시도할까요?' or '다시 읽고 진행할까요?' — the forbidden anti-pattern per §Forbidden anti-pattern"
+        },
+        {
+          "id": "cites_read_tracker_invalidators",
+          "text": "Response references the read-tracker invalidator events (user message, /compact, agent return, formatter run, etc.) that cause this failure per §Pre-emptive Read protocol"
+        },
+        {
+          "id": "edit_read_guard_auto_recovery",
+          "text": "Response describes the edit-read-guard hook auto-recovery: block → immediate Read (offset=1, limit=5) → retry same Edit — 100% success guaranteed per §edit-read-guard block 시 무중단 자동 복구"
+        },
+        {
+          "id": "queue_on_double_failure",
+          "text": "Response specifies that if the auto-retry also fails, append Q-TOOL-<FILE> entry to docs/harness/user-queue.md and continue to next task per §Queue-on-double-failure"
+        }
+      ]
+    }
+  ]
+}

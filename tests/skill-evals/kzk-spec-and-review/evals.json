@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-spec-and-review",
+  "evals": [
+    {
+      "id": 1,
+      "name": "plan-draft-requires-codebase-survey-then-codex-review",
+      "prompt": "새 알림 시스템 plan 잡자. notification 관련 코드가 여러 파일에 걸쳐 있어서 먼저 파악이 필요해.",
+      "expected_output": "Step 0 codebase-survey precondition 먼저 실행 (kzk-codebase-survey). survey report 경로 확인 후 executor sonnet 이 draft 작성. codex CLI consult (kzk-codex-handoff 패턴). verdict 파일 저장.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "step_0_survey_precondition_first",
+          "text": "Response enforces Step 0 codebase-survey precondition before drafting — does not skip to drafting without a survey report per §Step 0"
+        },
+        {
+          "id": "draft_dispatches_executor_sonnet",
+          "text": "Response dispatches oh-my-claudecode:executor (sonnet) for the actual md file writing, not main direct per §Pattern (3-pass) step 1"
+        },
+        {
+          "id": "codex_consult_mandatory",
+          "text": "Response specifies running codex CLI consult (Step 2) via kzk-codex-handoff §Codex CLI 호출 패턴 as mandatory — not optional"
+        },
+        {
+          "id": "verdict_file_saved_to_disk",
+          "text": "Response specifies saving the codex verdict to docs/research/codex-reviews/<topic>-critic-review.md — chat history alone is insufficient per §Verdict file convention"
+        },
+        {
+          "id": "synthesize_categorizes_red_yellow_white",
+          "text": "Response specifies Step 3 synthesis categorizing each codex point as 🔴 즉시 fix / 🟡 spec 단계 디테일 / ⚪ push-back per §Pattern (3-pass) step 3"
+        }
+      ]
+    }
+  ]
+}

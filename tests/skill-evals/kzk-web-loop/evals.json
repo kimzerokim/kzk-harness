@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-web-loop",
+  "evals": [
+    {
+      "id": 1,
+      "name": "web-loop-start-branch-contract-then-indefinite-cycle",
+      "prompt": "웹 루프 시작해줘. 우리 대시보드 UI 계속 개선해줘, 멈추지 말고.",
+      "expected_output": "branch contract ASK FIRST 후 loop 진입. 각 cycle: TOOL RUNNER(sonnet) → EVALUATOR(opus) → 최우선 이슈 pick → P0 fast-path or P1/P2 plan gate → commit → harness-flow-progress.md append → 반복. Playwright MCP 없어도 degraded mode 로 계속.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "asks_branch_contract_first",
+          "text": "Response runs kzk-autonomous-boundary ASK-FIRST branch contract before any commit — proposing feature/web-loop-<goal-slug> as default but waiting for user OK per §Entry step 2"
+        },
+        {
+          "id": "tool_runner_then_evaluator_subagents",
+          "text": "Response dispatches TOOL RUNNER (oh-my-claudecode:executor, model=sonnet) then EVALUATOR (oh-my-claudecode:critic, model omitted → opus inheritance) as separate fresh subagents per §Loop Structure steps 1a/1b"
+        },
+        {
+          "id": "evaluator_prioritizes_p0_p1_p2",
+          "text": "Response specifies EVALUATOR outputs a P0/P1/P2 prioritized issue list per §Evaluation Criteria (P0=console errors/test failures/build errors, P1=accessibility/responsive, P2=complexity/duplication)"
+        },
+        {
+          "id": "playwright_degraded_mode_no_halt",
+          "text": "Response specifies that Playwright MCP drop triggers cascade recovery then degraded mode — the loop never halts on Playwright failure per §Playwright Resilience"
+        },
+        {
+          "id": "harness_flow_progress_append_each_cycle",
+          "text": "Response specifies appending to harness-flow-progress.md after every cycle in canonical format: 'Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue] — queue: N remaining — PW: ok|degraded'"
+        }
+      ]
+    }
+  ]
+}

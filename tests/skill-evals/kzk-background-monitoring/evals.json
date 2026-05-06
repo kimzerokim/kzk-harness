@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-background-monitoring",
+  "evals": [
+    {
+      "id": 1,
+      "name": "stuck-background-build-kill-diagnose-retry",
+      "prompt": "npm install 백그라운드로 돌렸는데 5분째 아무 출력이 없어. 어떻게 처리해야 해?",
+      "expected_output": "stuck detection 기준 확인 후 kill+diagnose+retry 절차 실행. 사용자에게 처리 방법을 묻지 않고 직접 pkill → stderr 확인 → call shape 변경 → 1회 retry.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "specifies_stuck_threshold_bash",
+          "text": "Response identifies 3 min (Bash background) as the stuck threshold per §Stuck detection, and confirms the 5 min case is clearly stuck"
+        },
+        {
+          "id": "specifies_kill_diagnose_retry",
+          "text": "Response prescribes kill+diagnose+retry sequence: pkill, inspect stderr/output, change call shape, one retry — per §Stuck handling"
+        },
+        {
+          "id": "no_ask_user_to_cancel",
+          "text": "Response does NOT ask the user 'should I cancel?' — autonomous ownership of the stuck task is required"
+        },
+        {
+          "id": "specifies_stuck_diagnosis_commands",
+          "text": "Response includes or references the stuck-diagnosis quick set: ls -la output-file, ps process state, cat stderr-file"
+        },
+        {
+          "id": "second_failure_user_report",
+          "text": "Response specifies that a second retry failure escalates to user report + alternative proposal, not silent re-spawn"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "skill_name": "kzk-codebase-survey",
+  "evals": [
+    {
+      "id": 1,
+      "name": "spec-verification-delegates-explorer-not-main-direct-read",
+      "prompt": "이 spec이 실제로 구현됐는지 확인해줘. auth 모듈이랑 session 관련 파일 여러 개 봐야할 것 같아.",
+      "expected_output": "메인이 직접 파일을 read 하지 않고 oh-my-claudecode:explore (sonnet) subagent 를 dispatch 해서 Step 0.5~8 전체를 실행. 5+ 파일 read 는 메인 직접 금지 규칙 적용.",
+      "files": [],
+      "assertions": [
+        {
+          "id": "dispatches_explorer_subagent",
+          "text": "Response dispatches oh-my-claudecode:explore with model=sonnet for the survey, not reading files directly in main context"
+        },
+        {
+          "id": "cites_5plus_file_delegation_rule",
+          "text": "Response cites or applies the rule that 5+ file reads are forbidden in main context per §Preparation phase delegation"
+        },
+        {
+          "id": "specifies_step_0_5_through_8",
+          "text": "Response specifies running all steps Step 0.5 (CRG index verify) through Step 8 (report save) in order"
+        },
+        {
+          "id": "specifies_report_save_path",
+          "text": "Response specifies saving the survey report to docs/harness/surveys/YYYY-MM-DD-<topic>-survey.md"
+        },
+        {
+          "id": "invokes_crg_or_grep_fallback",
+          "text": "Response references code-review-graph (CRG) for scope expansion in Step 1, with grep as fallback if CRG unavailable"
+        }
+      ]
+    }
+  ]
+}
