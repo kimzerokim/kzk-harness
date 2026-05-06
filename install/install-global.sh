@@ -445,7 +445,7 @@ _build_routing_block() {
   cat <<EOF
 ## kzk-harness skills (${ver} installed ${install_date})
 
-> Workflow skill layer. 17 markdown skills auto-load from ~/.claude/skills/kzk-*.
+> Workflow skill layer. 18 markdown skills auto-load from ~/.claude/skills/kzk-*.
 > Project artifacts (\`harness-flow-progress.md\`, \`docs/harness/\`, \`docs/plans/\`,
 > \`.web-loop/\`, \`.omc/\`, \`docs/research/codex-reviews/\`) stay in \`\$PWD\`.
 
@@ -584,8 +584,8 @@ verify_install() {
   # Count SKILL.md files under kzk-* dirs
   local count
   count=$(find "$skills_dst" -maxdepth 2 -name 'SKILL.md' -path '*/kzk-*/*' 2>/dev/null | wc -l | tr -d ' ')
-  if [ "${count:-0}" -ne 17 ]; then
-    emit "VERIFY FAIL: expected 17 kzk-*/SKILL.md, found ${count:-0}" >&2
+  if [ "${count:-0}" -ne 18 ]; then
+    emit "VERIFY FAIL: expected 18 kzk-*/SKILL.md, found ${count:-0}" >&2
     ok=0
   fi
 
@@ -616,15 +616,15 @@ verify_install() {
     local row_count
     row_count=$(awk -v b="$KZK_MARKER_BEGIN" -v e="$KZK_MARKER_END" \
       '$0==b{f=1;next} $0==e{f=0;next} f && /^\| kzk-/' "$claude_md" | wc -l | tr -d ' ')
-    if [ "${row_count:-0}" -ne 17 ]; then
-      emit "VERIFY FAIL: expected 17 '| kzk-' rows in marker block, found ${row_count:-0}" >&2
+    if [ "${row_count:-0}" -ne 18 ]; then
+      emit "VERIFY FAIL: expected 18 '| kzk-' rows in marker block, found ${row_count:-0}" >&2
       ok=0
     fi
   fi
 
   if [ "$ok" -eq 1 ]; then
-    emit "  all 17 skills + umbrella + CLAUDE.md marker verified"
-    record "verification: PASS (17 skills, umbrella, marker)"
+    emit "  all 18 skills + umbrella + CLAUDE.md marker verified"
+    record "verification: PASS (18 skills, umbrella, marker)"
     return 0
   else
     record "verification: FAIL — see errors above"

@@ -20,7 +20,7 @@ The skills are designed to degrade gracefully: if a dependency is missing, the r
 ### codex CLI (recommended)
 
 - **Purpose**: Cross-vendor second opinion on plans / specs / architecture (different model family from Claude → catches different blind spots).
-- **Used by**: `kzk-spec-and-review` (primary), `kzk-large-task-delegation` (plan-critic loop).
+- **Used by**: `kzk-spec-and-review` (primary), `kzk-large-task-delegation` (plan-critic loop), `kzk-codex-handoff` (CLI stabilization SoT).
 - **Install**: `npm install -g @openai/codex` (npm path) or `brew install codex` (Homebrew path).
 - **Fallback if missing**: Skills fall back to `Agent(subagent_type="oh-my-claudecode:critic", model="opus", ...)`. Same review structure, just same-vendor (Claude opus reviewing Claude opus).
 

@@ -1,10 +1,10 @@
 # kzk-harness
 
-This is the kzk-harness repository — a workflow skill layer for Claude Code. It contains 17 `kzk-*` skills installed into any project via the one-liner in `README.md`.
+This is the kzk-harness repository — a workflow skill layer for Claude Code. It contains 18 `kzk-*` skills installed into any project via the one-liner in `README.md`.
 
 ## Active Skills (kzk-harness)
 
-All 17 skills are active in this repo. Load one by mentioning its trigger keyword.
+All 18 skills are active in this repo. Load one by mentioning its trigger keyword.
 
 | Skill | Trigger keywords |
 |---|---|
@@ -25,6 +25,7 @@ All 17 skills are active in this repo. Load one by mentioning its trigger keywor
 | `kzk-regression-memory` | regression memory, 재발 방지, fix 시작, recall, 과거 fix 조회, gstack learn, dismiss recall |
 | `kzk-fix-scope-expansion` | fix scope expansion, 한 callsite, 호출자 전수, fix-start, callsite mismatch, Gate 4.5, KZK_GATE45_SKIP |
 | `kzk-freshness-guard` | stale 체크, freshness, 문서 신선도, stale check, freshness guard, Gate 0.5, KZK_GATE05_SKIP |
+| `kzk-codex-handoff` | Codex CLI 호출 안정화, stdin pipe, --ephemeral, Preflight, E0-E4 fallback 사다리 |
 
 ## Autonomous Execution Boundary
 

@@ -1,6 +1,6 @@
 ---
 name: kzk-spec-and-review
-version: 2.6.0
+version: 2.7.0
 description: "Spec/plan/major-design authoring with mandatory codex CLI cross-vendor review (Step 0 codebase-survey precondition). Top triggers: 'spec 잡자', 'plan draft', 'codex review', '여러 plan', '메타 plan', 'brainstorming', 'Step -1', 'brainstorm mode'. Body §Triggers for full list."
 ---
 
@@ -12,7 +12,7 @@ description: "Spec/plan/major-design authoring with mandatory codex CLI cross-ve
 
 `spec 잡자`, `spec 작성`, `spec draft`, `plan draft`, `plan 작성`, `design draft`, `major design`, `architecture review`, `codex review`, `codex consult`, `cross-verify`, `플랜 만들`, `plan 만들`, `여러 plan`, `플랜 여러개`, `메타 plan`, `meta plan`, `spec 만들`, `brainstorming`, `brainstorm`, `Step -1`, `brainstorm mode`.
 
-Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable or produces no parseable output (parse fail — see §Codex execution shape).
+Codex invoked via CLI (`codex exec`) as primary; `oh-my-claudecode:critic` opus as fallback when CLI unavailable or produces no parseable output (parse fail — see kzk-codex-handoff §Codex CLI 호출 패턴).
 
 Every meaningful design artifact gets a second opinion from a different model before it ships. Self-review and codex catch different classes of issue — both are needed.
 
@@ -52,7 +52,7 @@ A spec / plan / design draft built without codebase context is the same root cau
 ## Pattern (3-pass) — runs after Step 0
 
 1. **Draft** — main orchestrates; actual md file writing dispatches to `oh-my-claudecode:executor` (sonnet). Prompt must include survey report path from Step 0 as "Required reading: <path>" (not just file-listed — the draft must actually cite findings from the survey). Main drafts only when ≤ 5 LoC total change (typo, single-line append).
-2. **Codex consult** — run `codex exec` CLI directly (see §Codex execution shape below). CLI not available (`command not found`) or stuck per §Codex execution shape (60s no first token → retry; 5 min total → kill) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", prompt=<same review prompt>)` (model 생략 → 메인 opus 버전 상속). **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
+2. **Codex consult** — run `codex exec` CLI directly (see kzk-codex-handoff §Codex CLI 호출 패턴). CLI not available (`command not found`) or stuck per kzk-codex-handoff §Codex CLI 호출 패턴 (60s no first token → retry; 5 min total → kill) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", prompt=<same review prompt>)` (model 생략 → 메인 opus 버전 상속). **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
 3. **Synthesize** — main categorizes each codex point as 🔴 즉시 fix / 🟡 spec 단계 디테일 / ⚪ push-back (cite reasons per bucket). Then dispatch revision edits per §Spec/plan revision dispatch below. Main never directly Edit/Write the md file for 2+ edits.
 
 ## Spec/plan revision dispatch (post-critic edits)
@@ -129,66 +129,9 @@ YOUR JOB. Numbered list:
 Cite sections. Terse. No compliments. If category fine, say "none".
 ```
 
-## Codex execution shape (CLI best practice)
+## Codex consult — 호출 메커니즘
 
-### Plain text mode (recommended for reviews)
-
-```bash
-# 1. Write prompt to file (from §Codex prompt skeleton above)
-cat > /tmp/<topic>-review-prompt.txt << 'EOF'
-<prompt content>
-EOF
-
-# 2. Pipe stdin → codex exec, redirect stdout to file
-#    MUST use `-` arg so codex reads prompt from stdin (not shell $VAR expansion)
-#    MUST use --ephemeral to avoid session file clutter
-cat /tmp/<topic>-review-prompt.txt \
-  | codex exec \
-    -s read-only --ephemeral \
-    -C <repo-root> \
-    -c 'model_reasoning_effort="high"' \
-    - \
-    2>/tmp/codex-err.txt \
-    > /tmp/codex-out.txt
-CODEX_EXIT=$?
-
-# 3. Check exit + non-empty output
-if [ $CODEX_EXIT -ne 0 ] || [ ! -s /tmp/codex-out.txt ]; then
-  # → fallback to critic agent
-fi
-```
-
-### JSON mode (when structured parsing needed)
-
-```bash
-cat /tmp/<topic>-review-prompt.txt \
-  | codex exec \
-    -s read-only --ephemeral \
-    -C <repo-root> \
-    --json \
-    - \
-    2>/tmp/codex-err.txt \
-    > /tmp/codex-out.json
-
-# --json produces NDJSON (one JSON object per line), NOT a single JSON object.
-# NEVER pipe --json directly to jq — always redirect to file first.
-jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .item.text' \
-  /tmp/codex-out.json > /tmp/codex-out.txt
-```
-
-### Hard rules
-
-1. **Prompt via stdin pipe** (`cat file | codex exec ... -`). Never pass multi-line prompt as `codex exec "$VAR"` — shell escaping breaks on newlines, quotes, backticks.
-2. **`--json` output → file → jq**. Never `--json | jq` direct pipe — codex emits NDJSON (one JSON object per line), jq expects single JSON by default and chokes.
-3. **`--ephemeral`** always — prevents session file accumulation from automated runs.
-4. **Short single-line prompt exception**: `codex exec "short prompt" < /dev/null` is safe. Multi-line → always use stdin pipe.
-5. **Plain text mode preferred** for review use cases — simpler, no NDJSON parsing needed. Use JSON mode only when you need structured fields (token counts, thread IDs).
-
-### Timeout + stuck detection
-
-- `timeout: 300000` (5 min). Background-monitor per `kzk-background-monitoring`.
-- No first token in 60s → kill + retry once. No output in 5 min total → stuck, kill + fallback to critic agent.
-- Empty stdout or non-zero exit: save error stub to verdict file ("codex exit <N>, stderr: <first 200 chars>") then fall back to `Agent(subagent_type="oh-my-claudecode:critic", prompt=<same review prompt>)` (model 생략 → 메인 opus 버전 상속).
+> See kzk-codex-handoff §Codex CLI 호출 패턴.
 
 ## Cost / cadence
 
@@ -196,22 +139,9 @@ jq -r 'select(.type == "item.completed" and .item.type == "agent_message") | .it
 - 1 spec = 1 round. 1 major plan = 1 round.
 - **User explicit OFF only** ("이번엔 codex 빼고") skips the loop. No silent skip.
 
-## Prompt size guideline (codex CLI timeout 차단)
+## Prompt size guideline
 
-큰 prompt = codex stdin 대기 또는 5min stuck 위험. timeout 빈도 줄이는 룰:
-
-- **Read 의무 = 검토 대상 plan/spec 본문 + cycle N-1 verdict 정제 file 만**. sister plan / spec 다른 본문은 *context only* (인용 / locked decision 만 prompt 안에 박음, full read 안 시킴).
-- **prompt 본문 < 500 lines**. 12 카테고리 → 6-8 max.
-- **응답 형식 < 700 단어**. "각 항목 짧은 진단 + 권고" 명시.
-- **plan 본문 자체가 1500+ LoC** 면 codex 가 read 만 5+ 분 → 미리 핵심 변경 부분만 발췌해서 prompt 에 inline. plan 전체 read 시키지 않음.
-- timeout (60s no first token, 5min total) 발생 시 fallback critic opus.
-
-지표: codex prompt 가 다음 중 하나 trigger 면 size 줄임 후 재시도:
-- prompt 자체 > 800 lines
-- "Read 의무" 가 4+ 파일
-- 검증 카테고리 12+
-
-본 룰은 사용자 명시 (cycle 33) — codex 에 plan 넘길 때 작게.
+> See kzk-codex-handoff §Prompt size guideline.
 
 ## Artifact retention
 

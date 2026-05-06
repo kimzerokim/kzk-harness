@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.11.0
+version: 1.12.0
 description: "Large tasks (3+ files / 200+ LoC / 5+ file read / multi-stage) dispatch to fresh subagents — main never executes. Top triggers: '큰 작업', '버그 전수조사', '사이클 자율', 'plan 쪼개', 'subagent dispatch', 'Stage 3', 'fresh-agent verifier', 'verifier dispatch', 'INVALID_VERDICT', 'Body §Anti-pattern Main direct-edit'. Body §Triggers for full list."
 ---
 
@@ -204,7 +204,7 @@ Before dispatching the sonnet executor, the plan must clear this gate exactly on
 
 0. **`kzk-codebase-survey`** — EXPLORER agent runs all steps (Step 0.5 + Step 1–8), saves report to `docs/harness/surveys/YYYY-MM-DD-<topic>-survey.md`. Report path passed to planner and critic as required reading. Survey failure → note in report, continue.
 1. main authors the plan or dispatches `planner` (opus) — **prompt must include survey report path as required reading**
-2. Codex CLI consult on the plan draft (`codex exec` per `kzk-spec-and-review`) → returns concerns; CLI unavailable → `oh-my-claudecode:critic` opus
+2. Codex CLI consult on the plan draft (per `kzk-codex-handoff` §Codex CLI 호출 패턴) → returns concerns; CLI unavailable → `oh-my-claudecode:critic` opus
 3. main edits plan (or dispatches `oh-my-claudecode:critic` opus) to address concerns — **critic prompt must include:** "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL."
 4. on agreement, plan is frozen — written to `docs/plans/<file>.md` with a `## Frozen` header line
 5. only frozen plans may feed a sonnet executor dispatch
