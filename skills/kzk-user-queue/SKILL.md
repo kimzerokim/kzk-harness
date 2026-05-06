@@ -82,3 +82,11 @@ Queue producers — skills that append entries to `docs/harness/user-queue.md`:
 - **kzk-production-access**: Q-PROD entries (destructive AWS/DB operations).
 - **kzk-background-monitoring**: Q-SUBAGENT entries (subagent stuck-or-empty).
 - **kzk-autonomous-boundary**: Halts append here when autonomous mode pauses.
+- **kzk-autonomous-boundary** (Q-TDD-MAIN): 자율 mode 에서 메인 컨텍스트가 TDD red 직접 진입 시도.
+- **kzk-autonomous-boundary** (Q-MAIN-DIRECT-EDIT): 자율 mode 에서 메인 컨텍스트 직접 multi-file edit.
+- **kzk-autonomous-boundary** + **kzk-large-task-delegation** + **kzk-pre-commit-gate** (Q-VERIFIER-FAIL): verifier 2회 연속 FAIL.
+- **kzk-autonomous-boundary** + **kzk-large-task-delegation** + **kzk-pre-commit-gate** (Q-VERIFIER-INVALID): verifier 응답 `VERDICT:` prefix 누락.
+- **kzk-autonomous-boundary** + **kzk-large-task-delegation** + **kzk-pre-commit-gate** (Q-VERIFIER-DISPATCH-FAIL): verifier subagent dispatch 실패.
+- **kzk-codex-handoff** + **kzk-autonomous-boundary** (Q-CODEX-DISPATCH-FAIL): codex subagent dispatch 실패.
+- **kzk-production-access** + **kzk-pre-commit-gate** (Q-PROD-CODE-FIRST-<TOPIC>): 프로덕션 state 변경 code-first check 실패.
+- **kzk-fix-scope-expansion** (Q-FIX-PIVOT-FAIL): 모든 레이어 escalate 후에도 fix 실패 (cycle 47 신규).

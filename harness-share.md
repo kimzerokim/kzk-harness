@@ -373,9 +373,10 @@ agent summary 만 신뢰 X — implementation 차원 검증 의무.
 
 ### 운용
 
+- 파일 위치: `docs/harness/user-queue.md`. 시간 역순 — 최신 entry 위.
 - autonomous 중 모호 결정 발생 → queue 에 entry append + **잠정 default 선택으로 진행**
 - 사용자가 복귀 후 queue 읽고 방향 확정 → 별도 commit 으로 entry 에 `**DECISION (YYYY-MM-DD):**` line 추가
-- Resolved entries → `## Resolved` 섹션 이동
+- Resolved entries → `## RESOLVED` 섹션 이동
 
 ### Easy override 요구
 
@@ -396,6 +397,18 @@ agent summary 만 신뢰 X — implementation 차원 검증 의무.
 - **Override 방법**: 이 entry 하단 `**DECISION (YYYY-MM-DD):** Option N`
 - **Impact**: <forward-only? rollback 비용? 영향 범위?>
 ```
+
+### 섹션 구조
+
+- `## OPEN` — 해결 대기 중인 entry. 최신 entry 위 (시간 역순).
+- `## RESOLVED` — 완료된 entry (`- [x]` 체크). 시간 역순.
+- `## 사용하지 않음 (NOT_USED)` — 미채택/defer backlog.
+
+Simple one-liner (체크박스 형식):
+```markdown
+- [ ] YYYY-MM-DD HH:MM — Q-<TOPIC> — <한 줄 요약> (cycle N)
+```
+완료 시 `- [x]` 로 변경.
 
 ### Interactive Review Protocol (사용자 복귀 시)
 

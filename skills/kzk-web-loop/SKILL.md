@@ -116,7 +116,9 @@ Run once at loop start (Setup Checklist step 1). Detect each plugin; **install i
 ```bash
 # 1. Get current plugin list (capture exit code; if subcommand unavailable, degrade)
 if ! PLUGINS=$(claude plugin list 2>/tmp/plugin-err.txt); then
-  echo "Q-PLUGIN-PREFLIGHT — claude plugin subcommand unavailable ($(cat /tmp/plugin-err.txt | head -1)), pre-flight skipped" >> docs/harness/user-queue.md
+  ENTRY="- [ ] $(date '+%Y-%m-%d %H:%M') — Q-PLUGIN-PREFLIGHT — claude plugin subcommand unavailable ($(cat /tmp/plugin-err.txt | head -1)), pre-flight skipped"
+  sed -i '' '/^_(없음)_$/d' docs/harness/user-queue.md
+  awk '/^## OPEN$/{print; print ENTRY; next} 1' ENTRY="$ENTRY" docs/harness/user-queue.md > /tmp/uq.tmp && mv /tmp/uq.tmp docs/harness/user-queue.md
   PLUGINS=""
 fi
 
