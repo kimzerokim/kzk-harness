@@ -1,7 +1,7 @@
 ---
 name: kzk-autonomous-loop
-version: 1.7.0
-description: "Autonomous loop continuation — anti-polite-stop contract. Governs rate-limit polling (ScheduleWakeup 600s), auto /compact at 80% context, Plan A→N auto-continuation. Polite stops forbidden inside autonomous scope (7 canonical examples in body). References harness-share.md §12/§13/§14."
+version: 1.8.0
+description: "Autonomous loop continuation — anti-polite-stop contract. Governs rate-limit polling (ScheduleWakeup 600s), extra-usage/overage tier override (no halt), auto /compact at 80% context, Plan A→N auto-continuation. Polite stops forbidden inside autonomous scope (9 canonical examples in body). References harness-share.md §12/§13/§14."
 ---
 
 > Authoritative source: `harness-share.md` §12 / §13 / §14. On conflict, that wins.
@@ -21,6 +21,23 @@ Hitting the 5h limit during autonomous run:
 **Anti-pattern: silent resume.** A wakeup that immediately dispatches a subagent without restating position = the user cannot tell if the session is actually running or stuck from a failed prior Agent call. Always restate first.
 
 A real new-topic message from the user takes priority over a scheduled wakeup.
+
+### Extra-usage / overage tier — DO NOT halt (Cycle 51)
+
+When the session is on Anthropic's extra-usage / overage / pay-per-use tier (not the strict 5h block), requests **continue** at higher cost — they don't truly stop. Signals:
+
+- HUD or status banner showing "extra usage", "overage", "additional usage", or "pay-as-you-go"
+- Cost-warning indicators that don't actually block requests
+- User's session settings explicitly enable overage (`maxUsageTier`, `allowOverage`, etc.)
+
+In overage mode, the agent MUST continue. Do NOT:
+- Schedule `ScheduleWakeup` (no rate-limit reset to wait for — requests already work)
+- Halt and ask the user "should I continue spending?"  — user already authorized the autonomous run
+- Slow down the loop or drop to lighter models without explicit user instruction
+
+The 5h-window polling rule (above) applies ONLY when requests actually fail with the strict rate-limit error. Cost-only signals never halt — that's user's billing concern, not the agent's halt condition.
+
+**Anti-pattern: cost-driven polite stop.** "extra usage 중이라 일단 멈추고 사용자 확인" 은 polite-stop 위반. cross-ref: §Polite-stop ban examples #9.
 
 ## Context budget — auto `/compact` at 80%
 
@@ -57,6 +74,7 @@ The following turn-ending patterns are all polite-stop violations under autonomo
 6. **Subagent dispatch return → "Done, awaiting next instruction"**. The dispatch return is the signal to start the NEXT step, not a stop.
 7. **`/compact` complete → ending turn** instead of immediate restate + resume.
 8. **Edit/Write 1× FAIL → halt** (Cycle 50 incident, gridless session). Tool failure does NOT trigger polite halt. Per `kzk-tool-retry §Auto-retry`, single failure = same-turn re-read + retry. Halt threshold is **2 consecutive failures on the same file**, then queue Q-TOOL and proceed to next task. PostToolUse hook `edit-failure-retry.mjs` injects a forcing system-reminder on failure detection — agent cannot silently halt. cross-ref: `kzk-tool-retry §Forcing mechanism`.
+9. **Cost / extra-usage / overage signal → halt** (Cycle 51). HUD shows "extra usage", "overage", "additional usage", "pay-as-you-go", or any cost-warning that doesn't actually block requests = NOT a halt condition. The user already authorized the autonomous run; cost is their billing concern. Continue. Only the strict 5h-window rate-limit error (where requests actually fail) triggers `ScheduleWakeup`. cross-ref: `§Rate-limit polling §Extra-usage / overage tier`.
 
 If unsure whether a stop is allowed: it's not. Continue. Halt is reserved for the explicit conditions in `kzk-autonomous-boundary §Halt conditions`.
 
