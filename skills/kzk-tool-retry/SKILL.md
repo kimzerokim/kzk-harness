@@ -1,6 +1,6 @@
 ---
 name: kzk-tool-retry
-version: 1.5.0
+version: 1.6.0
 description: "Edit/Write/Bash auto-retry discipline. Single automatic retry on first failure (no user prompt); double-failure → Q-TOOL queue entry. Pre-emptive Read on 7 read-tracker invalidator events. Triggers: 'Edit fail', 'File has not been read yet', 'String to replace not found'. References harness-share.md §27."
 ---
 
@@ -101,6 +101,23 @@ When the auto-retry also fails, append a `Q-TOOL-<FILE>` entry to `docs/harness/
 - **Impact**: file edit blocked; next task proceeds
 
 Continue to the next task without waiting for user input.
+
+## Forcing mechanism (PostToolUse hook — Cycle 50)
+
+Doc-only enforcement of the auto-retry rule has historically failed when the agent doesn't have this skill loaded at the moment of Edit/Write failure (regression observed 2026-05-08, gridless session). Cycle 50 added `install/hooks/edit-failure-retry.mjs` which fires on every Edit/Write tool call. On failure detection (any of: `is_error`, "String to replace not found", "File has not been read yet", "File has been modified since", "Error editing file", "File does not exist"), the hook emits a `PostToolUse` system-reminder forcing the agent to retry within the same turn. Agent cannot ignore — system-reminder is injected into the next-turn context.
+
+Canonical error patterns covered:
+- `String to replace not found` → re-read file first, then Edit again
+- `File has not been read yet` → Read first, then Edit
+- `File has been modified since read` → Re-read, then Edit (file changed)
+- `Error editing file` (generic) → re-read first as defensive default
+- `File does not exist` → check the path; if typo, correct path; if intentional new file, use Write tool
+
+Skip conditions:
+- `OMC_SKIP_HOOKS=edit-failure-retry` env → bypass (debug only)
+- Hook fail-open on malformed payload — never blocks; agent retains full control if hook breaks
+
+After 2 consecutive failures on same file: append Q-TOOL entry to `docs/harness/user-queue.md` with: file path, error pattern, retry attempts, next-task continuation marker. Then proceed to next task. Do NOT halt the entire run.
 
 ## Interaction with other kzk-*
 

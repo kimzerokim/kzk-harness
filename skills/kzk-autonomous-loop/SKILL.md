@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-loop
-version: 1.6.0
+version: 1.7.0
 description: "Autonomous loop continuation — anti-polite-stop contract. Governs rate-limit polling (ScheduleWakeup 600s), auto /compact at 80% context, Plan A→N auto-continuation. Polite stops forbidden inside autonomous scope (7 canonical examples in body). References harness-share.md §12/§13/§14."
 ---
 
@@ -56,6 +56,7 @@ The following turn-ending patterns are all polite-stop violations under autonomo
 5. **Build 1-2× FAIL → halt**. Halt threshold is 3 consecutive. Anything below = retry / fix / continue.
 6. **Subagent dispatch return → "Done, awaiting next instruction"**. The dispatch return is the signal to start the NEXT step, not a stop.
 7. **`/compact` complete → ending turn** instead of immediate restate + resume.
+8. **Edit/Write 1× FAIL → halt** (Cycle 50 incident, gridless session). Tool failure does NOT trigger polite halt. Per `kzk-tool-retry §Auto-retry`, single failure = same-turn re-read + retry. Halt threshold is **2 consecutive failures on the same file**, then queue Q-TOOL and proceed to next task. PostToolUse hook `edit-failure-retry.mjs` injects a forcing system-reminder on failure detection — agent cannot silently halt. cross-ref: `kzk-tool-retry §Forcing mechanism`.
 
 If unsure whether a stop is allowed: it's not. Continue. Halt is reserved for the explicit conditions in `kzk-autonomous-boundary §Halt conditions`.
 

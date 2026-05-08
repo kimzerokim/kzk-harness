@@ -697,6 +697,16 @@ else
   ERRORS+=("edit-read-guard.test.mjs")
 fi
 
+# Cycle 50 — edit-failure-retry
+printf '\n--- edit-failure-retry.test.mjs (Cycle 50) ---\n'
+if node --test "$REPO_ROOT/install/test/edit-failure-retry.test.mjs"; then
+  PASS=$((PASS + 1))
+  printf '  PASS: edit-failure-retry.test.mjs\n'
+else
+  FAIL=$((FAIL + 1))
+  ERRORS+=("edit-failure-retry.test.mjs")
+fi
+
 printf '\n'
 printf '=%.0s' {1..60}
 printf '\n'
