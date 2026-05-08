@@ -1,7 +1,7 @@
 ---
 name: kzk-codex-handoff
-version: 1.4.0
-description: "Codex CLI 호출 안정화 단일 SoT — make sure to use this skill whenever any other skill invokes the codex CLI, or when codex exec produces timeout/empty/NDJSON parse failures. Defines 5 hard rules: stdin pipe required, --json→file→jq (never direct pipe), --ephemeral always, short prompts via arg exception, plain text mode preferred. Covers E0 Preflight (which/version/sandbox), E1–E4 fallback ladder to critic opus, fresh-subagent dispatch shape, prompt size guidelines (<500 lines, <700-word response), and stuck detection (60s no-first-token, 5min total). Meta-skill — user triggers rare; auto-loaded by kzk-spec-and-review and kzk-large-task-delegation cross-ref. Self-authoritative (Phase 2: harness-share.md §32)."
+version: 1.5.0
+description: "Codex CLI invocation stabilization SoT. 5 hard rules: stdin pipe required, --json→file→jq (not pipe), --ephemeral always, short prompts via arg, plain text mode. E0 Preflight + E1-E4 fallback ladder to critic opus. Auto-loaded by spec-and-review and large-task-delegation. References harness-share.md §32."
 ---
 
 > Authoritative source: This skill is self-authoritative for codex CLI invocation discipline. Will migrate to `harness-share.md §32` in Phase 2.

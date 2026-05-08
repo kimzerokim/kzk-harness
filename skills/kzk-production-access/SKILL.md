@@ -1,7 +1,7 @@
 ---
 name: kzk-production-access
-version: 1.5.0
-description: "Production and external infrastructure access boundary — make sure to use this skill whenever the user mentions AWS, SSM, production DB, migration, IaC (Terraform / CloudFormation / Pulumi), schema change, or credential handling. Default is forbidden including read-only. Two permission categories: (a) read-only inspection requires explicit user instruction; (b) state mutation (DB schema, IAM, S3, Lambda env) — AI authors script only, user or CI executes. Idempotency mandatory on all production scripts (IF NOT EXISTS, ON CONFLICT DO NOTHING, describe-* conditional). Drift resolution = forward-only migration, never production state rollback. STS credentials (ASIA prefix) single-use only; permanent IAM keys (AKIA prefix) refuse + advise revocation. References harness-share.md §2."
+version: 1.6.0
+description: "Production / external infrastructure access boundary. Default forbidden (incl. read-only). Read-only requires explicit user request; state mutation = AI authors script only, user/CI executes. Idempotency mandatory. STS (ASIA) single-use; permanent (AKIA) refused. Triggers: AWS, SSM, production DB, IaC, credential. References harness-share.md §2."
 ---
 
 > Authoritative source: `harness-share.md` §2. On conflict, that wins.

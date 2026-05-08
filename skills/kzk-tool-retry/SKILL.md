@@ -1,7 +1,7 @@
 ---
 name: kzk-tool-retry
-version: 1.4.0
-description: "Tool failure auto-retry discipline — make sure to use this skill whenever an Edit, Write, or Bash tool call fails. Asking the user 'should I retry?' after a single failure is a violation. Default policy: one automatic retry with no user prompt. 'File has not been read yet' / 'String to replace not found' / 'File has been modified since read' are always resolved by re-reading first — the pre-emptive Read protocol lists 7 read-tracker invalidator events (new user message, /compact, agent return, formatter run, etc.). PreToolUse edit-read-guard hook enforces OS-level Read-before-Edit from Plan F. Queue-on-double-failure: Q-TOOL entry in user-queue.md, then continue to next task. References harness-share.md §27."
+version: 1.5.0
+description: "Edit/Write/Bash auto-retry discipline. Single automatic retry on first failure (no user prompt); double-failure → Q-TOOL queue entry. Pre-emptive Read on 7 read-tracker invalidator events. Triggers: 'Edit fail', 'File has not been read yet', 'String to replace not found'. References harness-share.md §27."
 ---
 
 > Authoritative source: `harness-share.md` §27. On conflict, that wins.

@@ -1,7 +1,7 @@
 ---
 name: kzk-test-coverage
-version: 1.6.0
-description: "TDD-strict and 100% coverage on changed files — make sure to use this skill for any new feature or bugfix requiring TDD discipline, coverage gap reporting, or when 'test first', '테스트 먼저', 'red-green', or 'coverage exemption' appear. Enforces Red→Green→Refactor→Commit sequence: failing test written before implementation read. Anti-self-verification rule: in autonomous mode, main context cannot enter TDD red stage directly — must dispatch via fresh sonnet (halt entry Q-TDD-MAIN if violated). 100% line+branch coverage on touched files; legacy code in touched files counts. Exemptions (boot files, .d.ts, decorator-only) must be declared in PR description. References harness-share.md §11."
+version: 1.7.0
+description: "TDD-strict (Red→Green→Refactor→Commit) + 100% line+branch coverage on touched files. Anti-self-verification: autonomous main cannot enter TDD red directly — fresh sonnet dispatch required (Q-TDD-MAIN halt). Triggers: 'tdd', 'test first', '테스트 먼저', 'red-green'. References harness-share.md §11."
 ---
 
 > Authoritative source: `harness-share.md` §11. On conflict, that wins.

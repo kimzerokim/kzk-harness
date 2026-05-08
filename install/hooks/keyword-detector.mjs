@@ -30,6 +30,7 @@ const RULES = [
     triggers: [
       "codebase survey", "코드베이스 탐색", "deep explore", "survey first", "before planning",
       "구현 확인", "spec vs implementation", "spec 체크", "스펙 체크", "하나하나 확인", "ralph로 체크",
+      "상세하게 봐줘", "상세하게 봐달라", "상세히 봐줘", "상세히 봐달라", "상세하게 분석", "detailed analysis",
     ],
   },
   {
@@ -56,12 +57,12 @@ const RULES = [
     ],
   },
   {
-    skills: ["kzk-autonomous-boundary"],
-    why: "autonomous-mode entry requires the ASK-FIRST 3-slot branch contract (kzk-autonomous-boundary §Branch contract)",
+    skills: ["kzk-autonomous-boundary", "kzk-large-task-delegation", "kzk-autonomous-loop"],
+    why: "autonomous-mode bundle — boundary contract + large-task routing + autonomous-loop polite-stop ban must load together (Cycle 47: 3종 동시 호출 갭 fix)",
     triggers: [
       "ralph로 돌려", "ralph로 체크", "ralph로 확인", "자는 동안 진행",
       "실행해놔야 queue 보지", "끝까지 끝내줘", "autonomous mode",
-      "자율실행", "자율 실행", "자율로 돌려",
+      "자율실행", "자율 실행", "자율로 돌려", "kzk 자율실행", "kzk 자율 실행",
     ],
   },
   {

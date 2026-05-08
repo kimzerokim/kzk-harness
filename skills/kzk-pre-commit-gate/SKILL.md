@@ -1,7 +1,7 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.10.0
-description: "Pre-commit gate — make sure to use this skill before every commit, whether autonomous or interactive. Runs up to 9 sequential gates: Gate 0 (AGENTS.md sync, when hierarchy present), Gate 0.5 (freshness guard CRG stale check), Gate 1 (ai-slop-cleaner), Gate 1.5 (secrets scan AKIA/ASIA), Gate 1.6 (production code-first staged-path check), Gate 2 (build green), Gate 3 (module test pass), Gate 4 (Playwright visual if frontend changed), Gate 4.5 (fix-scope callsite sanity), Gate 5 (fresh-agent verifier for 3+ file commits and high-risk tags). One failure blocks the commit. Skip conditions per gate are explicit — no silent skips. Covers doc-only fast path, KZK_GATE05_SKIP, KZK_GATE45_SKIP, env-exception, INVALID_VERDICT handling. Post-commit CRG rebuild required after every successful commit (incremental update + session cache invalidate). References harness-share.md §3."
+version: 1.11.0
+description: "Pre-commit gate runs sequential gates (AGENTS.md sync, freshness Gate 0.5, ai-slop, secrets AKIA/ASIA, prod code-first, build, test, Playwright Gate 4, fix-scope Gate 4.5, fresh-agent verifier Gate 5) before every commit. One FAIL blocks. Triggers: commit, pre-commit, Gate 0-5. References harness-share.md §3."
 ---
 
 > Authoritative source: `harness-share.md` §3. On conflict, that wins.

@@ -1,7 +1,7 @@
 ---
 name: kzk-codebase-survey
-version: 1.14.0
-description: "Mandatory pre-planning deep codebase explorer — make sure to use this skill before any spec, plan, major design draft, or fix. This is the hub for fix-start flows: when the user says 'fix 시작', '버그 수정', or 'callsite 전수', invoke this skill first; it then lazy-invokes kzk-fix-scope-expansion (CRG callsite query) and kzk-freshness-guard (stale report check). Runs 8 steps via oh-my-claudecode:explore subagent: CRG index verify, scope expansion, deep parallel Read, library detection, context7 docs load, pattern extraction, TypeScript contracts, report save. 5+ file reads are forbidden in main context — always delegate here. References harness-share.md §26."
+version: 1.15.0
+description: "Mandatory pre-planning deep codebase explorer via oh-my-claudecode:explore subagent. Hub for fix-start ('fix 시작', '버그 수정', 'callsite 전수'), spec/plan drafts, and detailed analysis ('상세하게 봐줘', '상세히 봐줘'). 8-step survey: CRG verify, scope expansion, deep read, library detect. 5+ main reads forbidden. References harness-share.md §26."
 ---
 
 > Authoritative source: `harness-share.md` §26. On conflict, that wins.

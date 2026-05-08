@@ -168,6 +168,47 @@ if (turnId === null) {
   process.exit(0);
 }
 
+// Step 5.5 — auto-injected paths bypass read-log check
+// claudeMd / MEMORY.md / project CLAUDE.md are loaded into context as
+// <claudeMd> system-reminder at session start without an explicit Read tool call.
+// The read-log only tracks PostToolUse:Read events, so these paths would otherwise
+// always block on first Edit. Treat them as implicitly read.
+function isAutoInjectedPath(target) {
+  // Global ~/.claude/CLAUDE.md
+  const globalClaudeMd = path.join(os.homedir(), ".claude", "CLAUDE.md");
+  try {
+    if (fs.realpathSync(globalClaudeMd) === target) return true;
+  } catch {}
+
+  // Project CLAUDE.md — walk up from cwd to filesystem root
+  let dir = process.cwd();
+  while (true) {
+    const candidate = path.join(dir, "CLAUDE.md");
+    try {
+      if (fs.realpathSync(candidate) === target) return true;
+    } catch {}
+    const parent = path.dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+
+  // Auto-memory MEMORY.md — ~/.claude/projects/<id>/memory/MEMORY.md
+  const memoryRoot = path.join(os.homedir(), ".claude", "projects");
+  if (
+    target.startsWith(memoryRoot + path.sep) &&
+    target.endsWith(path.sep + "memory" + path.sep + "MEMORY.md")
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+if (isAutoInjectedPath(realpath)) {
+  process.stdout.write(JSON.stringify({ continue: true }) + "\n");
+  process.exit(0);
+}
+
 // Step 6 — read-log check
 let alreadyRead;
 try {

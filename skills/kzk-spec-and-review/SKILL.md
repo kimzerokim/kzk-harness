@@ -1,7 +1,7 @@
 ---
 name: kzk-spec-and-review
-version: 2.10.0
-description: "Spec, plan, and major design authoring with mandatory cross-vendor codex review — make sure to use this skill whenever the user says 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm', or 'architecture review'. Step -1 (brainstorming via superpowers:brainstorming) runs on exploratory keywords; Step 0 (kzk-codebase-survey precondition + kzk-freshness-guard check) is mandatory before drafting; Steps 1-3 (draft via executor sonnet → codex CLI consult via kzk-codex-handoff → synthesize + categorize 🔴/🟡/⚪) complete the loop. Verdict file saved to docs/research/codex-reviews/ or docs/plans/. Chat-history-only verdict does not count. References harness-share.md §22 + §22.5."
+version: 2.11.0
+description: "Spec/plan/major design authoring with mandatory cross-vendor codex review. Step -1 brainstorm, Step 0 survey precondition + freshness check, Steps 1-3 (draft via executor sonnet → codex CLI consult → synthesize 🔴/🟡/⚪). Triggers: 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm'. References harness-share.md §22 + §22.5."
 ---
 
 > Authoritative source: `harness-share.md` §22 + §22.5 (Step 0 survey precondition references §26). On conflict, that wins.

@@ -1,7 +1,7 @@
 ---
 name: kzk-regression-memory
-version: 1.4.0
-description: "Regression memory auto-recall — make sure to use this skill when a fix starts and past similar fixes should be surfaced, or when managing the regression memory lifecycle (dismiss, archive, stale check, cycle retro). Hooks into UserPromptSubmit via regression-recall.mjs to inject past fix context before the fix begins. Storage: gstack /learn JSONL (primary) + .kzk-harness/regression-meta.jsonl sidecar (dismiss_count, stale, archived). Decay formula: confidence * 0.85^dismiss_count; archived/decayed-below-4 entries filtered. Self-improvement loop auto-skipped via KZK_HARNESS_SELF_IMPROVEMENT=1. Dismiss CLI: node install/bin/kzk-regression-memory.mjs dismiss <key>. Default DISABLED until kzk-pre-merge-sync step 3. References harness-share.md §29."
+version: 1.5.0
+description: "Regression memory auto-recall via UserPromptSubmit hook on fix start. gstack /learn JSONL primary + sidecar (dismiss_count, stale, archived). Decay confidence × 0.85^dismiss. Triggers: 'regression memory', '재발 방지', 'fix recall'. Default DISABLED until pre-merge-sync step 3. References harness-share.md §29."
 ---
 
 > Authoritative source: `harness-share.md` §29. On conflict, that wins.

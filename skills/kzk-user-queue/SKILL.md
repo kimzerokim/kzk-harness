@@ -1,7 +1,7 @@
 ---
 name: kzk-user-queue
-version: 1.2.0
-description: "Autonomous-run ambiguous-decision queue — make sure to use this skill whenever an autonomous cycle encounters an ambiguous decision, tool double-failure, coverage gap, or any situation requiring a user decision that cannot be resolved immediately. Append a Pending entry with tentative default and proceed — never stop. Path: docs/harness/user-queue.md (git-tracked). Entry template includes: Context, Options, Tentative default, Override mechanism, Impact. On user return: Stage 1 (classify Pending into A/B/C), Stage 2 (GROUP A interactive 1-by-1 highest-impact first), Stage 3 (Resolution loop max 3 iterations). Queue producers: kzk-tool-retry (Q-TOOL), kzk-test-coverage (Q-COV), kzk-web-loop (Q-WEBLOOP), kzk-autonomous-boundary (Q-TDD-MAIN etc). References harness-share.md §6."
+version: 1.3.0
+description: "Autonomous-run ambiguous-decision queue at docs/harness/user-queue.md. Append Pending entry with tentative default and proceed — never halt. On user return: Stage 1 classify A/B/C, Stage 2 GROUP A interactive, Stage 3 resolution loop max 3. References harness-share.md §6."
 ---
 
 > Authoritative source: `harness-share.md` §6. On conflict, that wins.

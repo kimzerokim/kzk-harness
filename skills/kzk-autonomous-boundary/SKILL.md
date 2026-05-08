@@ -1,7 +1,7 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.7.0
-description: "Autonomous-mode boundary — make sure to use this skill whenever the user's prompt matches the Category A trigger phrases in harness-share.md §33 Autonomous-mode Detection SoT (canonical: 'ralph로 돌려', '끝까지 끝내줘', etc.), or any phrasing that requests autonomous multi-commit execution. Enforces the mandatory ASK-FIRST 3-slot branch/PR contract (branch destination, branch name, PR mode) before any autonomous or harness-driven multi-commit flow begins. Governs halt conditions (reviewer 2× FAIL, build 3× FAIL, main-access required), destructive-op guardrails (force-push, reset --hard, PR auto-merge), and Q-entry patterns (Q-TDD-MAIN, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-FAIL, Q-VERIFIER-INVALID, Q-VERIFIER-DISPATCH-FAIL). References harness-share.md §2 + §33."
+version: 1.8.0
+description: "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contract (destination, name, PR mode) before any autonomous flow; post-contract continuation in same turn (Cycle 48). Halt conditions, destructive-op guardrails, Q-entry patterns (Q-TDD-MAIN, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-*). Triggers: 'ralph로 돌려', '끝까지 끝내줘', '자율실행'. References harness-share.md §2 + §33."
 ---
 
 > Authoritative source: repo `CLAUDE.md` "Autonomous Execution Boundary" + `harness-share.md` §2. On conflict, those win.
@@ -27,6 +27,17 @@ Before entering any autonomous-style flow (`ralph`, `ulw`, `autopilot`, `web-loo
 Wait for an explicit answer on each slot. The answers become the operating contract for the rest of the session and are recorded in the first session log line. Re-confirm only when scope materially changes (doc-only → code change, single-module → multi-module, low-risk → destructive).
 
 Do NOT silently default to `feature/<topic>`. Do NOT silently default to PR-flow. Do NOT silently default to direct-main. The user picks.
+
+### Post-contract continuation (Cycle 48 lesson — polite-stop bridge)
+
+Contract Q is a legitimate halt-for-input. But once all 3 slots are answered, the agent **MUST proceed to the next stage (plan / dispatch / Pass A) within the SAME turn**. Ending the turn after only echoing the answers = polite-stop violation, even though no work was reported and no FAIL occurred.
+
+Required sequence after AskUserQuestion answer arrives:
+1. Echo contract one-liner (`Operating contract: branch=<X>, name=<Y>, PR=<Z>`)
+2. **Immediately call the first dispatch tool** (Agent for executor / Read for small main edits / Bash for git op) in the same turn — no "Waiting for next instruction" filler, no second AskUserQuestion to confirm scope
+3. If the next stage genuinely needs another decision (e.g. unclear scope), append it to user-queue and continue with tentative default — do NOT halt for it
+
+Anti-pattern signature: turn ends with `User answered Claude's questions: ...` then no follow-up tool call. That == polite-stop. cross-ref: `kzk-autonomous-loop §Polite-stop ban examples`.
 
 ## Forbidden actions (regardless of contract)
 

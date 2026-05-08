@@ -1,7 +1,7 @@
 ---
 name: kzk-fix-scope-expansion
-version: 1.4.0
-description: "Fix scope expansion and Gate 4.5 sanity check — make sure to use this skill when a fix-start flow detects callsite mismatch or triggers Gate 4.5 (fix-scope-specific keywords). Note: 'fix 시작' and '버그 수정' direct triggers are owned by kzk-codebase-survey (the hub); this skill is cross-ref invoked from codebase-survey during fix-start flows. Direct triggers for this skill are callsite-mismatch-specific: 'callsite 전수', 'Gate 4.5', 'fix-scope-cache', 'KZK_GATE45_SKIP', 'callsite 누락'. Runs fix-scope-trigger.mjs hook (CRG detect-changes → grep fallback), writes .kzk-harness/fix-scope-cache.jsonl, and defines the pre-commit Gate 4.5 BLOCK. Default DISABLED until kzk-pre-merge-sync step 3. References harness-share.md §3.5."
+version: 1.5.0
+description: "Fix scope expansion + Gate 4.5 callsite sanity. Cross-ref invoked from kzk-codebase-survey on fix-start flows. Direct triggers: 'callsite 전수', 'Gate 4.5', 'fix-scope-cache', 'KZK_GATE45_SKIP', 'callsite 누락'. Default DISABLED until kzk-pre-merge-sync step 3. References harness-share.md §3.5."
 ---
 
 > Authoritative source: harness-share.md §3.5. On conflict, that wins.

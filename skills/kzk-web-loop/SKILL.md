@@ -1,7 +1,7 @@
 ---
 name: kzk-web-loop
-version: 1.8.0
-description: "Autonomous web page improvement loop — make sure to use this skill whenever the user says 'web loop', '웹 루프 시작', '계속 돌려', '자율 개선', or '무한 루프'. Runs self-directed cycles indefinitely: (1a) TOOL RUNNER subagent (sonnet) collects test/Playwright/console data, (1b) EVALUATOR subagent (opus) prioritizes P0/P1/P2 issues, (2) picks top issue not yet fixed this cycle, (3) ambiguous decisions → user-queue with tentative default, (4a) P0 fast path → executor direct, (4b) P1/P2 → codebase-survey + writing-plans + subagent-driven-development, (5) harness-flow-progress.md append + regression memory retro. Playwright is optional enhancement with cascade recovery — never halts on MCP drop. Reviewer FAIL 2× = skip issue, pick next (overrides kzk-autonomous-loop halt rule). References harness-share.md §25."
+version: 1.9.0
+description: "Autonomous web page improvement loop (P0/P1/P2 prioritization). P0 fast-path → executor; P1/P2 → codebase-survey + writing-plans + subagent-driven-development. Reviewer-FAIL skip override (vs autonomous-loop default). Triggers: 'web loop', '웹 루프', '자율 개선', '계속 돌려', '무한 루프'. References harness-share.md §25."
 ---
 
 > Authoritative source: `harness-share.md` §25. On conflict, that wins.

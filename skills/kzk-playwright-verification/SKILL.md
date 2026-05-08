@@ -1,7 +1,7 @@
 ---
 name: kzk-playwright-verification
-version: 1.4.0
-description: "Playwright MCP visual verification and OAuth click-through — make sure to use this skill before every UI/CSS commit (Gate 4) and whenever browser_navigate, browser_take_screenshot, OAuth login screens, or 'Google 로그인' appear in the workflow. Build/test green ≠ visual PASS — Gate 4 catches unstyled shadcn primitives, padding-less badges, border-only cards. Enforces: 3+ representative pages, full-page screenshot, 0 console errors, explicit visual claim (named elements + named tokens). OAuth click-through is agent-driven — never stop to wait for user on login UI. MCP drop → 5-step self-recovery before halting. Narration mandate: 1-3 sentences after every tool call ≥2s. References harness-share.md §3 Gate 4."
+version: 1.5.0
+description: "Playwright MCP visual verification + OAuth click-through. Gate 4 catches unstyled shadcn primitives, padding-less badges, border-only cards. 3+ pages, full-page screenshot, 0 console errors required. OAuth = agent-driven (no user wait). MCP drop → 5-step self-recovery. References harness-share.md §3 Gate 4."
 ---
 
 > Authoritative source: `harness-share.md` §3 Gate 4. On conflict, that wins.

@@ -1,7 +1,7 @@
 ---
 name: kzk-autonomous-loop
-version: 1.5.0
-description: "Autonomous loop continuation rules — make sure to use this skill whenever a rate-limit hit, context-budget warning, or multi-Plan sequence requires the agent to keep running without stopping. Governs three specific continuity scenarios: (1) 5-hour rate-limit polling via ScheduleWakeup(delaySeconds=600), (2) auto /compact at ≥80% context with one-line restate, (3) Plan A→B→…→N auto-continuation with open-PR conflict guard. Polite stops are forbidden inside autonomous scope — this skill is the anti-polite-stop contract. References harness-share.md §12/§13/§14. Cross-ref kzk-autonomous-boundary for halt conditions."
+version: 1.6.0
+description: "Autonomous loop continuation — anti-polite-stop contract. Governs rate-limit polling (ScheduleWakeup 600s), auto /compact at 80% context, Plan A→N auto-continuation. Polite stops forbidden inside autonomous scope (7 canonical examples in body). References harness-share.md §12/§13/§14."
 ---
 
 > Authoritative source: `harness-share.md` §12 / §13 / §14. On conflict, that wins.
@@ -44,6 +44,20 @@ Sequence Plan A → Plan B → ... → Plan N in one autonomous session:
   - `superpowers:verification-before-completion` — commit-time evidence required
 - Independent 2+ tasks → `superpowers:dispatching-parallel-agents`
 - No mid-run progress reports. Final summary only when all Plans finish OR a halt condition fires.
+
+### Polite-stop ban examples (canonical list — Cycle 48)
+
+The following turn-ending patterns are all polite-stop violations under autonomous scope, even though no FAIL occurred:
+
+1. **AskUserQuestion answer → ending turn** (Cycle 48 incident). After 3-slot contract Q is answered, agent MUST dispatch the next stage in the same turn. cross-ref: `kzk-autonomous-boundary §Post-contract continuation`.
+2. **Tool result → presenting findings + waiting**. e.g. survey returns → agent summarizes findings + ends turn instead of moving to plan/spec. Findings are inputs to the next stage, not a stopping point.
+3. **Plan A complete → "Should I proceed to Plan B?"** Forbidden. Auto-dispatch Plan B with no prompt (Open-PR conflict guard exception only).
+4. **Reviewer 1× FAIL → halt**. Halt threshold is 2 consecutive (or web-loop's per-issue skip). 1 FAIL = retry once.
+5. **Build 1-2× FAIL → halt**. Halt threshold is 3 consecutive. Anything below = retry / fix / continue.
+6. **Subagent dispatch return → "Done, awaiting next instruction"**. The dispatch return is the signal to start the NEXT step, not a stop.
+7. **`/compact` complete → ending turn** instead of immediate restate + resume.
+
+If unsure whether a stop is allowed: it's not. Continue. Halt is reserved for the explicit conditions in `kzk-autonomous-boundary §Halt conditions`.
 
 ### Multi-plan CRG refresh 의무
 
