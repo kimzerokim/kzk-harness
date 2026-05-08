@@ -6,8 +6,38 @@
 // BEFORE it can read/edit files. Closes the meta-gap pattern where main loads
 // only kzk-codebase-survey for a multi-bug task and skips kzk-large-task-delegation.
 //
+// Also manages the autonomous-active marker file for autonomous-stop-guard.mjs (Cycle 52).
+//
 // Authoritative spec: docs/superpowers/specs/2026-05-04-kzk-global-install-design.md §7.5
 // Wired into ~/.claude/settings.json by `install-global.sh --enable-hooks` (N3 opt-in).
+
+import fs from 'node:fs';
+import path from 'node:path';
+import os from 'node:os';
+
+const MARKER_DIR = process.env.KZK_MARKER_DIR_OVERRIDE || path.join(os.homedir(), '.cache', 'kzk-harness');
+const MARKER_FILE = path.join(MARKER_DIR, 'autonomous-active');
+const HALT_KEYWORDS = ['그만', '그만해', '중단', '멈춰', 'stop autonomous', 'halt autonomous', 'autonomous 그만', '끝났어', '다 끝났어', '이제 그만'];
+const AUTONOMOUS_TRIGGER_PHRASES = ['ralph로 돌려', '끝까지 끝내줘', '자는 동안 진행', '자율실행', '자율 실행', '자율로 돌려', 'kzk 자율실행', '실행해놔야 queue 보지', 'autonomous mode'];
+
+function setMarker() {
+  try {
+    fs.mkdirSync(MARKER_DIR, { recursive: true });
+    fs.writeFileSync(MARKER_FILE, JSON.stringify({ ts: Date.now() }), 'utf8');
+  } catch (e) { process.stderr.write(`[keyword-detector] WARN: setMarker: ${e.message}\n`); }
+}
+
+function clearMarker() {
+  try { fs.unlinkSync(MARKER_FILE); } catch (e) { /* ENOENT OK */ }
+}
+
+function checkHaltKeyword(prompt) {
+  return HALT_KEYWORDS.some(kw => prompt.includes(kw));
+}
+
+function checkAutonomousKeyword(prompt) {
+  return AUTONOMOUS_TRIGGER_PHRASES.some(kw => prompt.includes(kw));
+}
 
 const RULES = [
   {
@@ -143,6 +173,14 @@ if (process.argv[1] === new URL(import.meta.url).pathname) {
     let payload;
     try { payload = raw ? JSON.parse(raw) : {}; } catch { payload = {}; }
     const prompt = String(payload.prompt ?? payload.user_prompt ?? "");
+
+    // Cycle 52: autonomous marker management
+    if (checkHaltKeyword(prompt)) {
+      clearMarker();
+    } else if (checkAutonomousKeyword(prompt)) {
+      setMarker();
+    }
+
     const matches = detect(prompt);
     const reminder = buildReminder(matches);
     if (reminder) {

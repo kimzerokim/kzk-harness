@@ -707,6 +707,16 @@ else
   ERRORS+=("edit-failure-retry.test.mjs")
 fi
 
+# Cycle 52 — autonomous-stop-guard
+printf '\n--- autonomous-stop-guard.test.mjs (Cycle 52) ---\n'
+if node --test "$REPO_ROOT/install/test/autonomous-stop-guard.test.mjs"; then
+  PASS=$((PASS + 1))
+  printf '  PASS: autonomous-stop-guard.test.mjs\n'
+else
+  FAIL=$((FAIL + 1))
+  ERRORS+=("autonomous-stop-guard.test.mjs")
+fi
+
 printf '\n'
 printf '=%.0s' {1..60}
 printf '\n'

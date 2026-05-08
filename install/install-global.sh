@@ -637,8 +637,8 @@ verify_install() {
 # ---------------------------------------------------------------------------
 
 # update_hooks_canonical — canonical reconstruct of PreToolUse / PostToolUse /
-# UserPromptSubmit arrays in settings.json. Managed whitelist (5 filenames) only
-# stripped — user custom hooks preserved. dispatcher only registered.
+# UserPromptSubmit / Stop arrays in settings.json. Managed whitelist (7 filenames)
+# only stripped — user custom hooks preserved. dispatcher only registered.
 update_hooks_canonical() {
   local settings="$1"
   local hook_dest="$HOME/.claude/skills/.kzk-harness-shared/hooks"
@@ -646,19 +646,21 @@ update_hooks_canonical() {
   local post_cmd="node $hook_dest/edit-read-guard.mjs --mode=post-read"
   local post_retry_cmd="node $hook_dest/edit-failure-retry.mjs"
   local disp_cmd="node $hook_dest/dispatcher.mjs"
+  local stop_cmd="node $hook_dest/autonomous-stop-guard.mjs"
 
   local tmp
   tmp=$(mktemp)
 
-  # managed filenames whitelist: strip only these 6, preserve user custom hooks
-  jq --arg pre "$pre_cmd" --arg post "$post_cmd" --arg post_retry "$post_retry_cmd" --arg disp "$disp_cmd" '
+  # managed filenames whitelist: strip only these 7, preserve user custom hooks
+  jq --arg pre "$pre_cmd" --arg post "$post_cmd" --arg post_retry "$post_retry_cmd" --arg disp "$disp_cmd" --arg stop "$stop_cmd" '
     def is_managed: (.command // "") |
       (test("/dispatcher\\.mjs(\\s|$)") or
        test("/edit-read-guard\\.mjs(\\s|$)") or
        test("/edit-failure-retry\\.mjs(\\s|$)") or
        test("/keyword-detector\\.mjs(\\s|$)") or
        test("/regression-recall\\.mjs(\\s|$)") or
-       test("/fix-scope-trigger\\.mjs(\\s|$)"));
+       test("/fix-scope-trigger\\.mjs(\\s|$)") or
+       test("/autonomous-stop-guard\\.mjs(\\s|$)"));
 
     .hooks.PreToolUse = (((.hooks.PreToolUse // []) | map(
         .hooks |= map(select(is_managed | not))
@@ -673,6 +675,10 @@ update_hooks_canonical() {
         .hooks |= map(select(is_managed | not))
       ) | map(select((.hooks // []) | length > 0))) +
       [{matcher:"*", hooks:[{type:"command", command:$disp}]}])
+    | .hooks.Stop = (((.hooks.Stop // []) | map(
+        .hooks |= map(select(is_managed | not))
+      ) | map(select((.hooks // []) | length > 0))) +
+      [{matcher:"*", hooks:[{type:"command", command:$stop}]}])
   ' "$settings" >"$tmp" && mv "$tmp" "$settings" || return 1
 }
 
@@ -721,6 +727,8 @@ enable_hooks() {
   cp "$src/install/hooks/dispatcher.mjs" "$hook_dest/" || return 1
   # Cycle 50: copy edit-failure-retry.mjs (PostToolUse Edit|Write failure forcing hook)
   cp "$src/install/hooks/edit-failure-retry.mjs" "$hook_dest/" || return 1
+  # Cycle 52: copy autonomous-stop-guard.mjs (Stop hook for autonomous mode)
+  cp "$src/install/hooks/autonomous-stop-guard.mjs" "$hook_dest/" || return 1
 
   # Always copy keyword-detector (needed by dispatcher manifest)
   cp "$src/install/hooks/keyword-detector.mjs" "$hook_dest/"

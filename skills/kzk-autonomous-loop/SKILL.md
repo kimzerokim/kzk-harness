@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-loop
-version: 1.8.0
+version: 1.9.0
 description: "Autonomous loop continuation — anti-polite-stop contract. Governs rate-limit polling (ScheduleWakeup 600s), extra-usage/overage tier override (no halt), auto /compact at 80% context, Plan A→N auto-continuation. Polite stops forbidden inside autonomous scope (9 canonical examples in body). References harness-share.md §12/§13/§14."
 ---
 
@@ -77,6 +77,26 @@ The following turn-ending patterns are all polite-stop violations under autonomo
 9. **Cost / extra-usage / overage signal → halt** (Cycle 51). HUD shows "extra usage", "overage", "additional usage", "pay-as-you-go", or any cost-warning that doesn't actually block requests = NOT a halt condition. The user already authorized the autonomous run; cost is their billing concern. Continue. Only the strict 5h-window rate-limit error (where requests actually fail) triggers `ScheduleWakeup`. cross-ref: `§Rate-limit polling §Extra-usage / overage tier`.
 
 If unsure whether a stop is allowed: it's not. Continue. Halt is reserved for the explicit conditions in `kzk-autonomous-boundary §Halt conditions`.
+
+### Stop event hook — forcing mechanism (Cycle 52)
+
+Doc-only enforcement of polite-stop ban repeatedly fails in practice (Cycles 50, 51 incidents). Cycle 52 added `install/hooks/autonomous-stop-guard.mjs` Stop event hook with smart completion detection:
+
+- Marker file `~/.cache/kzk-harness/autonomous-active` written by `keyword-detector.mjs` when user prompt matches autonomous trigger phrase
+- Stop hook reads marker; if active and within TTL, checks 2 completion signals:
+  1. TodoWrite state (from transcript_path) — pending/in_progress count
+  2. `docs/harness/user-queue.md` non-RESOLVED Pending count
+- Open work detected → blocks stop with reason citing this skill, includes "type '그만' to halt" escape
+- All clear → allows stop and clears marker
+
+Marker reset triggers (in keyword-detector.mjs):
+- User message contains '그만' / 'stop autonomous' / 'halt autonomous' / '끝났어' / '다 끝났어' → marker deleted
+- TTL expiry (default 1hr, env `KZK_AUTONOMOUS_TTL_SEC`) → auto-cleanup on next stop
+- Per-turn max-block 3 → escape hatch from runaway block loop
+
+Skip conditions:
+- `OMC_SKIP_HOOKS=autonomous-stop-guard` env → bypass
+- Any internal hook error → fail-open (allow stop)
 
 ### Multi-plan CRG refresh 의무
 
