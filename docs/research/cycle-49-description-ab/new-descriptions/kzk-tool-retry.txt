@@ -1,0 +1,1 @@
+Edit/Write/Bash auto-retry discipline. Single automatic retry on first failure (no user prompt); double-failure → Q-TOOL queue entry. Pre-emptive Read on 7 read-tracker invalidator events. Triggers: 'Edit fail', 'File has not been read yet', 'String to replace not found'. References harness-share.md §27.

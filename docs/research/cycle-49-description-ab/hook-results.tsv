@@ -1,0 +1,13 @@
+prompt_id	prompt	hit	miss	extra	got
+C1	ralph로 돌려	3/3	0	0	[kzk-autonomous-boundary,kzk-autonomous-loop,kzk-large-task-delegation]
+C2	fix 시작	1/1	0	0	[kzk-codebase-survey]
+C3	tdd 로 테스트 추가해줘	1/1	0	0	[kzk-test-coverage]
+C4	끝까지 끝내줘	3/3	0	0	[kzk-autonomous-boundary,kzk-autonomous-loop,kzk-large-task-delegation]
+C5	spec 잡자	1/1	0	0	[kzk-spec-and-review]
+N1	버그 전수조사해줘	1/1	0	0	[kzk-large-task-delegation]
+N2	Playwright 로 화면 확인	0/1	1	0	[]
+N3	stale 문서 체크	0/1	1	0	[]
+X1	fix 시작하면서 callsite 전수도 봐줘	1/2	1	0	[kzk-codebase-survey]
+X2	spec 작성 전에 freshness 체크 먼저	1/3	2	0	[kzk-spec-and-review]
+P1	이 코드 좀 깊이 들여다봐줘	0/1	1	0	[]
+P2	rate limit 걸려도 이어서 진행	0/1	1	0	[]

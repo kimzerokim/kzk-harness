@@ -1,0 +1,1 @@
+Mandatory pre-planning deep codebase explorer via oh-my-claudecode:explore subagent. Hub for fix-start ('fix 시작', '버그 수정', 'callsite 전수'), spec/plan drafts, and detailed analysis ('상세하게 봐줘', '상세히 봐줘'). 8-step survey: CRG verify, scope expansion, deep read, library detect. 5+ main reads forbidden. References harness-share.md §26.

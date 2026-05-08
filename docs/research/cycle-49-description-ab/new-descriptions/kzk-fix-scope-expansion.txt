@@ -1,0 +1,1 @@
+Fix scope expansion + Gate 4.5 callsite sanity. Cross-ref invoked from kzk-codebase-survey on fix-start flows. Direct triggers: 'callsite 전수', 'Gate 4.5', 'fix-scope-cache', 'KZK_GATE45_SKIP', 'callsite 누락'. Default DISABLED until kzk-pre-merge-sync step 3. References harness-share.md §3.5.

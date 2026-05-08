@@ -1,0 +1,1 @@
+Spec/plan/major design authoring with mandatory cross-vendor codex review. Step -1 brainstorm, Step 0 survey precondition + freshness check, Steps 1-3 (draft via executor sonnet → codex CLI consult → synthesize 🔴/🟡/⚪). Triggers: 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm'. References harness-share.md §22 + §22.5.

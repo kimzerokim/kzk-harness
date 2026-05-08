@@ -1,0 +1,1 @@
+Autonomous loop continuation — anti-polite-stop contract. Governs rate-limit polling (ScheduleWakeup 600s), auto /compact at 80% context, Plan A→N auto-continuation. Polite stops forbidden inside autonomous scope (7 canonical examples in body). References harness-share.md §12/§13/§14.

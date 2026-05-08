@@ -1,0 +1,1 @@
+Production / external infrastructure access boundary. Default forbidden (incl. read-only). Read-only requires explicit user request; state mutation = AI authors script only, user/CI executes. Idempotency mandatory. STS (ASIA) single-use; permanent (AKIA) refused. Triggers: AWS, SSM, production DB, IaC, credential. References harness-share.md §2.

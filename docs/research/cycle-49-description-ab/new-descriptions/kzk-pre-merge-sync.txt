@@ -1,0 +1,1 @@
+Pre-merge / milestone checklist before gh pr create (PR-flow) or direct-main milestone commits. Enforces: CLAUDE.md sync, deepinit run, regression-recall + fix-scope hook auto-enable, full freshness sweep. Triggers: 'merge', 'feature branch', 'CLAUDE.md sync', 'deepinit'. References harness-share.md §14.5 + §15.

@@ -1,0 +1,1 @@
+Autonomous web page improvement loop (P0/P1/P2 prioritization). P0 fast-path → executor; P1/P2 → codebase-survey + writing-plans + subagent-driven-development. Reviewer-FAIL skip override (vs autonomous-loop default). Triggers: 'web loop', '웹 루프', '자율 개선', '계속 돌려', '무한 루프'. References harness-share.md §25.

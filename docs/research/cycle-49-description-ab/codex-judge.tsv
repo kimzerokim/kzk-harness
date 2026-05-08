@@ -1,0 +1,6 @@
+prompt_id	skill	old_score	new_score	delta	notes
+C1	kzk-large-task-delegation	1	1	0	Both low — "ralph로 돌려" is not in either description's trigger list
+C4	kzk-large-task-delegation	3	4	+1	New slightly clearer with concise trigger format
+P1	kzk-codebase-survey	3	5	+2	New explicitly lists '상세하게 봐줘'/'상세히 봐줘' — strong signal gain
+N1	kzk-large-task-delegation	4	5	+1	New concise trigger list reads more directly
+N2	kzk-playwright-verification	5	4	-1	Old "make sure to use this skill" imperative phrasing gave stronger activation signal

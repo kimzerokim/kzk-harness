@@ -1,0 +1,1 @@
+Playwright MCP visual verification + OAuth click-through. Gate 4 catches unstyled shadcn primitives, padding-less badges, border-only cards. 3+ pages, full-page screenshot, 0 console errors required. OAuth = agent-driven (no user wait). MCP drop → 5-step self-recovery. References harness-share.md §3 Gate 4.

@@ -1,0 +1,1 @@
+Regression memory auto-recall via UserPromptSubmit hook on fix start. gstack /learn JSONL primary + sidecar (dismiss_count, stale, archived). Decay confidence × 0.85^dismiss. Triggers: 'regression memory', '재발 방지', 'fix recall'. Default DISABLED until pre-merge-sync step 3. References harness-share.md §29.

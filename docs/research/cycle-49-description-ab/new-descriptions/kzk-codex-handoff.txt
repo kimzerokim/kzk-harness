@@ -1,0 +1,1 @@
+Codex CLI invocation stabilization SoT. 5 hard rules: stdin pipe required, --json→file→jq (not pipe), --ephemeral always, short prompts via arg, plain text mode. E0 Preflight + E1-E4 fallback ladder to critic opus. Auto-loaded by spec-and-review and large-task-delegation. References harness-share.md §32.

@@ -1,0 +1,1 @@
+TDD-strict (Red→Green→Refactor→Commit) + 100% line+branch coverage on touched files. Anti-self-verification: autonomous main cannot enter TDD red directly — fresh sonnet dispatch required (Q-TDD-MAIN halt). Triggers: 'tdd', 'test first', '테스트 먼저', 'red-green'. References harness-share.md §11.

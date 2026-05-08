@@ -1,0 +1,1 @@
+Background task ownership discipline. Spawning agent owns task until terminal state. Stuck thresholds: subagent ≥5min, Bash ≥3min, codex no-first-token 60s. Kill+diagnose+retry, subagent completion verification, session-resume restate-before-dispatch. Triggers: run_in_background, Monitor, long-running. References harness-share.md §23.

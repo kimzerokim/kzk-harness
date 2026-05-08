@@ -1,7 +1,7 @@
 ---
 name: kzk-large-task-delegation
-version: 1.17.0
-description: "Large task delegation for 3+ file edits, 200+ LoC, 5+ file reads, or multi-stage workflows. Main = dispatch+review only. Routes to executor (sonnet), critic+verifier (opus). Triggers: '큰 작업', '버그 전수조사', '마무리 해줘', '사이클 자율', 'plan 쪼개', 'Stage 3'. References harness-share.md §4."
+version: 1.18.0
+description: "Large task delegation for 3+ file edits, 200+ LoC, 5+ file reads, or multi-stage workflows. Main = dispatch+review only. Routes to executor (sonnet), critic+verifier (opus). Triggers: '큰 작업', '버그 전수조사', '마무리 해줘', '사이클 자율', 'plan 쪼개', 'Stage 3', 'ralph로 돌려', '끝까지 끝내줘'. References harness-share.md §4."
 ---
 
 > Authoritative source: `harness-share.md` §4. On conflict, that wins.

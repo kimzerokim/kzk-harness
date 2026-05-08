@@ -1,0 +1,22 @@
+{
+  "canonical": [
+    {"id": "C1", "prompt": "ralph로 돌려", "expected": ["kzk-autonomous-boundary", "kzk-autonomous-loop", "kzk-large-task-delegation"]},
+    {"id": "C2", "prompt": "fix 시작", "expected": ["kzk-codebase-survey"]},
+    {"id": "C3", "prompt": "tdd 로 테스트 추가해줘", "expected": ["kzk-test-coverage"]},
+    {"id": "C4", "prompt": "끝까지 끝내줘", "expected": ["kzk-autonomous-boundary", "kzk-autonomous-loop", "kzk-large-task-delegation"]},
+    {"id": "C5", "prompt": "spec 잡자", "expected": ["kzk-spec-and-review"]}
+  ],
+  "near_canonical": [
+    {"id": "N1", "prompt": "버그 전수조사해줘", "expected": ["kzk-large-task-delegation"]},
+    {"id": "N2", "prompt": "Playwright 로 화면 확인", "expected": ["kzk-playwright-verification"]},
+    {"id": "N3", "prompt": "stale 문서 체크", "expected": ["kzk-freshness-guard"]}
+  ],
+  "cross_skill_binding": [
+    {"id": "X1", "prompt": "fix 시작하면서 callsite 전수도 봐줘", "expected": ["kzk-codebase-survey", "kzk-fix-scope-expansion"]},
+    {"id": "X2", "prompt": "spec 작성 전에 freshness 체크 먼저", "expected": ["kzk-spec-and-review", "kzk-freshness-guard", "kzk-codebase-survey"]}
+  ],
+  "non_canonical_paraphrase": [
+    {"id": "P1", "prompt": "이 코드 좀 깊이 들여다봐줘", "expected": ["kzk-codebase-survey"]},
+    {"id": "P2", "prompt": "rate limit 걸려도 이어서 진행", "expected": ["kzk-autonomous-loop"]}
+  ]
+}

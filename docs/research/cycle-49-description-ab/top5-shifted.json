@@ -1,0 +1,148 @@
+[
+  {
+    "id": "C1",
+    "prompt": "ralph로 돌려",
+    "expected": [
+      "kzk-autonomous-boundary",
+      "kzk-autonomous-loop",
+      "kzk-large-task-delegation"
+    ],
+    "shift": 3,
+    "old_top3": "kzk-autonomous-boundary,kzk-web-loop,kzk-autonomous-loop",
+    "new_top3": "kzk-autonomous-boundary,kzk-web-loop,kzk-autonomous-loop",
+    "old_desc_for_expected": [
+      {
+        "skill": "kzk-autonomous-boundary",
+        "desc": "Autonomous-mode boundary — make sure to use this skill whenever the user's prompt matches the Category A trigger phrases in harness-share.md §33 Autonomous-mode Detection SoT (canonical: 'ralph로 돌려', '끝까지 끝내줘', etc.), or any phrasing that requests autonomous multi-commit execution. Enforces the mandatory ASK-FIRST 3-slot branch/PR contract (branch destination, branch name, PR mode) before any autonomous or harness-driven multi-commit flow begins. Governs halt conditions (reviewer 2× FAIL, build 3× FAIL, main-access required), destructive-op guardrails (force-push, reset --hard, PR auto-merge), and Q-entry patterns (Q-TDD-MAIN, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-FAIL, Q-VERIFIER-INVALID, Q-VERIFIER-DISPATCH-FAIL). References harness-share.md §2 + §33."
+      },
+      {
+        "skill": "kzk-autonomous-loop",
+        "desc": "Autonomous loop continuation rules — make sure to use this skill whenever a rate-limit hit, context-budget warning, or multi-Plan sequence requires the agent to keep running without stopping. Governs three specific continuity scenarios: (1) 5-hour rate-limit polling via ScheduleWakeup(delaySeconds=600), (2) auto /compact at ≥80% context with one-line restate, (3) Plan A→B→…→N auto-continuation with open-PR conflict guard. Polite stops are forbidden inside autonomous scope — this skill is the anti-polite-stop contract. References harness-share.md §12/§13/§14. Cross-ref kzk-autonomous-boundary for halt conditions."
+      },
+      {
+        "skill": "kzk-large-task-delegation",
+        "desc": "Large task delegation — make sure to use this skill for any request involving 3+ file edits, 200+ LoC changes, 5+ file reads for verification/audit, or multi-stage workflows (build/test/Playwright/review). Main context = dispatch + review only; main never holds implementation or reads 5+ files directly. Governs scope estimation (mandatory 30-second estimate before any non-trivial edit), model routing (opus for plans/critic/verifier, sonnet for substantive implementation, haiku for mechanical), Stage 3 fresh-agent verifier (Gate 5 cite), Q-VERIFIER-FAIL/INVALID/DISPATCH-FAIL halt entries, and read-heavy audit dispatch shape. User phrases: '큰 작업', '버그 전수조사', '마무리 해줘', '사이클 자율', 'plan 쪼개', 'Stage 3'. References harness-share.md §4."
+      }
+    ],
+    "new_desc_for_expected": [
+      {
+        "skill": "kzk-autonomous-boundary",
+        "desc": "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contract (destination, name, PR mode) before any autonomous flow; post-contract continuation in same turn (Cycle 48). Halt conditions, destructive-op guardrails, Q-entry patterns (Q-TDD-MAIN, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-*). Triggers: 'ralph로 돌려', '끝까지 끝내줘', '자율실행'. References harness-share.md §2 + §33."
+      },
+      {
+        "skill": "kzk-autonomous-loop",
+        "desc": "Autonomous loop continuation — anti-polite-stop contract. Governs rate-limit polling (ScheduleWakeup 600s), auto /compact at 80% context, Plan A→N auto-continuation. Polite stops forbidden inside autonomous scope (7 canonical examples in body). References harness-share.md §12/§13/§14."
+      },
+      {
+        "skill": "kzk-large-task-delegation",
+        "desc": "Large task delegation for 3+ file edits, 200+ LoC, 5+ file reads, or multi-stage workflows. Main = dispatch+review only. Routes to executor (sonnet), critic+verifier (opus). Triggers: '큰 작업', '버그 전수조사', '마무리 해줘', '사이클 자율', 'plan 쪼개', 'Stage 3'. References harness-share.md §4."
+      }
+    ]
+  },
+  {
+    "id": "C4",
+    "prompt": "끝까지 끝내줘",
+    "expected": [
+      "kzk-autonomous-boundary",
+      "kzk-autonomous-loop",
+      "kzk-large-task-delegation"
+    ],
+    "shift": 3,
+    "old_top3": "kzk-autonomous-boundary,kzk-autonomous-loop,kzk-background-monitoring",
+    "new_top3": "kzk-autonomous-boundary,kzk-autonomous-loop,kzk-background-monitoring",
+    "old_desc_for_expected": [
+      {
+        "skill": "kzk-autonomous-boundary",
+        "desc": "Autonomous-mode boundary — make sure to use this skill whenever the user's prompt matches the Category A trigger phrases in harness-share.md §33 Autonomous-mode Detection SoT (canonical: 'ralph로 돌려', '끝까지 끝내줘', etc.), or any phrasing that requests autonomous multi-commit execution. Enforces the mandatory ASK-FIRST 3-slot branch/PR contract (branch destination, branch name, PR mode) before any autonomous or harness-driven multi-commit flow begins. Governs halt conditions (reviewer 2× FAIL, build 3× FAIL, main-access required), destructive-op guardrails (force-push, reset --hard, PR auto-merge), and Q-entry patterns (Q-TDD-MAIN, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-FAIL, Q-VERIFIER-INVALID, Q-VERIFIER-DISPATCH-FAIL). References harness-share.md §2 + §33."
+      },
+      {
+        "skill": "kzk-autonomous-loop",
+        "desc": "Autonomous loop continuation rules — make sure to use this skill whenever a rate-limit hit, context-budget warning, or multi-Plan sequence requires the agent to keep running without stopping. Governs three specific continuity scenarios: (1) 5-hour rate-limit polling via ScheduleWakeup(delaySeconds=600), (2) auto /compact at ≥80% context with one-line restate, (3) Plan A→B→…→N auto-continuation with open-PR conflict guard. Polite stops are forbidden inside autonomous scope — this skill is the anti-polite-stop contract. References harness-share.md §12/§13/§14. Cross-ref kzk-autonomous-boundary for halt conditions."
+      },
+      {
+        "skill": "kzk-large-task-delegation",
+        "desc": "Large task delegation — make sure to use this skill for any request involving 3+ file edits, 200+ LoC changes, 5+ file reads for verification/audit, or multi-stage workflows (build/test/Playwright/review). Main context = dispatch + review only; main never holds implementation or reads 5+ files directly. Governs scope estimation (mandatory 30-second estimate before any non-trivial edit), model routing (opus for plans/critic/verifier, sonnet for substantive implementation, haiku for mechanical), Stage 3 fresh-agent verifier (Gate 5 cite), Q-VERIFIER-FAIL/INVALID/DISPATCH-FAIL halt entries, and read-heavy audit dispatch shape. User phrases: '큰 작업', '버그 전수조사', '마무리 해줘', '사이클 자율', 'plan 쪼개', 'Stage 3'. References harness-share.md §4."
+      }
+    ],
+    "new_desc_for_expected": [
+      {
+        "skill": "kzk-autonomous-boundary",
+        "desc": "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contract (destination, name, PR mode) before any autonomous flow; post-contract continuation in same turn (Cycle 48). Halt conditions, destructive-op guardrails, Q-entry patterns (Q-TDD-MAIN, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-*). Triggers: 'ralph로 돌려', '끝까지 끝내줘', '자율실행'. References harness-share.md §2 + §33."
+      },
+      {
+        "skill": "kzk-autonomous-loop",
+        "desc": "Autonomous loop continuation — anti-polite-stop contract. Governs rate-limit polling (ScheduleWakeup 600s), auto /compact at 80% context, Plan A→N auto-continuation. Polite stops forbidden inside autonomous scope (7 canonical examples in body). References harness-share.md §12/§13/§14."
+      },
+      {
+        "skill": "kzk-large-task-delegation",
+        "desc": "Large task delegation for 3+ file edits, 200+ LoC, 5+ file reads, or multi-stage workflows. Main = dispatch+review only. Routes to executor (sonnet), critic+verifier (opus). Triggers: '큰 작업', '버그 전수조사', '마무리 해줘', '사이클 자율', 'plan 쪼개', 'Stage 3'. References harness-share.md §4."
+      }
+    ]
+  },
+  {
+    "id": "P1",
+    "prompt": "이 코드 좀 깊이 들여다봐줘",
+    "expected": [
+      "kzk-codebase-survey"
+    ],
+    "shift": 2,
+    "old_top3": "kzk-autonomous-boundary,kzk-autonomous-loop,kzk-background-monitoring",
+    "new_top3": "kzk-autonomous-boundary,kzk-autonomous-loop,kzk-background-monitoring",
+    "old_desc_for_expected": [
+      {
+        "skill": "kzk-codebase-survey",
+        "desc": "Mandatory pre-planning deep codebase explorer — make sure to use this skill before any spec, plan, major design draft, or fix. This is the hub for fix-start flows: when the user says 'fix 시작', '버그 수정', or 'callsite 전수', invoke this skill first; it then lazy-invokes kzk-fix-scope-expansion (CRG callsite query) and kzk-freshness-guard (stale report check). Runs 8 steps via oh-my-claudecode:explore subagent: CRG index verify, scope expansion, deep parallel Read, library detection, context7 docs load, pattern extraction, TypeScript contracts, report save. 5+ file reads are forbidden in main context — always delegate here. References harness-share.md §26."
+      }
+    ],
+    "new_desc_for_expected": [
+      {
+        "skill": "kzk-codebase-survey",
+        "desc": "Mandatory pre-planning deep codebase explorer via oh-my-claudecode:explore subagent. Hub for fix-start ('fix 시작', '버그 수정', 'callsite 전수'), spec/plan drafts, and detailed analysis ('상세하게 봐줘', '상세히 봐줘'). 8-step survey: CRG verify, scope expansion, deep read, library detect. 5+ main reads forbidden. References harness-share.md §26."
+      }
+    ]
+  },
+  {
+    "id": "N1",
+    "prompt": "버그 전수조사해줘",
+    "expected": [
+      "kzk-large-task-delegation"
+    ],
+    "shift": 1,
+    "old_top3": "kzk-codebase-survey,kzk-fix-scope-expansion,kzk-large-task-delegation",
+    "new_top3": "kzk-codebase-survey,kzk-large-task-delegation,kzk-autonomous-boundary",
+    "old_desc_for_expected": [
+      {
+        "skill": "kzk-large-task-delegation",
+        "desc": "Large task delegation — make sure to use this skill for any request involving 3+ file edits, 200+ LoC changes, 5+ file reads for verification/audit, or multi-stage workflows (build/test/Playwright/review). Main context = dispatch + review only; main never holds implementation or reads 5+ files directly. Governs scope estimation (mandatory 30-second estimate before any non-trivial edit), model routing (opus for plans/critic/verifier, sonnet for substantive implementation, haiku for mechanical), Stage 3 fresh-agent verifier (Gate 5 cite), Q-VERIFIER-FAIL/INVALID/DISPATCH-FAIL halt entries, and read-heavy audit dispatch shape. User phrases: '큰 작업', '버그 전수조사', '마무리 해줘', '사이클 자율', 'plan 쪼개', 'Stage 3'. References harness-share.md §4."
+      }
+    ],
+    "new_desc_for_expected": [
+      {
+        "skill": "kzk-large-task-delegation",
+        "desc": "Large task delegation for 3+ file edits, 200+ LoC, 5+ file reads, or multi-stage workflows. Main = dispatch+review only. Routes to executor (sonnet), critic+verifier (opus). Triggers: '큰 작업', '버그 전수조사', '마무리 해줘', '사이클 자율', 'plan 쪼개', 'Stage 3'. References harness-share.md §4."
+      }
+    ]
+  },
+  {
+    "id": "N2",
+    "prompt": "Playwright 로 화면 확인",
+    "expected": [
+      "kzk-playwright-verification"
+    ],
+    "shift": 1,
+    "old_top3": "kzk-large-task-delegation,kzk-playwright-verification,kzk-pre-commit-gate",
+    "new_top3": "kzk-playwright-verification,kzk-pre-commit-gate,kzk-autonomous-boundary",
+    "old_desc_for_expected": [
+      {
+        "skill": "kzk-playwright-verification",
+        "desc": "Playwright MCP visual verification and OAuth click-through — make sure to use this skill before every UI/CSS commit (Gate 4) and whenever browser_navigate, browser_take_screenshot, OAuth login screens, or 'Google 로그인' appear in the workflow. Build/test green ≠ visual PASS — Gate 4 catches unstyled shadcn primitives, padding-less badges, border-only cards. Enforces: 3+ representative pages, full-page screenshot, 0 console errors, explicit visual claim (named elements + named tokens). OAuth click-through is agent-driven — never stop to wait for user on login UI. MCP drop → 5-step self-recovery before halting. Narration mandate: 1-3 sentences after every tool call ≥2s. References harness-share.md §3 Gate 4."
+      }
+    ],
+    "new_desc_for_expected": [
+      {
+        "skill": "kzk-playwright-verification",
+        "desc": "Playwright MCP visual verification + OAuth click-through. Gate 4 catches unstyled shadcn primitives, padding-less badges, border-only cards. 3+ pages, full-page screenshot, 0 console errors required. OAuth = agent-driven (no user wait). MCP drop → 5-step self-recovery. References harness-share.md §3 Gate 4."
+      }
+    ]
+  }
+]
