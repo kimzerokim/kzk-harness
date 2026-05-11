@@ -1,7 +1,7 @@
 ---
 name: kzk-playwright-verification
-version: 1.5.0
-description: "Playwright MCP visual verification + OAuth click-through. Gate 4 catches unstyled shadcn primitives, padding-less badges, border-only cards. 3+ pages, full-page screenshot, 0 console errors required. OAuth = agent-driven (no user wait). MCP drop → 5-step self-recovery. References harness-share.md §3 Gate 4."
+version: 1.7.4
+description: "Playwright MCP visual verification + OAuth click-through. Gate 4 catches unstyled shadcn primitives, padding-less badges, border-only cards. Dev server health pre-check (process alive + log tail error grep) blocks dev/prod divergence trap (e.g. Tailwind v4 @import order = dev fail / prod pass). 3+ pages, full-page screenshot, 0 console errors required. OAuth = agent-driven (no user wait). MCP drop → 5-step self-recovery. Multi-account picker halt (Q-PW-OAUTH-MULTI-ACCOUNT), consent loop 4-page cap (Q-PW-OAUTH-CONSENT-LOOP), stuck/challenge detection (Q-PW-OAUTH-STUCK, Q-PW-OAUTH-CHALLENGE). Popup OAuth branch (window.open) + provider-error halt (Q-PW-OAUTH-PROVIDER-ERROR) + 'Continue as <user>' picker fast-path. References harness-share.md §3 Gate 4. cycle-2 refinements: named popup branch, COOP/COEP signature list, access_denied user-decline note."
 ---
 
 > Authoritative source: `harness-share.md` §3 Gate 4. On conflict, that wins.
@@ -10,17 +10,58 @@ description: "Playwright MCP visual verification + OAuth click-through. Gate 4 c
 
 ## Standard verification routine (UI commit, just before Gate 4 PASS)
 
-1. Build/test green confirmed
-2. `mcp__playwright__browser_navigate` — visit ≥3 representative pages including the changed area
+0. **Dev server health pre-check** (frontend 변경 시 의무) — 본문 §Dev/prod build divergence trap 전체 절차 참조. 한 줄 요약: dev server process alive (`ps aux | grep -E "vite|next|nest" | grep -v grep`) AND dev log tail 마지막 50줄에 error 패턴 0개 (`vite:css`, `Module build failed`, `error during build`, `HMR ERROR`, `parse error`, `compilation error`). 어느 한 쪽이라도 FAIL → 페이지가 stale 빌드를 보여주는 상태이므로 그 위에 Playwright 검증 = 무의미. 먼저 root cause fix → dev rebuild success log 확인 → step 1 진입.
+1. Build/test green confirmed (production build PASS 만으로 verification 종료 금지 — §Dev/prod build divergence trap)
+2. `mcp__playwright__browser_navigate` — visit ≥3 representative pages including the changed area. 첫 navigate 후 `page.reload({ bypassCache: true })` 또는 동등 1회 강제 — stale browser cache 제거
 3. Per page: `mcp__playwright__browser_snapshot` (functional regression) + `mcp__playwright__browser_take_screenshot fullPage=true` (saved to `docs/screenshots/<session>/<topic>-NN.png`)
-4. `mcp__playwright__browser_console_messages level=error` → 0 errors
+4. `mcp__playwright__browser_console_messages level=error` → 0 errors. `level=warning` 도 1회 확인 — HMR partial reload 실패가 warning 으로 뜨는 경우 있음 (`[vite] hmr update failed`, `[next] hmr error`)
 5. **Visual inspection** — actually look at the screenshot. shadcn primitives in default-brittle states (unstyled anchors, padding-less badges, border-only cards) = FAIL. Visual regression blocks the commit.
 6. `mcp__playwright__browser_click` / `browser_fill_form` for primary interactions if any changed
-7. Commit body includes `Playwright: <screenshot_paths> + snapshot captured (console 0 err) + visual verified`
+7. Commit body includes `Playwright: <screenshot_paths> + snapshot captured (console 0 err, dev log clean) + visual verified`
 
 Subagent has Playwright MCP drop / cannot run → halt, append user-queue entry, return. Auto-defer is forbidden.
 
 Exception: `kzk-web-loop` overrides this — see `kzk-web-loop` §Playwright Resilience (cascade recovery + degraded mode instead of halt).
+
+## Dev/prod build divergence trap (production PASS ≠ dev PASS)
+
+**Symptom**: `npm run build` (production) PASS + autonomous main 의 self-verification PASS 인데, 사용자가 페이지 열면 어제 빌드를 그대로 보여주거나 새 컴포넌트가 안 보임. main 이 "다 됐다" 라고 종료 보고했지만 사용자 시야에서는 망가짐.
+
+**Root cause patterns** (known):
+- **Tailwind v4 + dev `@import` order**: `@import 'tailwindcss';` 가 inline expand 된 뒤 오는 `@import url(...)` 줄은 dev mode (esbuild) 의 `"@import must precede all other statements"` 위반. production build (rollup) 는 lenient 처리 — 같은 source 가 **dev fail / prod pass** 환경 격차.
+- **Vite HMR partial reload fail**: 새 파일 (e.g. `EnumSelectStep.tsx`) 추가 후 dev server 가 module graph refresh 실패 → 페이지가 마지막 성공 빌드 상태로 freeze. 새 import 시 console 의 chunk 404 또는 silent ignore.
+- **Next.js Turbopack / Webpack stale chunk**: 동일 패턴. `.next/cache` corruption 가능.
+- **Dev server died but page cached**: vite/next 프로세스가 죽어도 브라우저는 직전 빌드를 캐시로 표시. 사용자가 새로고침 (Cmd+R) 해도 캐시 hit 으로 stale.
+- **dev/prod 빌드 도구 격차 일반**: rollup vs esbuild, swc vs babel, turbopack vs webpack 등 환경마다 lint strictness 다름. dev fail / prod pass (혹은 그 역) 양쪽 가능.
+
+**Detection (Gate 4 step 0 의무 절차)**:
+
+1. **Process alive 체크**:
+   ```bash
+   ps aux | grep -E "vite|next|nest" | grep -v grep
+   ```
+   결과 0개 → dev server 죽음. 재시작 + 빌드 success 확인 후 진입.
+
+2. **Dev log tail error grep**:
+   ```bash
+   tail -50 <dev log path>   # 예: /tmp/vite-dev.log, /tmp/next-dev.log
+   ```
+   error 패턴 grep (1개라도 발견 시 FAIL):
+   - `vite:css`, `Module build failed`, `error during build`, `compilation error`
+   - `HMR ERROR`, `hmr update failed`, `hmr error`
+   - `parse error`, `Unexpected token`, `Cannot find module`
+   - `[next-swc-error]`, `[turbopack-error]`
+
+3. **Browser console + warning 동반 확인**: `browser_console_messages level=error` AND `level=warning`. HMR 실패가 warning level 로 뜨는 경우 빈번.
+
+4. **Stale cache 제거**: `browser_navigate` 후 `page.reload({ bypassCache: true })` 또는 hard refresh 1회 강제.
+
+**Action when FAIL**:
+- dev build error 발견 → 화면 검증 자체 무의미. **root cause fix → dev 재시작 → log 새 빌드 success 확인 → routine step 1 부터 다시**.
+- production build PASS 만으로 verification 종료 금지. 사용자 환경 ≡ dev server output.
+- 이 갭은 main 의 self-verification 사각지대 — `kzk-autonomous-boundary §Autonomous completion — fresh-agent verifier` 가 본 procedure 의 dispatch 의무를 정의.
+
+**Cross-ref**: 사용자가 보는 stale 화면 → 본 § dev log tail 우선 → 본문 §Debug cheatsheet "stale 페이지" row.
 
 ## Authentication (Playwright profile is persistent)
 
@@ -31,22 +72,108 @@ Exception: `kzk-web-loop` overrides this — see `kzk-web-loop` §Playwright Res
 
 ## OAuth click-through protocol (agent never waits for the user on login UI)
 
-The Playwright Chromium profile is persistent — Google session cookies survive across runs. The agent's job is to drive the OAuth click chain itself; only halt when actual human credentials (password / 2FA) are required, which a cached profile usually avoids.
+The Playwright Chromium profile is persistent — Google session cookies survive across runs. The agent drives the full OAuth click chain autonomously; only halt when human intervention is genuinely required (no cached account, multi-account ambiguity, security challenge).
 
-Click chain (in order, each step conditional on the previous):
+### Pre-click target identification
 
-1. **App's "Sign in with Google" button** — `browser_snapshot` to find the ref; common labels: `Sign in with Google`, `Continue with Google`, `Google 로그인`, `Google 으로 시작`, anchor `<a href="/auth/google">`, button with Google `<svg>` icon. **Click it.** Do not wait — this is in-app UI, not Google's domain yet.
-2. **Google account picker page** (`accounts.google.com/o/oauth2/...` or `accounts.google.com/AccountChooser`) — `browser_snapshot`. If a previously-used account is listed (cached profile), click the user's email row directly. Do not type credentials. If no cached account is listed → halt + user-queue (`Q-PW-OAUTH-NEW-ACCOUNT — fresh profile, user must sign in once`).
-3. **OAuth consent screen** (`Continue` / `Allow`) — click the primary continue button. This is also agent-driven, no user wait.
-4. **App-side OAuth callback** — `browser_navigate` lands on `<app>/auth/callback?code=...` then redirects to the protected route. Verify by checking final URL + a known authenticated element (e.g., user avatar or project list) via `browser_snapshot`.
+`browser_snapshot` first to find the sign-in button ref. Representative label heuristics (not exhaustive — infer variants):
+- English: `Sign in with Google`, `Continue with Google`, `Log in with Google`, `Sign up with Google`, `Start with Google`
+- Korean: `Google 로그인`, `Google 계정으로 로그인`, `Google로 로그인`, `구글로 로그인`, `구글로 계속`
+- Structural: anchor `<a href="/auth/google">` or similar, icon-only button with Google G SVG / `[aria-label*=Google i]`
 
-If at step 2 Google demands password / SMS OTP (uncached profile, account changed, security re-prompt) → halt. The user must sign in once in the Chromium window; the cached cookie then covers all subsequent agent runs.
+Click the matched ref. Then verify within 5s: URL contains `accounts.google.com` OR the in-app login modal advanced past the button. If still on the app login screen → `browser_snapshot` again (in-app modal may have intercepted) and retry once. After 2 consecutive fails → halt + `Q-PW-OAUTH-STUCK`.
+
+### Popup OAuth detection
+
+After clicking the sign-in button, check for a popup window/new browser context:
+
+- If a new browser window/popup is created OR the parent URL stays unchanged for > 2s while a popup appears → switch to the popup context.
+- Inside the popup, run §Account picker page + §Consent / scope review steps as normal.
+- After the callback completes (popup closes / postMessage received), the parent window should advance state within 10s. Parent stuck > 10s → halt + `Q-PW-OAUTH-STUCK`.
+- If no popup AND parent URL did not change for 2 consecutive verification windows (5s + 2s) → existing 2-fail `Q-PW-OAUTH-STUCK` path applies.
+- **Named/reused popup window**: if the sign-in flow uses `window.open(url, '<named-target>')` (e.g. `googleAuth`) or `target='<name>'`, the popup may reuse an existing tab.
+  1. Enumerate all browser tabs via `mcp__playwright__browser_tabs` (list action) — returns `[{index, url, title}, ...]`. Capture current parent tab index as `parent_idx`.
+  2. **Phase 1 filter** — tabs where URL contains `accounts.google.com` AND `index != parent_idx`.
+  3. If phase 1 returns 0 tabs AND the app's OAuth callback path is on the same host as the parent (single-domain SaaS), run **Phase 2 filter** — tabs whose URL path matches the app's known OAuth callback pattern (e.g. `/auth/callback`, `/oauth/callback`, `/auth/google/callback`, `/api/auth/callback/google`) AND `index != parent_idx`.
+  4. **Match count = 1** → switch via `mcp__playwright__browser_tabs` (select action, `index=<N>`). Resume protocol at §Account picker page within that tab context.
+  5. **Match count = 0** AND parent URL unchanged > 2s → halt `Q-PW-OAUTH-STUCK`.
+  6. **Match count ≥ 2** (rare — concurrent OAuth flows in same session) → halt `Q-PW-OAUTH-STUCK` with user-queue note "multiple OAuth tabs open, ambiguous popup target". Resume: user closes extraneous OAuth tabs, then agent retries.
+
+### Account picker page (`accounts.google.com/o/oauth2/...` or `accounts.google.com/AccountChooser`)
+
+`browser_snapshot`. Count **cached account rows** — rows that show an email address + name + avatar. EXCLUDE: "Use another account" / "다른 계정 사용" / "Add account" / "계정 추가" rows (these are actions, not cached sessions).
+
+**"Continue as <name/email>" fast-path** (check BEFORE row counting):
+
+- If the page presents a "Continue as `<name/email>`" CTA as the PRIMARY/SOLE action (one-click shortcut, no account row choice visible) → treat as N == 1 with that account auto-selected. Click it. Common label variants: `Continue as <name>`, `Continue as <email>`, `<name>으로 계속`.
+- If "Continue as `<X>`" is shown ALONGSIDE one or more other cached account rows → ambiguous → halt `Q-PW-OAUTH-MULTI-ACCOUNT` (same as N ≥ 2).
+
+- **N == 1** → click that row. Do NOT type credentials. Do NOT ask the user.
+- **N == 0** → halt + `Q-PW-OAUTH-NEW-ACCOUNT`. Reason: fresh Chromium profile or no cached session. User must sign in once in the Chromium window; the cached cookie covers all subsequent agent runs.
+- **N ≥ 2** → halt + `Q-PW-OAUTH-MULTI-ACCOUNT`. Reason: ambiguous target account — dev assumption (1 account per platform) is violated. Resume after user specifies which email; agent clicks that row only.
+
+### Consent / scope review (`accounts.google.com/.../consent*` URL family)
+
+Primary button label heuristics (not exhaustive): `Continue`, `Allow`, `Yes, continue`, `계속`, `허용`, `동의`, `계속하기`.
+
+Some scopes can be deselected — keep all checkboxes at their defaults, then click the primary CTA.
+
+**Multi-page consent**: maintain a `consent_page_count` counter starting at 0. Increment the counter when EITHER:
+- (a) URL matches `accounts.google.com/.*/consent` OR `.../oauthchooseaccount` OR `.../signin/oauth`, OR
+- (b) page DOM contains a primary CTA matching the consent label set (`Continue` / `Allow` / `계속` / `허용` / `동의` / `계속하기`).
+
+- `consent_page_count > 4` → halt + `Q-PW-OAUTH-CONSENT-LOOP`. Reason: unusual scope chain or Google UI shift; manual review required.
+
+### App callback verify
+
+Detect callback by ANY of:
+- (a) URL on app domain contains `code=` or `state=` query param,
+- (b) URL path matches a known callback shape — default examples: `/auth/callback`, `/oauth/callback`, `/auth/google/callback`, `/api/auth/callback/google`,
+- (c) popup closed and parent window state advances.
+
+After callback URL detected, poll up to 10s for app-side session creation: a protected-route element appears OR the URL leaves `/auth/*`. Timeout > 10s → halt `Q-PW-OAUTH-STUCK`.
+
+Final state verify: URL matches the protected route AND a known authenticated element is visible via `browser_snapshot` (user avatar, project list, sidebar item, or equivalent).
+
+**Scope note**: CSRF `state` / OIDC `nonce` equality validation is OUTSIDE Playwright scope unless the app exposes the expected value on the page. Playwright verifies query-param presence (`code=`, `state=`) only. App-side validation failure (e.g. `state mismatch`) surfaces as the app rendering a 4xx / error page on callback → routes to `Q-PW-OAUTH-PROVIDER-ERROR` via the existing COOP/error-code detection.
+
+### Stuck detection / escape hatch
+
+- Same URL for 30s + no console activity + no DOM change → halt + `Q-PW-OAUTH-STUCK`.
+- `browser_snapshot` returns empty or times out twice consecutively → §Self-recovery — Playwright MCP not connected procedure.
+- Page shows reCAPTCHA / "Verify it's you" / SMS OTP / password input from Google; passkey prompt / security key / device verification / account locked / "less secure apps" interstitial → halt + `Q-PW-OAUTH-CHALLENGE`. Reason: cached profile bypasses these normally; their presence means the profile is fresh or Google triggered a security re-prompt — user must complete it once in the Chromium window. (Illustrative, not exhaustive.)
+- If browser console shows any of the following COOP/COEP signatures during OAuth, OR popup is silently blocked, OR the callback page shows `error=` query params or Google's terminal error UI → treat as `Q-PW-OAUTH-PROVIDER-ERROR` (NOT stuck, NOT challenge). Include excerpt of error code + URL in the user-queue entry.
+  - `Cross-Origin-Opener-Policy policy would block the window.close call`
+  - `Failed to execute 'postMessage' on 'DOMWindow'`
+  - `Refused to display ... in a frame because it set 'X-Frame-Options'`
+  - `not allowed by Cross-Origin-Embedder-Policy`
+  - Silent popup close (parent never receives `postMessage` and `window.opener` is null)
+  - `popup_failed_to_open` (Google OAuth client lib error name surfaced in console)
+  - `popup_closed` (popup dismissed before callback — fires before postMessage)
+
+  Any one match → `Q-PW-OAUTH-PROVIDER-ERROR` (provider/backend config — typically COOP/COEP missing on app side).
+
+### Halt entry table
+
+| Halt entry | Trigger | Action | Resume |
+|---|---|---|---|
+| `Q-PW-OAUTH-NEW-ACCOUNT` | Account picker has 0 cached rows | halt + user-queue entry | User signs in once in Chromium window; cached cookie covers subsequent runs |
+| `Q-PW-OAUTH-MULTI-ACCOUNT` | Account picker has ≥ 2 cached rows | halt + user-queue entry asking which email | User specifies target email; agent clicks that row only |
+| `Q-PW-OAUTH-CONSENT-LOOP` | consent_page_count > 4 | halt + user-queue entry | Manual review of scope chain or UI shift |
+| `Q-PW-OAUTH-STUCK` | Same URL ≥ 30s + no console/DOM activity, or sign-in click verification fails 2× | halt + user-queue entry | Manual diagnose (MCP state, login modal, network) |
+| `Q-PW-OAUTH-CHALLENGE` | reCAPTCHA / Verify-it's-you / SMS OTP / password input from Google / passkey prompt / security key / device verification / account locked / 'less secure apps' interstitial | halt + user-queue entry | User completes the challenge once in the Chromium window |
+| `Q-PW-OAUTH-PROVIDER-ERROR` | Callback URL or page shows `error=access_denied` / `error=invalid_client` / `redirect_uri_mismatch` / `error=admin_policy_enforced` / HTTP 4xx-5xx on callback, OR COOP/COEP-blocked popup, OR Google terminal error page. Note: `error=access_denied` can be EITHER (a) backend config issue OR (b) user-declined consent (사용자가 consent 페이지에서 'Cancel' / '거부' 클릭). User-queue entry MUST capture raw error code + full callback URL so the resumer distinguishes config-fix from user-intent. | halt + user-queue entry with exact error code + redirect URL captured | Backend/OAuth config fix (usually outside Playwright scope — likely Google Cloud Console redirect URI mismatch or app-side OAuth client misconfig). If user-declined: re-prompt user with intent ('재시도 vs abort'). If config: Google Cloud Console / OAuth client fix. |
 
 **Forbidden patterns:**
 
-- Stopping at the app login screen with "사용자 로그인 대기" / "Google 로그인 화면 떴어요, 진행해주세요" — that's a Session-X regression, the agent must click the button itself.
+- Stopping at the app login screen with "사용자 로그인 대기" / "Google 로그인 화면 떴어요, 진행해주세요" — that's a regression; the agent must click the button itself.
 - Typing the user's email or password into Google's form — never. Cached profile or halt; no third option.
-- Re-running `browser_navigate('/auth/google')` repeatedly hoping the redirect just succeeds — when stuck, snapshot first, identify the actual block (account picker, consent, MFA), then act per the chain above.
+- Re-running `browser_navigate('/auth/google')` repeatedly hoping the redirect just succeeds — when stuck, snapshot first, identify the actual block (account picker, consent, challenge), then act per the protocol above.
+- **Multi-account 환경에서 첫 row 자동 클릭** — wrong-account risk; halt with `Q-PW-OAUTH-MULTI-ACCOUNT` is mandatory when N ≥ 2.
+- **Consent loop without counter — clicking 'Continue' indefinitely** — 4-page cap (`consent_page_count > 4`) is mandatory; exceed it and halt with `Q-PW-OAUTH-CONSENT-LOOP`.
+- **Caching the account row index / order across sessions** — row order is unstable across renders and sessions; always re-snapshot and match by email/name text, never by row index.
+- **Hardcoded XPath / deep CSS selector chains for Google UI** (e.g. `div > div > div > button:nth-child(3)`) — Google's markup changes frequently; match by visible text / label / aria-label / **stable structural signals** (href anchor like `<a href="/auth/google">`, icon SVG identifier, `[aria-label*=Google i]`) only. Brittle positional/nth-child selectors that depend on rendering order = forbidden; the stable structural signals listed in §Pre-click target identification = OK.
+- **Clicking a 'Continue' / 'Allow' CTA without confirming the page host is `accounts.google.com`** — modal-heavy apps may have an in-app 'Continue' that looks identical. Snapshot URL/host before any consent click.
 
 ## Result narration — applies to ALL long-running tools, not just Playwright
 
@@ -83,6 +210,7 @@ The user otherwise sees only "Cooked for Nm" otherwise — that reads as stuck a
 | `prose` markdown styling not applied | Tailwind v4 plugin import missing | Add `@plugin "@tailwindcss/typography";` to `src/styles/globals.css` |
 | Modal opens with `Function components cannot be given refs` warning | Pre-existing Radix Dialog SlotClone forwardRef issue | Pre-existing library warning. Not a blocker |
 | `vitest run --reporter=basic` fails in `loadCustomReporterModule` | vitest 4.1.x — basic reporter module not found | Drop the `--reporter=basic` flag, default reporter works |
+| 사용자가 본 페이지가 stale (어제 빌드 그대로) / 새 컴포넌트 안 보임 | dev server 죽었거나 dev build fail (e.g. Tailwind v4 @import order = dev fail / prod pass) | `ps aux \| grep -E "vite\|next\|nest"` + `tail -50 <dev log>` error 패턴 grep → root cause fix → dev 재시작 → log success 확인. 본문 §Dev/prod build divergence trap |
 
 ## Self-recovery — Playwright MCP not connected / tools not surfaced (mandatory)
 
@@ -103,10 +231,14 @@ These 5 steps are main-context responsibility; do not delegate to a subagent (su
 - snapshot only, no screenshot — accessibility tree misses color/spacing/font regressions
 - Reading the screenshot but stating "looks good" without an explicit visual claim. Build/test green ≠ visual PASS. Mandatory format: name elements + name tokens (e.g. "Card has shadow, padding looks correct, primary CTA blue is the brand token")
 - "I'll bypass via dev token" when MCP drops — see `harness-share.md` §19 MCP Reconnect Protocol
-- **Stopping at any login UI to "wait for user to log in"** — see §OAuth click-through protocol. The agent clicks; only halt on uncached Google account picker or password/MFA prompt.
+- **Stopping at any login UI to "wait for user to log in"** — see §OAuth click-through protocol. The agent clicks; halt only when the protocol body explicitly calls for it — see §OAuth click-through protocol halt entry table (6 codes: NEW-ACCOUNT / MULTI-ACCOUNT / CONSENT-LOOP / STUCK / CHALLENGE / PROVIDER-ERROR).
+- **"production build PASS = verification OK"** — dev/prod 격차 무시. 사용자 환경 ≡ dev server output, production build PASS 만으로는 dev server stale / dev build fail (e.g. Tailwind v4 @import order) 케이스 못 잡음. 본문 §Dev/prod build divergence trap.
+- **"browser console 0 errors = verification OK"** — dev server 가 stale 빌드를 띄우면 module 자체가 reload 안 돼서 console 은 깨끗하게 보임. log tail + process alive check 동반 필수.
+- **Main self-declared "다 됐다" / "verification PASS" without fresh-agent verifier** — main 자기 결과 (build PASS + 단위 test PASS + 코드 wiring) 만으로 종료 보고 = `kzk-autonomous-boundary §Autonomous completion — fresh-agent verifier` 위반. fresh-agent dispatch 의무.
 
 ## Interaction with other kzk-*
 
 - **kzk-pre-commit-gate**: This skill implements Gate 4 (browser smoke + screenshot).
 - **kzk-background-monitoring**: Reuses the narration table this skill defines for long-running browser actions.
 - **kzk-web-loop**: Cascade-recovery override — web loop's playwright resilience rule overrides this skill's hard-stop when MCP repeatedly fails.
+- **kzk-autonomous-boundary**: §Autonomous completion — fresh-agent verifier Step 1 (dev server health) detection procedure is delegated to this skill's §Dev/prod build divergence trap. Halt entries Q-PW-OAUTH-NEW-ACCOUNT / Q-PW-OAUTH-MULTI-ACCOUNT / Q-PW-OAUTH-CONSENT-LOOP / Q-PW-OAUTH-STUCK / Q-PW-OAUTH-CHALLENGE / Q-PW-OAUTH-PROVIDER-ERROR (6종) are defined here and registered in kzk-autonomous-boundary §Halt conditions table.

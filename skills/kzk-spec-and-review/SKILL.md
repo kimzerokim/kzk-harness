@@ -1,7 +1,7 @@
 ---
 name: kzk-spec-and-review
-version: 2.11.0
-description: "Spec/plan/major design authoring with mandatory cross-vendor codex review. Step -1 brainstorm, Step 0 survey precondition + freshness check, Steps 1-3 (draft via executor sonnet → codex CLI consult → synthesize 🔴/🟡/⚪). Triggers: 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm'. References harness-share.md §22 + §22.5."
+version: 2.12.0
+description: "Spec/plan/major design authoring with mandatory cross-vendor codex review. Iterative loop until PASS: Draft → codex consult → synthesize 🔴 BLOCKER / 🟡 NIT / ⚪ push-back → Gate (PASS = BLOCKER 0 AND no structural change, CONTINUE = next cycle, HALT = cycle ≥ 5 + BLOCKER 잔존). Step -1 brainstorm, Step 0 survey precondition + freshness check. Triggers: 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm'. References harness-share.md §22 + §22.5."
 ---
 
 > Authoritative source: `harness-share.md` §22 + §22.5 (Step 0 survey precondition references §26). On conflict, that wins.
@@ -41,12 +41,42 @@ A spec / plan / design draft built without codebase context is the same root cau
 
 **Survey skip OFF** — only on explicit user "survey 빼고" / "survey skip". No silent skip. Log the skip reason in the verdict file header.
 
-## Pattern (3-pass) — runs after Step 0
+## Pattern (Iterative review loop) — runs after Step 0
 
-1. **Draft** — main orchestrates; actual md file writing dispatches to `oh-my-claudecode:executor` (sonnet). Prompt must include survey report path from Step 0 as "Required reading: <path>" (not just file-listed — the draft must actually cite findings from the survey). Main drafts only when ≤ 5 LoC total change (typo, single-line append).
+Loop on the same spec/plan/design until **PASS** (defined in §Gate decision). One cycle = Draft (or Revise) → Codex consult → Synthesize → Gate decision. "1 spec = 1 codex round" 은 **only when cycle 1 자체가 PASS gate 를 만족할 때** — BLOCKER 잔존 또는 구조 변경 발생 시 추가 cycle 의무.
+
+**Cycle N (N ≥ 1):**
+
+1. **Draft (cycle 1) or Revise (cycle ≥ 2)** — main orchestrates; md writing dispatches to `oh-my-claudecode:executor` (sonnet) per §Spec/plan revision dispatch. Main drafts only when ≤ 5 LoC total change (typo, single-line append).
+   - Cycle 1 prompt must include survey report path from Step 0 as `Required reading: <path>` (draft must cite findings, not just list files).
+   - Cycle ≥ 2 revise prompt MUST include:
+     - Cycle (N−1) verdict file path (so executor can locate the BLOCKER list)
+     - Categorized edit list applied since cycle (N−1): each item = section anchor + change + 🔴/🟡 tag
+     - Original survey report path (unchanged from cycle 1)
    - harness-share.md §32 Code Quality Discipline boilerplate inject 의무 (DRY/YAGNI/KISS + Deletion test + Depth + obsolete test). 위반 시 spec revision 요청.
+
 2. **Codex consult** — run `codex exec` CLI directly (see kzk-codex-handoff §Codex CLI 호출 패턴). CLI not available (`command not found`) or stuck per kzk-codex-handoff §Codex CLI 호출 패턴 (60s no first token → retry; 5 min total → kill) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", prompt=<same review prompt>)` (model 생략 → 메인 opus 버전 상속). **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
-3. **Synthesize** — main categorizes each codex point as 🔴 즉시 fix / 🟡 spec 단계 디테일 / ⚪ push-back (cite reasons per bucket). Then dispatch revision edits per §Spec/plan revision dispatch below. Main never directly Edit/Write the md file for 2+ edits.
+   - Cycle ≥ 2 codex prompt MUST include cycle (N−1) verdict file content (or path with explicit re-read instruction) in `LOCKED PRIOR DECISIONS` block — prevents codex re-flagging resolved BLOCKERs.
+
+3. **Synthesize** — main categorizes each codex point:
+   - 🔴 **BLOCKER** — incorrect API contract, broken validator, missing required field, drift from upstream change, security/data-loss risk
+   - 🟡 **NIT / 디테일** — wording, ordering, optional clarifications — 반영하되 cycle 이어가는 trigger X
+   - ⚪ **PUSH-BACK** — cited rebuttal (scope creep, false positive, already-decided per LOCKED list)
+
+   Then dispatch revision edits per §Spec/plan revision dispatch below. Main never directly Edit/Write the md file for 2+ edits.
+
+4. **Gate decision** (loop control):
+   - **PASS** (loop exit, proceed to implementation / plan freeze):
+     - 🔴 BLOCKER count = 0, AND
+     - 이번 cycle 적용된 변경이 NIT/wording-only 또는 push-back 정리만 (구조 변경 X)
+   - **CONTINUE** (cycle N+1 진입):
+     - 🔴 BLOCKER ≥ 1, OR
+     - spec 에 구조 변경 (DTO field 추가/제거, API surface rename, validator factory 신설, contract field 변경) 가 가해진 경우 — 변경된 spec 은 아직 codex 검증 안 된 상태
+   - **HALT** (autonomous mode 도 의무):
+     - cycle N ≥ 5 AND BLOCKER 잔존
+     - `docs/harness/user-queue.md` entry 추가 + 사용자 결정 대기. ralph 자율 무한 retry 금지.
+
+Drafts of ≤ 5 LoC bypass Step 1 executor dispatch (main direct Edit OK) but **still must pass through Steps 2–4** — single-line append 도 codex consult skip 금지.
 
 ## Spec/plan revision dispatch (post-critic edits)
 
@@ -85,13 +115,21 @@ Main = orchestrator (categorize, decide). Subagent = executor (apply edits to md
 
 ## Verdict file convention
 
-Path depends on the topic type:
-- **Plan review**: `docs/plans/<plan-name>-critic-review.md` (cycle 1); `docs/plans/<plan-name>-critic-review-2.md` (cycle 2)
-- **Non-plan review** (spec / architecture / design / DB schema / tech-stack): `docs/research/codex-reviews/<topic>-critic-review.md` (cycle 1); `docs/research/codex-reviews/<topic>-critic-review-2.md` (cycle 2)
+Path depends on the topic type. Cycle N (N = cycle counter from §Pattern):
+- **Plan review**:
+  - N=1: `docs/plans/<plan-name>-critic-review.md`
+  - N=2: `docs/plans/<plan-name>-critic-review-2.md`
+  - N≥3: `docs/plans/<plan-name>-critic-review-N.md`
+- **Non-plan review** (spec / architecture / design / DB schema / tech-stack):
+  - N=1: `docs/research/codex-reviews/<topic>-critic-review.md`
+  - N=2: `docs/research/codex-reviews/<topic>-critic-review-2.md`
+  - N≥3: `docs/research/codex-reviews/<topic>-critic-review-N.md`
 
-- The cycle counter source-of-truth = the file artifact. Reproducibility across sessions.
-- Cycle 2 prompt must reference the cycle 1 file verdict.
-- If CLI fails and fallback critic runs in the same cycle, the fallback verdict OVERWRITES the CLI error stub in the same file. Only retain the CLI error stub when no fallback was attempted (e.g. user explicitly disabled critic too).
+- Cycle counter source-of-truth = file artifact count (glob `*-critic-review*.md` for the topic). Session crash 후에도 재현 가능. Cycle 진입 직전 main 은 글롭 결과 + 1 로 다음 cycle N 계산.
+- Cycle N (N≥2) verdict file 본문 헤더에 `Cycle: N` + `Previous: <path to cycle N-1 verdict>` + `BLOCKERs resolved since N-1: <count>` 명시 의무.
+- Cycle N (N≥2) codex/critic prompt MUST reference cycle (N−1) verdict file content as `LOCKED PRIOR DECISIONS` (§Pattern Cycle N step 2).
+- CLI fail + fallback critic 같은 cycle 내 실행 → fallback verdict OVERWRITES CLI error stub in the same cycle N file.
+- CLI error stub 단독 보존은 fallback 도 disable 된 경우만 (사용자가 critic OFF).
 
 ## Codex prompt skeleton
 
@@ -128,9 +166,11 @@ Cite sections. Terse. No compliments. If category fine, say "none".
 
 ## Cost / cadence
 
-- Per round: ~2-3 min wall, ~25-30k tokens
-- 1 spec = 1 round. 1 major plan = 1 round.
-- **User explicit OFF only** ("이번엔 codex 빼고") skips the loop. No silent skip.
+- Per cycle: ~2-3 min wall, ~25-30k tokens
+- **Default cycle budget: 5.** Soft cap — cycle ≤ 5 까지 사용자 결정 없이 자율 진행. Cycle ≥ 5 + BLOCKER 잔존 → §Pattern Gate decision HALT path (user-queue).
+- "1 spec = 1 cycle" / "1 major plan = 1 cycle" 은 **cycle 1 이 PASS gate (BLOCKER 0 + 구조 변경 없음) 를 만족한 경우만**. BLOCKER 잔존 또는 cycle 1 synthesize 가 spec 구조를 변경한 경우 cycle 2 의무.
+- Cycle 2+ 는 비싼 게 아니라 검증 갭을 메우는 비용 — 변경된 spec 을 검증하지 않고 implementation 진입 시 implementation 단계 rework 가 더 비쌈 (cycle 평균 25k tokens vs implementation 단계 1 BLOCKER fix 평균 80–200k tokens).
+- **User explicit OFF only** ("이번엔 codex 빼고") skips the loop entirely. No silent skip. Partial skip ("cycle 2 만 빼고") 도 동일 — explicit user OFF 만 인정.
 
 ## Prompt size guideline
 
@@ -147,6 +187,9 @@ Persist all codex/critic output to the verdict file (§Verdict file convention) 
 - Apply codex output verbatim — must pass through synthesize, with explicit category.
 - "이번 한 번만 스킵" — only on explicit user OFF. Inconsistency erodes the rule.
 - Verdict only in chat history — must land in a file for cross-session reproducibility.
+- **"Cycle 1 verdict 받고 fix 한 다음 바로 implementation"** — cycle 1 에 🔴 BLOCKER 가 있었거나 fix 적용 과정에서 spec 구조 (DTO/API/validator/contract) 가 바뀌었으면 cycle 2 의무. 변경된 spec 은 codex 검증 안 된 상태. PASS gate (§Pattern §Gate decision) 미충족이면 implementation 진입 금지.
+- **"BLOCKER 1개 정도는 implementation 가면서 해결"** — 🔴 BLOCKER 0 이 PASS gate. 1개 있으면 무조건 cycle 추가. ralph / autonomous 모드도 예외 없음 — autonomous 의 "polite stop 금지" 가 "BLOCKER 무시" 를 의미하지 않음.
+- **"Cycle 무한 진행"** — cycle ≥ 5 + BLOCKER 잔존 시 HALT to `docs/harness/user-queue.md`. 자율 무한 retry 금지 (rate limit / context exhaustion 위험).
 
 ## Interaction with other kzk-*
 

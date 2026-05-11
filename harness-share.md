@@ -187,11 +187,12 @@ npm test -- --testPathPatterns=<changed-area>
 **변경 파일에 `src/**/*.{tsx,ts,css}` 1개라도 포함되면 의무** (your repo's frontend glob). skip 금지.
 
 순서:
-1. `mcp__playwright__browser_navigate` 로 변경 영역 포함 3+ 페이지 방문
+0. **Dev server health 사전 검수** (frontend 변경 시 의무) — `ps aux | grep -E "vite|next|nest" | grep -v grep` 으로 dev server alive 확인 + dev log tail 50줄 error 패턴 grep (`vite:css`, `Module build failed`, `error during build`, `HMR ERROR`, `parse error`, `compilation error`). 1개라도 발견 시 페이지가 stale 빌드를 보여주는 상태 — Playwright 검증 무의미. root cause fix 후 dev rebuild success 확인 → 1번 진입. **production build PASS 만으로 verification 종료 금지** — dev/prod 격차 트랩 (e.g. Tailwind v4 `@import 'tailwindcss';` inline expand 뒤 오는 `@import url(...)` 가 dev (esbuild) fail / prod (rollup) pass). 본문: `kzk-playwright-verification §Dev/prod build divergence trap`.
+1. `mcp__playwright__browser_navigate` 로 변경 영역 포함 3+ 페이지 방문. 첫 navigate 후 `page.reload({ bypassCache: true })` 또는 동등 1회 강제 (stale browser cache 제거)
 2. 각 페이지 `browser_snapshot` + `browser_take_screenshot fullPage=true` (저장: `docs/screenshots/<session>/`)
-3. `browser_console_messages level=error` 결과 0 error 확인
+3. `browser_console_messages level=error` 결과 0 error + `level=warning` 1회 확인 (HMR 실패가 warning 으로 뜨는 경우: `[vite] hmr update failed`, `[next] hmr error`)
 4. **시각 검수** — screenshot 실 시각 확인. shadcn primitive default brittle (unstyled anchor / 무padding badge / border-only card) 가 보이면 FAIL. build/test green ≠ visual PASS
-5. commit message 본문에 `Playwright: <screenshot_paths> + snapshot captured (console 0 err) + visual verified` 라인
+5. commit message 본문에 `Playwright: <screenshot_paths> + snapshot captured (console 0 err, dev log clean) + visual verified` 라인
 
 예외: 변경이 오직 `src/**/*.test.{tsx,ts}` 면 Gate 4 skip 허용.
 
@@ -211,12 +212,14 @@ npm test -- --testPathPatterns=<changed-area>
 **Playwright MCP debugging cheatsheet**:
 
 - `Target page, context or browser has been closed` — MCP 세션 drop. 사용자에게 `/mcp` reconnect 요청 → 재연결 후 navigate 재시도
-- Login 후 빈 페이지 / `/your-protected-route` 가 `/login` 으로 redirect — JWT 만료 (24h) 또는 cookie drop. `browser_navigate http://localhost:<PORT>/auth/...` → 사용자 Chrome 창에서 OAuth 로그인 → 재시도
+- Login 후 빈 페이지 / `/your-protected-route` 가 `/login` 으로 redirect — JWT 만료 (24h) 또는 cookie drop. `browser_navigate <your-app-login-url>` 후 §OAuth click-through protocol 절차 (agent-driven) 적용. 사용자 대기 X. Halt 는 §OAuth click-through protocol 본문의 6 entries (NEW-ACCOUNT / MULTI-ACCOUNT / CONSENT-LOOP / STUCK / CHALLENGE / PROVIDER-ERROR) 만.
 - `Cannot GET <path>` — backend redirect mismatch 또는 SPA fallback 미설정. auth controller redirect 경로 또는 frontend route 확인
 - `--no-sandbox` / Chromium launch error — `/mcp` reconnect 로 대부분 해결. 반복 시 사용자 env MCP config browser args 점검
 - Screenshot이 repo root에 저장됨 — filename 절대/상대 경로 없이 전달한 결과. commit 전 `ls *.png` 점검 후 `.playwright-mcp/` 또는 `docs/screenshots/` 로 이동
 - `prose` markdown styling 안 먹음 — `src/styles/globals.css` 에 `@plugin "@tailwindcss/typography";` 등록 필요 (Tailwind v4 plugin import). dep 설치만으론 부족
 - Modal 열린 후 console 1 `Function components cannot be given refs` warning — Radix Dialog 내부 SlotClone forwardRef issue. **pre-existing 라이브러리 warning**, 차단 사유 X
+- 사용자가 본 페이지가 stale (어제 빌드 그대로) / 새 컴포넌트 안 보임 — dev server 죽었거나 dev build fail (e.g. Tailwind v4 @import order = dev fail / prod pass 격차). `ps aux | grep -E "vite\|next\|nest"` + `tail -50 <dev log>` error 패턴 grep → root cause fix → dev 재시작 → log success 확인. production build PASS 만으로 결론 금지. 본문: `kzk-playwright-verification §Dev/prod build divergence trap`
+- Multi-account profile / OAuth chain stuck — agent 가 picker / consent 페이지에서 polite-stop. 단일 계정 캐시 = 자동 클릭, 2+ 캐시 = halt + Q-PW-OAUTH-MULTI-ACCOUNT (사용자에게 어느 계정), 0 캐시 = halt + Q-PW-OAUTH-NEW-ACCOUNT, consent 4페이지 초과 = halt + Q-PW-OAUTH-CONSENT-LOOP, reCAPTCHA/challenge = halt + Q-PW-OAUTH-CHALLENGE, 30s 무변화 = halt + Q-PW-OAUTH-STUCK, 또는 sign-in click verification 2회 fail = Q-PW-OAUTH-STUCK. 본문: `kzk-playwright-verification §OAuth click-through protocol`
 
 ### Doc-only commit 예외
 
@@ -274,6 +277,8 @@ code-review-graph 인덱스를 항상 최신 상태로 유지하는 정책. fix-
 - Plan C self-bootstrap commit 1회만 N/A
 
 룰 본문: `kzk-pre-commit-gate` §Gate 5, `kzk-large-task-delegation` §Three-stage review §Stage 3.
+
+**자율실행 exit verifier (별개 trigger)**: 자율실행 loop (`ralph` / `ulw` / `web-loop` / `autopilot` / harness self-improvement / "끝까지 끝내줘" / "자는 동안 진행해") 의 마지막 commit 후 다음 cycle 진입 또는 종료 보고 직전 의무. 단일 cycle 도 동일. Gate 5 (per-commit code-level lens) 와는 다른 lens — exit verifier = run-level **user-persona lens** (dev server health + Playwright user navigate + browser console + HMR error + 변경 의도 vs 화면 일치). main self-declared "다 됐다" / "verification PASS" 금지 → halt entry `Q-COMPLETION-SELF-VERIFY`. 절차 본문: `kzk-autonomous-boundary §Autonomous completion — fresh-agent verifier`.
 
 ### Token migration — shadcn + Tailwind v4 bridge requirement
 
@@ -823,8 +828,9 @@ Russian Judge Verdict:
   - spec file 경로 (있으면)
   - "Identify: (a) acceptance criteria gaps, (b) scope drift risk, (c) optimal alternative approach, (d) reviewable evidence requirements per phase"
   - "Assume autonomous ralph mode under the session branch contract recorded by `kzk-autonomous-boundary` (could be `feature/<topic>`, repo-specific like `harness-test`, or direct-main if user explicitly authorized)"
-- **REJECTED 또는 critical issues 반환 시**: plan 정정 후 재 review. 2 cycle 후에도 reject 시 halt + user-queue entry. brainstorming 단계 후퇴는 사용자가 결정 — 자율 후퇴 금지.
-- **APPROVED 또는 minor only**: ralph 진입.
+- **Iterative loop until PASS** (kzk-spec-and-review §Pattern Gate decision): single-pass codex review 가 아니라 BLOCKER 0 + 구조 변경 없음 (PASS) 까지 cycle 반복. **Default cycle budget = 5** (soft cap). Cycle ≥ 5 AND BLOCKER 잔존 시 halt + `docs/harness/user-queue.md` entry. brainstorming 단계 후퇴는 사용자가 결정 — 자율 후퇴 금지.
+- **CONTINUE 트리거**: 🔴 BLOCKER ≥ 1 OR cycle 내 spec 에 구조 변경 (DTO field, API surface, validator factory, contract) 가 가해진 경우 — 변경된 spec 은 아직 codex 검증 안 된 상태이므로 cycle N+1 의무.
+- **PASS 조건 (ralph 진입 OK)**: 🔴 BLOCKER 0 AND 이번 cycle 적용 변경이 NIT/wording-only 또는 push-back 정리만. 🟡 NIT / ⚪ push-back 만 남은 상태.
 
 ### Critic verdict file 저장 의무
 

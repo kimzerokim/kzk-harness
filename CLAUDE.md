@@ -10,11 +10,11 @@ All 18 skills are active in this repo. Load one by mentioning its trigger keywor
 |---|---|
 | `kzk-pre-commit-gate` | commit, pre-commit, Gate 0/1/1.5/2/3/4, AGENTS.md sync, secrets scan, doc-only |
 | `kzk-large-task-delegation` | 3+ file edits, 200+ LoC, subagent dispatch, opus/sonnet routing, read-heavy audit, spec 검증, 버그 전수조사, 마무리 해줘, 전수 검토, 끝내줘 |
-| `kzk-playwright-verification` | Playwright, Gate 4, browser_navigate, screenshot, MCP drop |
-| `kzk-autonomous-boundary` | ralph, ralph로 체크, ralph로 확인, autonomous mode, halt condition, main branch boundary |
+| `kzk-playwright-verification` | Playwright, Gate 4, browser_navigate, screenshot, MCP drop, dev/prod build trap, dev server health, OAuth multi-account, Q-PW-OAUTH-* |
+| `kzk-autonomous-boundary` | ralph, ralph로 체크, ralph로 확인, autonomous mode, halt condition, main branch boundary, autonomous completion verifier, Q-COMPLETION-SELF-VERIFY |
 | `kzk-autonomous-loop` | rate limit, context 80%, multi-plan continuation |
 | `kzk-background-monitoring` | run_in_background, Monitor, long-running, build, install |
-| `kzk-spec-and-review` | spec 잡자/작성, plan 작성, spec/plan/design draft, major design, architecture review, codex review, cross-verify |
+| `kzk-spec-and-review` | spec 잡자/작성, plan 작성, spec/plan/design draft, major design, architecture review, codex review, cross-verify, iterative loop, PASS/CONTINUE/HALT gate |
 | `kzk-pre-merge-sync` | merge, feature branch, CLAUDE.md sync, deepinit |
 | `kzk-production-access` | AWS, SSM, DB, production, credential, destructive, AKIA, ASIA, aws-vault |
 | `kzk-test-coverage` | session close, coverage gap, touched files |
