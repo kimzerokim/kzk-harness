@@ -1,26 +1,45 @@
 ---
 name: kzk-spec-and-review
-version: 2.12.0
-description: "Spec/plan/major design authoring with mandatory cross-vendor codex review. Iterative loop until PASS: Draft → codex consult → synthesize 🔴 BLOCKER / 🟡 NIT / ⚪ push-back → Gate (PASS = BLOCKER 0 AND no structural change, CONTINUE = next cycle, HALT = cycle ≥ 5 + BLOCKER 잔존). Step -1 brainstorm, Step 0 survey precondition + freshness check. Triggers: 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm'. References harness-share.md §22 + §22.5."
+version: 2.13.2
+description: "Spec/plan/major design authoring with mandatory cross-vendor codex review. Iterative loop until PASS: Draft → codex consult → synthesize 🔴 BLOCKER / 🟡 NIT / ⚪ push-back → Gate (PASS = BLOCKER 0 AND no structural change, CONTINUE = next cycle, HALT = cycle ≥ 5 + BLOCKER 잔존). Brainstorming default ON (Step -1 after Step 0 survey). Skip only when EITHER explicit `brainstorming 스킵` command standalone OR ALL-of (trivial + pre-specified + no-new-capability). Step 0 survey precondition + freshness check. Triggers: 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm', 'brainstorm default ON'. References harness-share.md §22 + §22.5 + §31."
 ---
 
 > Authoritative source: `harness-share.md` §22 + §22.5 (Step 0 survey precondition references §26). On conflict, that wins.
 
 # kzk-spec-and-review
 
-## Step -1 — Brainstorming (conditional)
+## Step -1 — Brainstorming (default ON)
 
-> 탐색적 키워드 감지 시에만 진입. "spec 잡자", "plan 만들어" 등 명확 키워드는 Step 0 직행.
+> **Order**: Step 0 (survey) runs first, then Step -1 (brainstorming) runs, then the 3-pass Pattern loop. The name "Step -1" is preserved for backward-compat with cross-refs; execution order is Step 0 → Step -1 → Pattern.
 
-**진입 조건**: keyword-detector 가 `(brainstorm mode)` marker 를 system-reminder 에 inject 한 경우.
+**Default**: ON. spec-and-review 진입 시 Step 0 survey 완료 후 `Skill("superpowers:brainstorming")` 1회 호출 의무. keyword-detector 가 `(brainstorm mode)` system-reminder marker 를 inject 하지 않아도 Step -1 은 실행된다 — marker 는 informational; 부재 = skip 아님.
+
+**Skip conditions** — brainstorming skips when EITHER (A) or (B) holds:
+
+**(A) Explicit-skip command** — User typed `brainstorming 스킵` / `skip brainstorming` / `skip Step -1` in this session. Standalone — no other condition needed.
+
+**(B) Trivial-change bundle** — ALL of the following hold simultaneously:
+1. Trivial change scope: typo / single-line wording / sub-5-LoC patch.
+2. User pre-specified ALL change details (every section / line / decision named in user prompt this session — see Evidence below).
+3. No new capability addition (existing-pattern fix only — no new feature / new entry / new module / new halt code / new policy clause).
+
+If neither (A) nor (B) → brainstorming runs (default ON).
+
+**Skip evidence (mandatory when invoking (B))**: When skipping under (B), main MUST record the following in the commit message footer OR the cycle entry in `docs/harness/user-queue.md`:
+- `Brainstorm skip evidence: user prompt quote = "<≤2-sentence quote from user>"; files = <list>; sections = <list>`
+- Absence of evidence → skip is invalid, brainstorming MUST run.
+
+**Mandatory invoke triggers** (any one of these forces Step -1 even when (B) above would otherwise allow skip):
+
+- 새 기능 / 새 entry / 새 module 추가 (new capability, not just extension of existing pattern)
+- 사용자 결정 필요 발견 (multiple design paths revealed during Step 0 survey, ambiguous spec, missing user input)
+- 명시적 brainstorm 키워드 ('brainstorm', '아이디어', '어떻게 해야 할까', '뭐가 좋을까')
 
 **동작**:
 1. `Skill("superpowers:brainstorming")` 호출
 2. brainstorming 완료 → design doc 경로 수집 (`docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`)
 3. design doc 경로를 Step 1 Draft 의 CONTEXT 에 `Required reading: <path>` 로 포함
 4. brainstorming 결정사항을 Step 2 codex consult 의 `LOCKED PRIOR DECISIONS` 에 포함
-
-**Skip**: 사용자가 "brainstorming 스킵" / "skip brainstorming" 입력 시 Step 0 으로 즉시 이동.
 
 **CRG spec reference 검증**: brainstorming 완료 후, 생성된 design doc 에 대해 `crg-utils.extractDocRefs(designDocPath)` + `crg-utils.validateLineRefs(designDocPath)` 실행. stale reference 발견 시 WARN.
 

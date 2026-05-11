@@ -569,6 +569,16 @@ TDD red 단계에서 implementation 본 후 거기에 맞춘 test 작성하는 �
 - **Layer (b)** — 자율 mode (`KZK_AUTONOMOUS=1` 또는 동사구 키워드 매칭) 에서 메인 직접 TDD 진입 금지 — 반드시 fresh sonnet dispatch. 메인 직접 진입 시 halt + `Q-TDD-MAIN` user-queue entry. 룰 본문: `kzk-test-coverage` §Anti-pattern — Test-from-implementation.
 - 비-자율 mode 의 메인 self-check + user ACK 게이트 — 사용자 명시 confirm 받은 후 red 진입.
 
+### 11.2 자율실행 mode 자동 TDD 적용 (auto-trigger)
+
+자율실행 mode + code-file change → TDD strict 자동 적용. explicit 'tdd' 키워드 불필요.
+
+- **정의**: 자율 mode 활성 (Category A 동사구 OR `KZK_AUTONOMOUS=1`, §33 참조) AND staged/in-progress diff 에 code-file 변경 포함 (doc-only 제외 — `*.md`, `docs/**`, `skills/**/*.md`, `harness-share.md`, `CLAUDE.md`, `AGENTS.md` 는 doc-only; SoT: `kzk-pre-commit-gate §doc-only fast path`).
+- **절차 본문**: `kzk-test-coverage §Autonomous mode TDD enforcement` (code-file 정의 + enforcement + skip 조건 + TDD evidence contract + infra-missing fallback 포함).
+- **Halt entry**: `Q-TDD-AUTO-MISSING` — 자율 mode + code-file 변경 감지 후 해당 cycle 에 failing→passing test 없이 commit 시도 시 halt. 등록: `kzk-autonomous-boundary §Halt conditions`.
+- **Evidence contract**: commit-message footer 필수 — `TDD evidence: test_files=…, covers_code=…, runner=…, runner_exit=0`. 3-artifact 요건 미충족 시 `Q-TDD-AUTO-MISSING`. 본문: `kzk-test-coverage §Autonomous mode TDD enforcement §TDD evidence per cycle`.
+- **Skip**: 사용자 명시 "TDD 빼고" / "skip TDD" 1회만.
+
 ---
 
 ## 12. Rate Limit Polling (Anthropic 5h window)
@@ -829,6 +839,7 @@ Russian Judge Verdict:
   - "Identify: (a) acceptance criteria gaps, (b) scope drift risk, (c) optimal alternative approach, (d) reviewable evidence requirements per phase"
   - "Assume autonomous ralph mode under the session branch contract recorded by `kzk-autonomous-boundary` (could be `feature/<topic>`, repo-specific like `harness-test`, or direct-main if user explicitly authorized)"
 - **Iterative loop until PASS** (kzk-spec-and-review §Pattern Gate decision): single-pass codex review 가 아니라 BLOCKER 0 + 구조 변경 없음 (PASS) 까지 cycle 반복. **Default cycle budget = 5** (soft cap). Cycle ≥ 5 AND BLOCKER 잔존 시 halt + `docs/harness/user-queue.md` entry. brainstorming 단계 후퇴는 사용자가 결정 — 자율 후퇴 금지.
+- **spec-and-review §Step -1 brainstorming = default ON** (see `kzk-spec-and-review §Step -1`). Step 0 survey 완료 후 brainstorming 항상 호출. Brainstorm skip = EITHER (A) 사용자 explicit `brainstorming 스킵` 명령 (standalone) OR (B) ALL of {trivial 변경 + 사용자가 모든 변경 detail 명시 + 새 capability 추가 X}. 절차 본문 + evidence 의무: `kzk-spec-and-review §Step -1`.
 - **CONTINUE 트리거**: 🔴 BLOCKER ≥ 1 OR cycle 내 spec 에 구조 변경 (DTO field, API surface, validator factory, contract) 가 가해진 경우 — 변경된 spec 은 아직 codex 검증 안 된 상태이므로 cycle N+1 의무.
 - **PASS 조건 (ralph 진입 OK)**: 🔴 BLOCKER 0 AND 이번 cycle 적용 변경이 NIT/wording-only 또는 push-back 정리만. 🟡 NIT / ⚪ push-back 만 남은 상태.
 
@@ -1178,12 +1189,22 @@ node install/bin/kzk-regression-memory.mjs dismiss <key>
 
 ## §31 Brainstorming 자동 체이닝 (kzk-spec-and-review Step -1)
 
-탐색적 키워드 감지 시 `superpowers:brainstorming` 자동 호출 → design doc 생성 → spec-and-review Step 0 진입.
+spec-and-review 진입 시 Step 0 survey 완료 후 `superpowers:brainstorming` **default ON** → design doc 생성 → Pattern 3-pass loop 진입. Full rule body: `kzk-spec-and-review §Step -1`.
 
-- **키워드 분기**: 탐색적 ("어떻게 하면", "아이디어", "설계하자" 등) → Step -1. 명확 ("spec 잡자", "plan 만들어") → Step 0 직행.
-- **결과 연결**: design doc → Step 1 Required reading + Step 2 LOCKED PRIOR DECISIONS.
-- **Skip**: "brainstorming 스킵" / "skip brainstorming" → Step 0 즉시 이동.
-- **CRG 검증**: brainstorming 완료 후 design doc 의 코드 참조를 `crg-utils.extractDocRefs()` + `validateLineRefs()` 로 검증.
+**Default**: ON. keyword-detector `(brainstorm mode)` marker 부재 = skip 아님.
+
+**Skip conditions** — EITHER (A) or (B) holds:
+- **(A) Explicit-skip command**: 사용자 명시 "brainstorming 스킵" / "skip brainstorming" / "skip Step -1" — standalone, no other condition needed.
+- **(B) Trivial-change bundle**: ALL 3 hold: (1) trivial change scope (typo/single-line/sub-5-LoC), (2) 사용자가 모든 변경 내용 명시, (3) 신규 capability 추가 없음.
+Full rule + evidence contract: `kzk-spec-and-review §Step -1`.
+
+**Mandatory invoke triggers** (any one forces Step -1):
+- 새 기능 / 새 entry / 새 module 추가 (new capability)
+- 사용자 결정 필요 발견 (다중 design path, 모호한 spec, missing input)
+- 명시적 brainstorm 키워드 ('brainstorm', '아이디어', '어떻게 해야 할까', '뭐가 좋을까')
+
+**결과 연결**: design doc → Step 1 Required reading + Step 2 LOCKED PRIOR DECISIONS.
+**CRG 검증**: brainstorming 완료 후 `crg-utils.extractDocRefs()` + `validateLineRefs()` 로 검증.
 
 ---
 
@@ -1314,14 +1335,16 @@ regression-memory 의 UserPromptSubmit hook 이 inject 를 skip.
 
 ### 사용처 (cross-ref 의무)
 
+Categories A and B exhaust the trigger universe; no Category C.
+
 | Skill | 섹션 | 적용 Category |
 |---|---|---|
-| kzk-test-coverage | §Anti-pattern §자율 mode 메인 직접 TDD 금지 (자율 mode 판별) | A + C |
-| kzk-regression-memory | §자가-skip guard | B + C |
-| kzk-autonomous-boundary | frontmatter description + §Branch contract ASK FIRST | A + C |
+| kzk-test-coverage | §Anti-pattern §자율 mode 메인 직접 TDD 금지 (자율 mode 판별) | A |
+| kzk-regression-memory | §자가-skip guard | B |
+| kzk-autonomous-boundary | frontmatter description + §Branch contract ASK FIRST | A |
 
 ### Cross-ref
 
-- **kzk-test-coverage §자율 mode 메인 직접 TDD 금지**: Category A + C 매칭 시 메인 직접 TDD red 차단
-- **kzk-regression-memory §자가-skip guard**: Category B + C 매칭 시 hook inject skip
-- **kzk-autonomous-boundary §Branch contract ASK FIRST**: Category A + C 매칭 시 ASK FIRST 의무 진입
+- **kzk-test-coverage §자율 mode 메인 직접 TDD 금지**: Category A 매칭 시 메인 직접 TDD red 차단
+- **kzk-regression-memory §자가-skip guard**: Category B 매칭 시 hook inject skip
+- **kzk-autonomous-boundary §Branch contract ASK FIRST**: Category A 매칭 시 ASK FIRST 의무 진입

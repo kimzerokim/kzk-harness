@@ -1,7 +1,7 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.10.2
-description: "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contract (destination, name, PR mode) before any autonomous flow; post-contract continuation in same turn (Cycle 48). Autonomous completion fresh-agent verifier (mandatory pre-exit) — main self-declared 'verification PASS' / 'loop exit' forbidden. Halt conditions, destructive-op guardrails, Q-entry patterns (Q-TDD-MAIN, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-*, Q-COMPLETION-SELF-VERIFY, Q-PW-OAUTH-NEW-ACCOUNT/MULTI-ACCOUNT/CONSENT-LOOP/STUCK/CHALLENGE/PROVIDER-ERROR). Triggers: 'ralph로 돌려', '끝까지 끝내줘', '자율실행'. References harness-share.md §2 + §33."
+version: 1.11.0
+description: "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contract (destination, name, PR mode) before any autonomous flow; post-contract continuation in same turn (Cycle 48). Autonomous completion fresh-agent verifier (mandatory pre-exit) — main self-declared 'verification PASS' / 'loop exit' forbidden. Halt conditions, destructive-op guardrails, Q-entry patterns (Q-TDD-MAIN, Q-TDD-AUTO-MISSING, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-*, Q-COMPLETION-SELF-VERIFY, Q-PW-OAUTH-NEW-ACCOUNT/MULTI-ACCOUNT/CONSENT-LOOP/STUCK/CHALLENGE/PROVIDER-ERROR). Triggers: 'ralph로 돌려', '끝까지 끝내줘', '자율실행', autonomous TDD enforce, Q-TDD-AUTO-MISSING. References harness-share.md §2 + §33."
 ---
 
 > Authoritative source: repo `CLAUDE.md` "Autonomous Execution Boundary" + `harness-share.md` §2. On conflict, those win.
@@ -16,6 +16,7 @@ description: "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contra
 - **Subagent dispatch (mandatory for multi-file / 5+ file read / 200+ LoC work)** — `oh-my-claudecode:executor` (sonnet) for implementation, `oh-my-claudecode:explore` (sonnet) for reference collection, `oh-my-claudecode:code-reviewer` / `oh-my-claudecode:critic` / `oh-my-claudecode:verifier` for review. Multi-file / 5+ file read / 200+ LoC 작업은 메인 직접 수행 금지 — 항상 subagent 위임. 메인 직접 허용 범위: 1-2 파일 단순 edit (≤ 30 LoC) 또는 운영 명령 (git status, install, ls) 에 한함.
 - Document writing, plan elaboration, review execution
 - **Autonomous completion fresh-agent verifier (mandatory pre-exit)** — autonomous loop 의 마지막 commit 후 다음 cycle 진입 또는 종료 보고 직전 `oh-my-claudecode:verifier` dispatch 의무. 본문 §Autonomous completion — fresh-agent verifier.
+- **Autonomous + code-file change → TDD strict auto-trigger** (see `kzk-test-coverage §Autonomous mode TDD enforcement`). Explicit 'tdd' keyword not required — the presence of a code-file change in autonomous mode is sufficient. Fresh sonnet dispatch required for TDD red phase (`Q-TDD-MAIN` rule). No failing-then-passing test in the same cycle → halt `Q-TDD-AUTO-MISSING`.
 
 ## Branch contract — ASK FIRST (mandatory entry step)
 
@@ -48,6 +49,7 @@ Anti-pattern signature: turn ends with `User answered Claude's questions: ...` t
 - **PR auto-merge** — final merge always waits for explicit user "merge it"
 - Auto-overriding user PRD / design docs (must follow Documentation Storage Rules in repo CLAUDE.md)
 - Force-commit when a Pre-commit Gate fails
+- **Autonomous + code-file change WITHOUT a failing-then-passing test in the same cycle (TDD bypass).** Halt with `Q-TDD-AUTO-MISSING`. Cross-ref: `kzk-test-coverage §Autonomous mode TDD enforcement`.
 - Adding files outside the declared source root (see CLAUDE.md for your repo's rootDir constraints)
 - Continuing the loop after reviewer FAILs **2 times in a row** → halt + user-queue entry
   Exception: `kzk-web-loop` intentionally overrides this — skip the failing issue, pick the next one (see `kzk-web-loop` §Failure Handling and `harness-share.md` §25 "Reviewer FAIL override").
@@ -83,6 +85,7 @@ Anything else → keep going (see `kzk-autonomous-loop` for polite-stop ban).
 | `Q-PW-OAUTH-STUCK` | 동일 URL ≥ 30s + console/DOM 변화 없음, 또는 sign-in click 검증 2회 연속 실패. 절차: `kzk-playwright-verification §OAuth click-through protocol` | halt + user-queue entry | 수동 진단 (MCP 상태, login modal, 네트워크) 후 resume |
 | `Q-PW-OAUTH-CHALLENGE` | Google 페이지에서 reCAPTCHA / "Verify it's you" / SMS OTP / 비밀번호 입력 요구 / passkey prompt / security key / device verification / account locked / 'less secure apps' interstitial. 절차: `kzk-playwright-verification §OAuth click-through protocol` | halt + user-queue entry | 사용자가 Chromium 창에서 challenge 1회 완료 → 이후 runs 정상 |
 | `Q-PW-OAUTH-PROVIDER-ERROR` | OAuth provider config error / backend misconfig — e.g. `redirect_uri_mismatch`, `error=access_denied`, COOP/COEP-blocked popup, 4xx/5xx on callback. Note: `error=access_denied` can be EITHER (a) backend config issue OR (b) user-declined consent — full dual-cause note + resume guidance in `kzk-playwright-verification §OAuth click-through protocol` halt table. Full trigger body: `kzk-playwright-verification §OAuth click-through protocol` + halt table row | halt + Q-PW-OAUTH-PROVIDER-ERROR entry with captured error code + URL | Backend/OAuth config fix (Google Cloud Console redirect URI, OAuth client) — usually outside Playwright scope. If user-declined: re-prompt user with intent. Full resume: `kzk-playwright-verification §OAuth click-through protocol` halt table. |
+| `Q-TDD-AUTO-MISSING` | Autonomous mode active (Category A verb phrase OR `KZK_AUTONOMOUS=1`) AND code-file change detected (per `kzk-test-coverage §Autonomous mode TDD enforcement`) but no failing-then-passing test present in the same cycle (TDD bypass) | halt + Q-TDD-AUTO-MISSING entry. commit BLOCK | TDD test added (Red → Green) in the same cycle OR user explicit override ("TDD 빼고", 1회만) |
 
 
 ## Autonomous completion — fresh-agent verifier (mandatory)
@@ -160,7 +163,7 @@ If the autonomous loop committed code that is later found to be wrong (reviewer 
 - **kzk-tool-retry**: When any Edit/Write/Bash fails during autonomous execution, apply 1-retry before halting or queuing. This skill defines halt conditions; kzk-tool-retry defines the single-call retry discipline that runs before those conditions are evaluated.
 - **kzk-autonomous-loop**: polite-stop ban and multi-Plan continuation rules. This skill defines what STOPS the loop; that one defines how the loop CONTINUES.
 - **kzk-user-queue**: halt conditions that require a user decision append entries here and await a DECISION line before resuming.
-- **kzk-test-coverage**: Plan A Layer (b) 자율 mode 메인 직접 TDD 금지 룰의 halt entry (`Q-TDD-MAIN`) 가 본 skill 의 §Halt conditions 표에 등록됨.
+- **kzk-test-coverage**: Plan A Layer (b) 자율 mode 메인 직접 TDD 금지 룰의 halt entry (`Q-TDD-MAIN`) 가 본 skill 의 §Halt conditions 표에 등록됨. 추가: 자율 mode + code-file change 의 auto-trigger TDD enforcement 룰 본문은 `kzk-test-coverage §Autonomous mode TDD enforcement` 에 정의; 그 halt entry (`Q-TDD-AUTO-MISSING`) 는 본 skill §Halt conditions 표에 등록됨 (§Allowed actions + §Forbidden actions 에서도 cross-ref).
 - **kzk-large-task-delegation / kzk-pre-commit-gate**: Plan C Stage 3 / Gate 5 verifier 관련 halt entry (`Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `Q-VERIFIER-DISPATCH-FAIL`) 가 본 skill §Halt conditions 표에 등록됨.
 - **kzk-large-task-delegation / kzk-codebase-survey**: 메인 직접 multi-file edit / 5+ 파일 read 시도 halt entry (`Q-MAIN-DIRECT-EDIT`) 가 본 skill §Halt conditions 표에 등록됨. cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit` / `kzk-codebase-survey §Preparation phase delegation`.
 - **kzk-codex-handoff**: `Q-CODEX-DISPATCH-FAIL` halt entry 의 정의 출처. 본 skill §Halt conditions 표가 그 entry 를 등록.

@@ -92,7 +92,7 @@ node install/bin/kzk-regression-memory.mjs dismiss <key>
 
 자율실행 cycle 의 메인 prompt 면 inject 안 함.
 
-> See harness-share.md §33 Autonomous-mode Detection SoT (Category B + C).
+> See harness-share.md §33 Autonomous-mode Detection SoT (Category B).
 > 본 hook: Category B 동사구 또는 `KZK_HARNESS_SELF_IMPROVEMENT=1` / `KZK_AUTONOMOUS=1` 매칭 시 즉시 skip.
 
 이유: D recall hook 이 자가개선 cycle 에서 발동하면 자기 자신의 진행을 inject 로 오염. 자율 cycle 진행 차단.
