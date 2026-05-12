@@ -147,7 +147,7 @@
   <ul>
     <li><a href="#intro">1. Overview</a></li>
     <li><a href="#mental-model">2. Mental model</a></li>
-    <li><a href="#external-loading">3. External skill loading</a></li>
+    <li><a href="#usage-by-task">3. Task-by-task usage</a></li>
     <li><a href="#big-picture">4. Big picture</a></li>
     <li><a href="#entry-points">5. Five entry points (diagrams)</a>
       <ul>
@@ -181,7 +181,7 @@
       </ul>
     </li>
     <li><a href="#self-trigger">7. Self-trigger matrix</a></li>
-    <li><a href="#usage-by-task">8. Task-by-task usage</a></li>
+    <li><a href="#external-loading">8. External skill loading</a></li>
     <li><a href="#harness-share">9. harness-share.md section map</a></li>
     <li><a href="#hooks-infra">10. Hook infrastructure</a></li>
   </ul>
@@ -258,119 +258,213 @@
   </div>
 </section>
 
-<section id="external-loading">
-  <h2>3. External skills &amp; tools — where and how they load</h2>
-  <p>
-    The kzk-* skills actively rely on other plugins, MCP servers, and CLI tools.
-    The table below maps each dependency to <strong>how it enters the main session</strong> and which skills consume it:
-  </p>
+<section id="usage-by-task">
+  <h2>3. Task-by-task usage guide</h2>
+  <p>Each scenario below maps a concrete prompt pattern to the skills that auto-load, the main agent's role, and what to avoid. Korean trigger phrases are shown as chips because the keyword detector matches them verbatim.</p>
+
+  <div class="card" id="task-1">
+    <div class="head"><span class="name">1. Simple bug fix</span></div>
+    <p><em>1 file / ≤ 30 LoC / clear symptom</em></p>
+    <h4>Good prompts</h4>
+    <p><code class="chip k">&lt;X&gt; 가 &lt;Y&gt; 로 동작 안 함. 기대: &lt;Z&gt;. 고쳐줘.</code></p>
+    <h4>Auto-loaded skills</h4>
+    <p>None on entry. <code>commit</code> trigger activates <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> at commit time.</p>
+    <h4>Main's role</h4>
+    <p>Direct read + edit + commit. No subagent dispatch needed.</p>
+    <h4>Avoid</h4>
+    <p>Firing <code class="chip k">버그 전수조사</code> or <code class="chip k">사용성 버그</code> for a single-file fix — that triggers over-dispatch via R1/R2.</p>
+  </div>
+
+  <div class="card" id="task-2">
+    <div class="head"><span class="name">2. Multi-bug / regression sweep</span></div>
+    <p><em>3+ files or ambiguous symptoms</em></p>
+    <h4>Good prompts</h4>
+    <p><code class="chip k">사용성 버그 모두 잡아줘</code> &nbsp; <code class="chip k">버그 전수조사 해줘</code> &nbsp; <code class="chip k">플랜 여러개로 쪼개고 사이클 자율로 돌면서 모두 개선</code></p>
+    <h4>Auto-loaded skills</h4>
+    <p><a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> (R2 chain rule)</p>
+    <h4>Main's role</h4>
+    <p>Direct read of 5+ files is <strong>forbidden</strong>. Delegate to EXPLORER subagent (<code>oh-my-claudecode:explore</code>) → synthesise results → build meta-plan → dispatch executor sonnet per cycle. Main orchestrates, verifies, and commits only.</p>
+    <h4>Avoid</h4>
+    <p>Main reading files directly instead of using EXPLORER. Appending <code class="chip k">끝까지 끝내줘</code> without <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a> 3-slot contract first.</p>
+  </div>
+
+  <div class="card" id="task-3">
+    <div class="head"><span class="name">3. Small new feature</span></div>
+    <p><em>≤ 200 LoC, 1–2 files, clear spec</em></p>
+    <h4>Good prompts</h4>
+    <p><code>"&lt;feature description&gt;. Acceptance criteria: &lt;AC&gt;. Include tests."</code></p>
+    <h4>Auto-loaded skills</h4>
+    <p>None. Add <code class="chip k">TDD 로 진행</code> to the prompt to trigger <a href="#s-test-coverage"><span class="chip">kzk-test-coverage</span></a> and <code>superpowers:test-driven-development</code>.</p>
+    <h4>Main's role</h4>
+    <p>Direct implementation. No subagent needed.</p>
+    <h4>Avoid</h4>
+    <p>Treating a small feature as a large task — unnecessary spec phase and codex consult add overhead.</p>
+  </div>
+
+  <div class="card" id="task-4">
+    <div class="head"><span class="name">4. Medium / large new feature</span></div>
+    <p><em>3+ files OR 200+ LoC — ORM / API / DB</em></p>
+    <h4>Good prompts</h4>
+    <p>3-phase sequence: (1) <code class="chip k">이 기능 spec 잡자: &lt;description&gt;</code> → (2) <code class="chip k">plan 작성해줘</code> → (3) <code>"ok 이대로 진행"</code> or <code class="chip k">ralph로 돌려</code></p>
+    <h4>Auto-loaded skills</h4>
+    <p>Phase 1–2: <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> (includes <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> Step 0 auto-precondition). Phase 3: <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> + <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a></p>
+    <h4>Main's role</h4>
+    <p>Spec/plan authoring + executor result review + full 10-gate pre-commit sequence (Gate 0–5) + final commit. Spec output lands in <span class="path">docs/plans/&lt;topic&gt;-design.md</span>.</p>
+    <h4>Avoid</h4>
+    <p>Skipping the spec phase for a large feature. Skipping the 3-slot autonomous contract before phase 3.</p>
+  </div>
+
+  <div class="card" id="task-5">
+    <div class="head"><span class="name">5. Architecture / design decision / DB schema / security</span></div>
+    <h4>Good prompts</h4>
+    <p><code class="chip k">spec 잡자: &lt;topic&gt;. major design 이라 codex review 필수.</code></p>
+    <h4>Auto-loaded skills</h4>
+    <p><a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> with mandatory codex consult (cannot be skipped for architecture topics)</p>
+    <h4>Main's role</h4>
+    <p>Dispatch planner opus → parallel codex consult → critic opus → synthesise frozen plan. All three roles (plan / critic / verify) use opus + xhigh effort. Code goes to executor, never main.</p>
+    <h4>Avoid</h4>
+    <p>Skipping codex review on security or schema decisions. Using sonnet for the planner pass on major architecture.</p>
+  </div>
+
+  <div class="card" id="task-6">
+    <div class="head"><span class="name">6. Mechanical refactoring</span></div>
+    <p><em>Rename / version bump / config flag toggle / lint follow-up / single-line change × N files (Cycle 29)</em></p>
+    <h4>Good prompts</h4>
+    <p><code>"[mechanical] rename X to Y across all files"</code></p>
+    <h4>Auto-loaded skills</h4>
+    <p><a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> when 3+ files are touched</p>
+    <h4>Main's role</h4>
+    <p>Dispatch executor with <code>model: 'haiku'</code> — codex consult and opus thinking are unnecessary for purely mechanical changes. Escalate to sonnet if any inference is required (variable name decisions, error message wording, conditional branching).</p>
+    <h4>Avoid</h4>
+    <p>Using opus for a pure rename. Using main's context directly to edit N files.</p>
+  </div>
+
+  <div class="card" id="task-7">
+    <div class="head"><span class="name">7. Implementation verification / spec audit (read-only)</span></div>
+    <h4>Good prompts</h4>
+    <p><code class="chip k">ralph로 체크</code> &nbsp; <code class="chip k">구현 검증해줘</code> &nbsp; <code class="chip k">하나하나 확인</code> &nbsp; <code class="chip k">spec vs implementation 매칭 확인</code></p>
+    <h4>Auto-loaded skills</h4>
+    <p>R2 chain: <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a></p>
+    <h4>Main's role</h4>
+    <p>Never read directly. Delegate to EXPLORER subagent (<code>oh-my-claudecode:explore</code>, <code>model: 'sonnet'</code> for deep reads / <code>'haiku'</code> for targeted lookups). CRG MCP / CLI first, grep fallback. Output: <span class="path">docs/harness/surveys/YYYY-MM-DD-&lt;topic&gt;-verification.md</span>.</p>
+    <h4>Avoid</h4>
+    <p>Main reading 5+ files directly to validate a spec. Self-declared "verification PASS" without a fresh-agent verifier.</p>
+  </div>
+
+  <div class="card" id="task-8">
+    <div class="head"><span class="name">8. Self-improvement (harness rule changes / closing meta-gaps)</span></div>
+    <h4>Good prompts</h4>
+    <p><code class="chip k">자가개선 루프 돌려보자</code> &nbsp; <code class="chip k">harness 개선 루프</code> &nbsp; <code class="chip k">재발 방지</code> &nbsp; <code class="chip k">메타 갭 닫자</code></p>
+    <h4>Auto-loaded skills</h4>
+    <p>R5 4-skill meta-stack: <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> + <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> + <a href="#s-autonomous-loop"><span class="chip">kzk-autonomous-loop</span></a></p>
+    <h4>Main's role</h4>
+    <p>Spec phase (codex skip only if explicitly stated with reason) → executor sonnet/haiku dispatch → main verifies + atomic commit. <strong>Apply own rules to self</strong> — main executing a large task directly is itself a meta-gap (Session-28 lesson).</p>
+    <h4>Avoid</h4>
+    <p>Main directly editing SKILL.md files across 3+ skills without going through executor. Skipping the spec phase for harness rule changes.</p>
+  </div>
+
+  <div class="card" id="task-9">
+    <div class="head"><span class="name">9. Autonomous mode entry (long-running / user-absent)</span></div>
+    <h4>Good prompts</h4>
+    <p><code class="chip k">끝까지 끝내줘</code> &nbsp; <code class="chip k">자는 동안 진행</code> &nbsp; <code class="chip k">ralph로 돌려</code> &nbsp; <code class="chip k">실행해놔야 queue 보지</code></p>
+    <h4>Auto-loaded skills</h4>
+    <p><a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a> fires immediately</p>
+    <h4>Main's role</h4>
+    <p>ASK FIRST — get explicit answers to 3 slots before any work: (a) separate branch vs. direct commit, (b) branch name, (c) PR required or not. Silent defaults are forbidden. Direct main commits only when user explicitly says so. At context 50%: <code>/compact &lt;remaining tasks&gt;</code> with non-empty summary arg is mandatory (<span class="chip q">Q-COMPACT-EVASION</span> halt if skipped). Before any large-task dispatch: <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> required; if missing → <span class="chip q">Q-SURVEY-MISSING</span> halt.</p>
+    <h4>Avoid</h4>
+    <p>Starting autonomous work before the 3-slot contract is confirmed. Running <code>/compact</code> without a summary argument. Dispatching a large task without a survey.</p>
+  </div>
+
+  <div class="card" id="task-10">
+    <div class="head"><span class="name">10. Commit / PR / merge</span></div>
+    <h4>Good prompts</h4>
+    <p><code class="chip k">commit</code> &nbsp; <code class="chip k">PR 올려줘</code> &nbsp; <code>"merge it"</code></p>
+    <h4>Auto-loaded skills</h4>
+    <p><a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> (Gate 0–5, full 10-gate) → <a href="#s-pre-merge-sync"><span class="chip">kzk-pre-merge-sync</span></a> (deepinit + CLAUDE.md sync before PR/milestone)</p>
+    <h4>Main's role</h4>
+    <p><strong>Non-doc-only full sequence:</strong> Gate 0 (AGENTS sync) → 0.5 (freshness) → 1 (ai-slop) → 1.5 (secrets AKIA/ASIA) → 1.6 (prod code-first) → 2 (build) → 3 (test) → 4 (Playwright, UI changes) → 4.5 (fix-scope) → 5 (fresh-agent verifier).<br/>
+    <strong>Doc-only fast path</strong> (<code>*.md</code> / <code>docs/**</code> only): Gate 1.5 secrets + verify-install AC2 only. Full suite runs once at cycle close.</p>
+    <h4>Avoid</h4>
+    <p>Skipping Gate 5 fresh-agent verifier on non-doc changes. Calling doc-only fast path when any production code is staged.</p>
+  </div>
+
+  <div class="card" id="task-11">
+    <div class="head"><span class="name">11. Production / DB / IAM / credential</span></div>
+    <h4>Good prompts</h4>
+    <p><code class="chip k">AWS 에 SSM 으로 접속해서 ...</code> &nbsp; <code class="chip k">production DB &lt;X&gt; drop</code> (explicit user authorisation required)</p>
+    <h4>Auto-loaded skills</h4>
+    <p><a href="#s-production-access"><span class="chip">kzk-production-access</span></a></p>
+    <h4>Main's role</h4>
+    <p>Even read-only access requires explicit user request — no silent production reads. State mutation: AI authors the script only; user or CI executes it. Multi-step: per-step OK sign required. STS (<code>ASIA</code> prefix + SessionToken) is the only temporarily-permitted credential type. Permanent <code>AKIA</code> keys are refused; AI provides revocation guidance instead.</p>
+    <h4>Avoid</h4>
+    <p>Reading production data without explicit user request. Executing state-mutating scripts directly from the AI agent.</p>
+  </div>
+
+  <div class="card" id="task-12">
+    <div class="head"><span class="name">12. UI / Playwright Gate 4 / OAuth login</span></div>
+    <h4>Good prompts</h4>
+    <p><code class="chip k">Google 로그인 화면 떴어</code> &nbsp; <code class="chip k">로그인 버튼</code> (OAuth click-through starts automatically)</p>
+    <h4>Auto-loaded skills</h4>
+    <p>Gate 4 of <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> auto-triggers <a href="#s-playwright-verification"><span class="chip">kzk-playwright-verification</span></a> when <code>web/src/**/*.{tsx,ts,css}</code> changes are staged.</p>
+    <h4>Main's role</h4>
+    <p>Dev server health pre-check (process alive + log tail error grep) before screenshots. Navigate 3+ pages, full-page screenshot, 0 console errors, 1–3 sentence narration. OAuth: agent-driven click-through — no user wait for account picker or consent. Password/MFA prompts trigger halt + user-queue entry.<br/>
+    6 halt entries: <span class="chip q">Q-PW-OAUTH-NEW-ACCOUNT</span> <span class="chip q">Q-PW-OAUTH-MULTI-ACCOUNT</span> <span class="chip q">Q-PW-OAUTH-CONSENT-LOOP</span> <span class="chip q">Q-PW-OAUTH-STUCK</span> <span class="chip q">Q-PW-OAUTH-CHALLENGE</span> <span class="chip q">Q-PW-OAUTH-PROVIDER-ERROR</span></p>
+    <h4>Avoid</h4>
+    <p>Committing UI changes without Gate 4 Playwright run. Waiting for the user during OAuth when the agent can click through automatically. Skipping dev server health check (dev/prod build trap — e.g. Tailwind v4 <code>@import</code> order issues).</p>
+  </div>
+
+  <div class="card" id="task-13">
+    <div class="head"><span class="name">13. Autonomous + large change (multi-bug + autonomous combined)</span></div>
+    <p><em>New in v1.13.0 — combines scenario 2 (multi-bug sweep) and scenario 9 (autonomous mode)</em></p>
+    <h4>Good prompts</h4>
+    <p><code class="chip k">끝까지 끝내줘</code> combined with <code class="chip k">버그 전수조사</code> or <code class="chip k">사용성 회귀 모두 잡아줘</code></p>
+    <h4>Auto-loaded skills</h4>
+    <p><a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a> (3-slot contract) + <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> (pre-dispatch survey) + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> (executor sonnet dispatch)</p>
+    <h4>Main's role</h4>
+    <ol>
+      <li>3-slot ASK FIRST: destination / branch name / PR</li>
+      <li>EXPLORER subagent runs <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> — mandatory before any multi-file autonomous dispatch</li>
+      <li>Survey result + frozen plan included when dispatching executor sonnet</li>
+      <li>Each cycle ends with <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> Gate 0–5 + atomic commit</li>
+      <li>At context 50%: <code>/compact &lt;remaining tasks&gt;</code> with summary arg (<span class="chip q">Q-COMPACT-EVASION</span> prevention)</li>
+    </ol>
+    <h4>Avoid</h4>
+    <p>Dispatching executor without prior survey → <span class="chip q">Q-SURVEY-MISSING</span>. Main reading 5+ files directly → <span class="chip q">Q-MAIN-DIRECT-EDIT</span>.</p>
+  </div>
+
+  <hr/>
+
+  <h3>Meta rules (all tasks)</h3>
+  <ol>
+    <li><strong>Branch contract</strong> — ASK FIRST 3-slot before any autonomous or multi-commit task. New branch is the default unless user explicitly says otherwise.</li>
+    <li><strong>5+ file read = main forbidden</strong> — always delegate to EXPLORER subagent (read-heavy audit dispatch shape).</li>
+    <li><strong>3+ file edit OR 200+ LoC = executor delegation</strong> — main orchestrates + verifies + commits only. Direct execution is the Session-6/Session-28 anti-pattern.</li>
+    <li><strong>Session-scoped contract</strong> — re-confirm only when scope changes materially (doc-only → code, single-module → multi-module, low-risk → destructive).</li>
+    <li><strong>Doc-only fast path</strong> — <code>*.md</code> / <code>docs/**</code>-only commits: Gate 1.5 + AC2 only. Full suite once at cycle close (Cycle 29).</li>
+    <li><strong>Scope estimation (Cycle 30)</strong> — non-trivial requests: 30-second estimate via <code>git status</code> + dir scan + CRG → 1-line preamble <code>[scope] est. N files / M LoC → &lt;route&gt;</code> → proceed with that routing. If estimate is exceeded mid-execution (5+ file reads or 3+ file edits), halt immediately and restart via delegation.</li>
+    <li><strong>TDD sequence (Cycle 30)</strong> — all new features and bug fixes in autonomous mode or large-task dispatch: failing test first (red) → impl (green) → refactor → commit. Bug fix without a regression test = incomplete.</li>
+    <li><strong><code>/compact</code> arg mandatory (Cycle 54)</strong> — at context 50% in autonomous mode, <code>/compact &lt;remaining tasks&gt;</code> with a non-empty summary is required. Empty <code>/compact</code> triggers <span class="chip q">Q-COMPACT-EVASION</span> halt.</li>
+  </ol>
+
+  <h3>Model / thinking-level summary (Cycle 29–30)</h3>
   <table>
-    <thead><tr><th>Component</th><th>Role</th><th>Load location / method</th><th>Consumed by</th></tr></thead>
+    <thead><tr><th>Tier</th><th>Use</th></tr></thead>
     <tbody>
-      <tr>
-        <td><code>kzk-* (18 skills)</code></td>
-        <td>This repo's core</td>
-        <td>
-          <strong>Global</strong>: <span class="path">~/.claude/skills/kzk-*/SKILL.md</span> (README install one-liner → <code>install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard</code>).<br/>
-          <strong>Project-only</strong>: <span class="path">.claude/skills/kzk-*/SKILL.md</span> (README PROJECT-ONLY procedure).
-        </td>
-        <td>All skills</td>
-      </tr>
-      <tr>
-        <td><code>harness-share.md</code></td>
-        <td>Cross-cutting SoT (§1–§33)</td>
-        <td>
-          Global install copies to <span class="path">~/.claude/skills/.kzk-harness-shared/harness-share.md</span> (dot-prefix — not an invocable skill).<br/>
-          Project-only: copied to repo root as <span class="path">harness-share.md</span>.<br/>
-          Dev mode (<code>--symlink-mode</code>): this file only is symlinked.
-        </td>
-        <td>All skills — each SKILL.md's "Authoritative source" line references it</td>
-      </tr>
-      <tr>
-        <td><code>~/.claude/CLAUDE.md</code> marker block</td>
-        <td>Global skill routing table</td>
-        <td>
-          <code>install-global.sh</code> idempotently replaces the <code>&lt;!-- kzk-harness:START --&gt;</code> marker block (everything outside the block is preserved byte-for-byte).
-        </td>
-        <td>Keyword → skill mapping table</td>
-      </tr>
-      <tr>
-        <td><code>oh-my-claudecode</code> (OMC) plugin</td>
-        <td>Subagent dispatch / deepinit / ToolSearch helpers</td>
-        <td>
-          Installed inside a Claude Code session via <code>/plugin</code>. Detected by checking for the <code>oh-my-claudecode@*</code> key in <span class="path">~/.claude/plugins/installed_plugins.json</span>.<br/>
-          If not installed, <code>install/dependencies.sh</code> prints guidance — never a hard fail.
-        </td>
-        <td>large-task-delegation, pre-commit-gate (Gate 0 deepinit_manifest), spec-and-review (critic fallback), pre-merge-sync (deepinit), test-coverage (verifier)</td>
-      </tr>
-      <tr>
-        <td><code>playwright-mcp</code></td>
-        <td>Browser automation MCP</td>
-        <td>
-          Inside the session via <code>/plugin</code> or <code>claude mcp add playwright -- npx -y @playwright/mcp@latest</code>.<br/>
-          Detected via <span class="path">~/.claude.json</span> + <span class="path">&lt;project&gt;/.mcp.json</span> entries.
-        </td>
-        <td>playwright-verification (Gate 4), web-loop</td>
-      </tr>
-      <tr>
-        <td><code>gstack</code> plugin</td>
-        <td><code>/learn</code> JSONL store</td>
-        <td>
-          Session <code>/plugin</code> install. Detected by presence of <span class="path">~/.gstack/projects/</span>.
-        </td>
-        <td>regression-memory (recall hook), web-loop (cycle retrospective)</td>
-      </tr>
-      <tr>
-        <td><code>context7</code> MCP</td>
-        <td>External library doc fetch</td>
-        <td>
-          Plugin or <code>.mcp.json</code> registration (often bundled with OMC). Tool names: <code>mcp__plugin_context7_context7__resolve-library-id</code>, <code>...__query-docs</code>.
-        </td>
-        <td>codebase-survey Step 4</td>
-      </tr>
-      <tr>
-        <td><code>code-review-graph</code> (CRG)</td>
-        <td>Tree-sitter + SQLite code graph</td>
-        <td>
-          <code>install/dependencies.sh</code> auto-installs via <code>pip --user → pipx</code> fallback, then calls <code>code-review-graph install</code> to self-register as an MCP server in the project's <span class="path">.mcp.json</span>. Also usable as a CLI.<br/>
-          Graph build is <strong>per-project</strong>: <code>code-review-graph build</code> or triggered on first survey.
-        </td>
-        <td>codebase-survey (Steps 0.5/1/2), freshness-guard, fix-scope-expansion, pre-commit-gate (Gate 0.5)</td>
-      </tr>
-      <tr>
-        <td><code>codex</code> CLI (OpenAI)</td>
-        <td>Cross-vendor second opinion</td>
-        <td>
-          <code>install/dependencies.sh</code> tries <code>npm i -g @openai/codex</code> then <code>brew install codex</code>. Detected via PATH.<br/>
-          Invocation rules live in <code>kzk-codex-handoff</code> SKILL.md (5 hard rules: stdin pipe, <code>--ephemeral</code>, etc.).
-        </td>
-        <td>spec-and-review (Step 2 review), large-task-delegation (plan-critic loop)</td>
-      </tr>
-      <tr>
-        <td><code>gh</code> CLI</td>
-        <td>GitHub PR / CI / comments</td>
-        <td>Detection only — install manually via <code>brew install gh</code>. Absent → PR workflow halts.</td>
-        <td>pre-merge-sync, autonomous-boundary (PR creation step)</td>
-      </tr>
-      <tr>
-        <td><code>aws-vault</code></td>
-        <td>STS-backed AWS credential vault</td>
-        <td>Detection only — install via <code>brew install aws-vault</code>. Absent → fall back to <code>aws sso login</code>; plaintext AKIA keys are always refused.</td>
-        <td>production-access (recommended, not required)</td>
-      </tr>
-      <tr>
-        <td><code>superpowers:*</code> skills</td>
-        <td>writing-plans, brainstorming, subagent-driven-development, etc.</td>
-        <td>External superpowers plugin — Claude Code auto-discovers it. This repo does not install it (compatible dependency).</td>
-        <td>spec-and-review (Step -1 brainstorming), web-loop (writing-plans + subagent-driven-development)</td>
-      </tr>
+      <tr><td><strong>Opus + xhigh</strong></td><td>Plan authoring (default), critic on architecture/security, semantic verify, ambiguous spec</td></tr>
+      <tr><td><strong>Opus + high</strong></td><td>Well-scoped plan, mechanical critic (≤ 200 LoC, no security), pre-spec'd verify</td></tr>
+      <tr><td><strong>Sonnet</strong></td><td>General implementation (executor), mechanical verify (build/test/screenshot), explorer deep read</td></tr>
+      <tr><td><strong>Haiku</strong></td><td>Version bump, frontmatter rewrite, single-line config, lint follow-up, progress log append, atomic rename, explorer targeted lookup, simple git ops (status/log/diff/commit -m/fast-forward merge/non-conflict cherry-pick)</td></tr>
     </tbody>
   </table>
-  <div class="note">
-    <strong>Design intent</strong>: every external dependency supports <em>graceful degradation</em>. Missing tool → the skill drops to its fallback path.
-    E.g., no codex CLI → OMC <code>critic</code> opus (same vendor, same blind spots — noted); no CRG → grep fallback (lower transitive accuracy).
-    No install ever hard-fails.
-  </div>
+  <p>Target distribution: 50% sonnet + 30% haiku + 20% opus. Omitting <code>model</code> parameter defaults to opus — cost explosion, strictly forbidden.</p>
+
+  <h3>Trigger gaps (currently unmatched phrases)</h3>
+  <ul>
+    <li><code>"&lt;X&gt; 만들어줘"</code> (simple new feature) — intentional: simple tasks handled by main directly</li>
+    <li><code>"성능 개선"</code> / <code>"perf"</code> — no performance audit trigger (candidate for a future cycle)</li>
+    <li><code>"보안 감사"</code> / <code>"security review"</code> — partially covered by <a href="#s-production-access"><span class="chip">kzk-production-access</span></a>; no dedicated audit trigger</li>
+  </ul>
+  <p>To close a gap: trigger <code class="chip k">자가개선 루프</code> → extends <span class="path">install/hooks/keyword-detector.mjs</span> RULES.</p>
 </section>
 
 <section id="big-picture">
@@ -1060,213 +1154,119 @@ flowchart TD
   </table>
 </section>
 
-<section id="usage-by-task">
-  <h2>8. Task-by-task usage guide</h2>
-  <p>Each scenario below maps a concrete prompt pattern to the skills that auto-load, the main agent's role, and what to avoid. Korean trigger phrases are shown as chips because the keyword detector matches them verbatim.</p>
-
-  <div class="card" id="task-1">
-    <div class="head"><span class="name">1. Simple bug fix</span></div>
-    <p><em>1 file / ≤ 30 LoC / clear symptom</em></p>
-    <h4>Good prompts</h4>
-    <p><code class="chip k">&lt;X&gt; 가 &lt;Y&gt; 로 동작 안 함. 기대: &lt;Z&gt;. 고쳐줘.</code></p>
-    <h4>Auto-loaded skills</h4>
-    <p>None on entry. <code>commit</code> trigger activates <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> at commit time.</p>
-    <h4>Main's role</h4>
-    <p>Direct read + edit + commit. No subagent dispatch needed.</p>
-    <h4>Avoid</h4>
-    <p>Firing <code class="chip k">버그 전수조사</code> or <code class="chip k">사용성 버그</code> for a single-file fix — that triggers over-dispatch via R1/R2.</p>
-  </div>
-
-  <div class="card" id="task-2">
-    <div class="head"><span class="name">2. Multi-bug / regression sweep</span></div>
-    <p><em>3+ files or ambiguous symptoms</em></p>
-    <h4>Good prompts</h4>
-    <p><code class="chip k">사용성 버그 모두 잡아줘</code> &nbsp; <code class="chip k">버그 전수조사 해줘</code> &nbsp; <code class="chip k">플랜 여러개로 쪼개고 사이클 자율로 돌면서 모두 개선</code></p>
-    <h4>Auto-loaded skills</h4>
-    <p><a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> (R2 chain rule)</p>
-    <h4>Main's role</h4>
-    <p>Direct read of 5+ files is <strong>forbidden</strong>. Delegate to EXPLORER subagent (<code>oh-my-claudecode:explore</code>) → synthesise results → build meta-plan → dispatch executor sonnet per cycle. Main orchestrates, verifies, and commits only.</p>
-    <h4>Avoid</h4>
-    <p>Main reading files directly instead of using EXPLORER. Appending <code class="chip k">끝까지 끝내줘</code> without <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a> 3-slot contract first.</p>
-  </div>
-
-  <div class="card" id="task-3">
-    <div class="head"><span class="name">3. Small new feature</span></div>
-    <p><em>≤ 200 LoC, 1–2 files, clear spec</em></p>
-    <h4>Good prompts</h4>
-    <p><code>"&lt;feature description&gt;. Acceptance criteria: &lt;AC&gt;. Include tests."</code></p>
-    <h4>Auto-loaded skills</h4>
-    <p>None. Add <code class="chip k">TDD 로 진행</code> to the prompt to trigger <a href="#s-test-coverage"><span class="chip">kzk-test-coverage</span></a> and <code>superpowers:test-driven-development</code>.</p>
-    <h4>Main's role</h4>
-    <p>Direct implementation. No subagent needed.</p>
-    <h4>Avoid</h4>
-    <p>Treating a small feature as a large task — unnecessary spec phase and codex consult add overhead.</p>
-  </div>
-
-  <div class="card" id="task-4">
-    <div class="head"><span class="name">4. Medium / large new feature</span></div>
-    <p><em>3+ files OR 200+ LoC — ORM / API / DB</em></p>
-    <h4>Good prompts</h4>
-    <p>3-phase sequence: (1) <code class="chip k">이 기능 spec 잡자: &lt;description&gt;</code> → (2) <code class="chip k">plan 작성해줘</code> → (3) <code>"ok 이대로 진행"</code> or <code class="chip k">ralph로 돌려</code></p>
-    <h4>Auto-loaded skills</h4>
-    <p>Phase 1–2: <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> (includes <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> Step 0 auto-precondition). Phase 3: <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> + <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a></p>
-    <h4>Main's role</h4>
-    <p>Spec/plan authoring + executor result review + full 10-gate pre-commit sequence (Gate 0–5) + final commit. Spec output lands in <span class="path">docs/plans/&lt;topic&gt;-design.md</span>.</p>
-    <h4>Avoid</h4>
-    <p>Skipping the spec phase for a large feature. Skipping the 3-slot autonomous contract before phase 3.</p>
-  </div>
-
-  <div class="card" id="task-5">
-    <div class="head"><span class="name">5. Architecture / design decision / DB schema / security</span></div>
-    <h4>Good prompts</h4>
-    <p><code class="chip k">spec 잡자: &lt;topic&gt;. major design 이라 codex review 필수.</code></p>
-    <h4>Auto-loaded skills</h4>
-    <p><a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> with mandatory codex consult (cannot be skipped for architecture topics)</p>
-    <h4>Main's role</h4>
-    <p>Dispatch planner opus → parallel codex consult → critic opus → synthesise frozen plan. All three roles (plan / critic / verify) use opus + xhigh effort. Code goes to executor, never main.</p>
-    <h4>Avoid</h4>
-    <p>Skipping codex review on security or schema decisions. Using sonnet for the planner pass on major architecture.</p>
-  </div>
-
-  <div class="card" id="task-6">
-    <div class="head"><span class="name">6. Mechanical refactoring</span></div>
-    <p><em>Rename / version bump / config flag toggle / lint follow-up / single-line change × N files (Cycle 29)</em></p>
-    <h4>Good prompts</h4>
-    <p><code>"[mechanical] rename X to Y across all files"</code></p>
-    <h4>Auto-loaded skills</h4>
-    <p><a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> when 3+ files are touched</p>
-    <h4>Main's role</h4>
-    <p>Dispatch executor with <code>model: 'haiku'</code> — codex consult and opus thinking are unnecessary for purely mechanical changes. Escalate to sonnet if any inference is required (variable name decisions, error message wording, conditional branching).</p>
-    <h4>Avoid</h4>
-    <p>Using opus for a pure rename. Using main's context directly to edit N files.</p>
-  </div>
-
-  <div class="card" id="task-7">
-    <div class="head"><span class="name">7. Implementation verification / spec audit (read-only)</span></div>
-    <h4>Good prompts</h4>
-    <p><code class="chip k">ralph로 체크</code> &nbsp; <code class="chip k">구현 검증해줘</code> &nbsp; <code class="chip k">하나하나 확인</code> &nbsp; <code class="chip k">spec vs implementation 매칭 확인</code></p>
-    <h4>Auto-loaded skills</h4>
-    <p>R2 chain: <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a></p>
-    <h4>Main's role</h4>
-    <p>Never read directly. Delegate to EXPLORER subagent (<code>oh-my-claudecode:explore</code>, <code>model: 'sonnet'</code> for deep reads / <code>'haiku'</code> for targeted lookups). CRG MCP / CLI first, grep fallback. Output: <span class="path">docs/harness/surveys/YYYY-MM-DD-&lt;topic&gt;-verification.md</span>.</p>
-    <h4>Avoid</h4>
-    <p>Main reading 5+ files directly to validate a spec. Self-declared "verification PASS" without a fresh-agent verifier.</p>
-  </div>
-
-  <div class="card" id="task-8">
-    <div class="head"><span class="name">8. Self-improvement (harness rule changes / closing meta-gaps)</span></div>
-    <h4>Good prompts</h4>
-    <p><code class="chip k">자가개선 루프 돌려보자</code> &nbsp; <code class="chip k">harness 개선 루프</code> &nbsp; <code class="chip k">재발 방지</code> &nbsp; <code class="chip k">메타 갭 닫자</code></p>
-    <h4>Auto-loaded skills</h4>
-    <p>R5 4-skill meta-stack: <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> + <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> + <a href="#s-autonomous-loop"><span class="chip">kzk-autonomous-loop</span></a></p>
-    <h4>Main's role</h4>
-    <p>Spec phase (codex skip only if explicitly stated with reason) → executor sonnet/haiku dispatch → main verifies + atomic commit. <strong>Apply own rules to self</strong> — main executing a large task directly is itself a meta-gap (Session-28 lesson).</p>
-    <h4>Avoid</h4>
-    <p>Main directly editing SKILL.md files across 3+ skills without going through executor. Skipping the spec phase for harness rule changes.</p>
-  </div>
-
-  <div class="card" id="task-9">
-    <div class="head"><span class="name">9. Autonomous mode entry (long-running / user-absent)</span></div>
-    <h4>Good prompts</h4>
-    <p><code class="chip k">끝까지 끝내줘</code> &nbsp; <code class="chip k">자는 동안 진행</code> &nbsp; <code class="chip k">ralph로 돌려</code> &nbsp; <code class="chip k">실행해놔야 queue 보지</code></p>
-    <h4>Auto-loaded skills</h4>
-    <p><a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a> fires immediately</p>
-    <h4>Main's role</h4>
-    <p>ASK FIRST — get explicit answers to 3 slots before any work: (a) separate branch vs. direct commit, (b) branch name, (c) PR required or not. Silent defaults are forbidden. Direct main commits only when user explicitly says so. At context 50%: <code>/compact &lt;remaining tasks&gt;</code> with non-empty summary arg is mandatory (<span class="chip q">Q-COMPACT-EVASION</span> halt if skipped). Before any large-task dispatch: <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> required; if missing → <span class="chip q">Q-SURVEY-MISSING</span> halt.</p>
-    <h4>Avoid</h4>
-    <p>Starting autonomous work before the 3-slot contract is confirmed. Running <code>/compact</code> without a summary argument. Dispatching a large task without a survey.</p>
-  </div>
-
-  <div class="card" id="task-10">
-    <div class="head"><span class="name">10. Commit / PR / merge</span></div>
-    <h4>Good prompts</h4>
-    <p><code class="chip k">commit</code> &nbsp; <code class="chip k">PR 올려줘</code> &nbsp; <code>"merge it"</code></p>
-    <h4>Auto-loaded skills</h4>
-    <p><a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> (Gate 0–5, full 10-gate) → <a href="#s-pre-merge-sync"><span class="chip">kzk-pre-merge-sync</span></a> (deepinit + CLAUDE.md sync before PR/milestone)</p>
-    <h4>Main's role</h4>
-    <p><strong>Non-doc-only full sequence:</strong> Gate 0 (AGENTS sync) → 0.5 (freshness) → 1 (ai-slop) → 1.5 (secrets AKIA/ASIA) → 1.6 (prod code-first) → 2 (build) → 3 (test) → 4 (Playwright, UI changes) → 4.5 (fix-scope) → 5 (fresh-agent verifier).<br/>
-    <strong>Doc-only fast path</strong> (<code>*.md</code> / <code>docs/**</code> only): Gate 1.5 secrets + verify-install AC2 only. Full suite runs once at cycle close.</p>
-    <h4>Avoid</h4>
-    <p>Skipping Gate 5 fresh-agent verifier on non-doc changes. Calling doc-only fast path when any production code is staged.</p>
-  </div>
-
-  <div class="card" id="task-11">
-    <div class="head"><span class="name">11. Production / DB / IAM / credential</span></div>
-    <h4>Good prompts</h4>
-    <p><code class="chip k">AWS 에 SSM 으로 접속해서 ...</code> &nbsp; <code class="chip k">production DB &lt;X&gt; drop</code> (explicit user authorisation required)</p>
-    <h4>Auto-loaded skills</h4>
-    <p><a href="#s-production-access"><span class="chip">kzk-production-access</span></a></p>
-    <h4>Main's role</h4>
-    <p>Even read-only access requires explicit user request — no silent production reads. State mutation: AI authors the script only; user or CI executes it. Multi-step: per-step OK sign required. STS (<code>ASIA</code> prefix + SessionToken) is the only temporarily-permitted credential type. Permanent <code>AKIA</code> keys are refused; AI provides revocation guidance instead.</p>
-    <h4>Avoid</h4>
-    <p>Reading production data without explicit user request. Executing state-mutating scripts directly from the AI agent.</p>
-  </div>
-
-  <div class="card" id="task-12">
-    <div class="head"><span class="name">12. UI / Playwright Gate 4 / OAuth login</span></div>
-    <h4>Good prompts</h4>
-    <p><code class="chip k">Google 로그인 화면 떴어</code> &nbsp; <code class="chip k">로그인 버튼</code> (OAuth click-through starts automatically)</p>
-    <h4>Auto-loaded skills</h4>
-    <p>Gate 4 of <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> auto-triggers <a href="#s-playwright-verification"><span class="chip">kzk-playwright-verification</span></a> when <code>web/src/**/*.{tsx,ts,css}</code> changes are staged.</p>
-    <h4>Main's role</h4>
-    <p>Dev server health pre-check (process alive + log tail error grep) before screenshots. Navigate 3+ pages, full-page screenshot, 0 console errors, 1–3 sentence narration. OAuth: agent-driven click-through — no user wait for account picker or consent. Password/MFA prompts trigger halt + user-queue entry.<br/>
-    6 halt entries: <span class="chip q">Q-PW-OAUTH-NEW-ACCOUNT</span> <span class="chip q">Q-PW-OAUTH-MULTI-ACCOUNT</span> <span class="chip q">Q-PW-OAUTH-CONSENT-LOOP</span> <span class="chip q">Q-PW-OAUTH-STUCK</span> <span class="chip q">Q-PW-OAUTH-CHALLENGE</span> <span class="chip q">Q-PW-OAUTH-PROVIDER-ERROR</span></p>
-    <h4>Avoid</h4>
-    <p>Committing UI changes without Gate 4 Playwright run. Waiting for the user during OAuth when the agent can click through automatically. Skipping dev server health check (dev/prod build trap — e.g. Tailwind v4 <code>@import</code> order issues).</p>
-  </div>
-
-  <div class="card" id="task-13">
-    <div class="head"><span class="name">13. Autonomous + large change (multi-bug + autonomous combined)</span></div>
-    <p><em>New in v1.13.0 — combines scenario 2 (multi-bug sweep) and scenario 9 (autonomous mode)</em></p>
-    <h4>Good prompts</h4>
-    <p><code class="chip k">끝까지 끝내줘</code> combined with <code class="chip k">버그 전수조사</code> or <code class="chip k">사용성 회귀 모두 잡아줘</code></p>
-    <h4>Auto-loaded skills</h4>
-    <p><a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a> (3-slot contract) + <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> (pre-dispatch survey) + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> (executor sonnet dispatch)</p>
-    <h4>Main's role</h4>
-    <ol>
-      <li>3-slot ASK FIRST: destination / branch name / PR</li>
-      <li>EXPLORER subagent runs <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> — mandatory before any multi-file autonomous dispatch</li>
-      <li>Survey result + frozen plan included when dispatching executor sonnet</li>
-      <li>Each cycle ends with <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> Gate 0–5 + atomic commit</li>
-      <li>At context 50%: <code>/compact &lt;remaining tasks&gt;</code> with summary arg (<span class="chip q">Q-COMPACT-EVASION</span> prevention)</li>
-    </ol>
-    <h4>Avoid</h4>
-    <p>Dispatching executor without prior survey → <span class="chip q">Q-SURVEY-MISSING</span>. Main reading 5+ files directly → <span class="chip q">Q-MAIN-DIRECT-EDIT</span>.</p>
-  </div>
-
-  <hr/>
-
-  <h3>Meta rules (all tasks)</h3>
-  <ol>
-    <li><strong>Branch contract</strong> — ASK FIRST 3-slot before any autonomous or multi-commit task. New branch is the default unless user explicitly says otherwise.</li>
-    <li><strong>5+ file read = main forbidden</strong> — always delegate to EXPLORER subagent (read-heavy audit dispatch shape).</li>
-    <li><strong>3+ file edit OR 200+ LoC = executor delegation</strong> — main orchestrates + verifies + commits only. Direct execution is the Session-6/Session-28 anti-pattern.</li>
-    <li><strong>Session-scoped contract</strong> — re-confirm only when scope changes materially (doc-only → code, single-module → multi-module, low-risk → destructive).</li>
-    <li><strong>Doc-only fast path</strong> — <code>*.md</code> / <code>docs/**</code>-only commits: Gate 1.5 + AC2 only. Full suite once at cycle close (Cycle 29).</li>
-    <li><strong>Scope estimation (Cycle 30)</strong> — non-trivial requests: 30-second estimate via <code>git status</code> + dir scan + CRG → 1-line preamble <code>[scope] est. N files / M LoC → &lt;route&gt;</code> → proceed with that routing. If estimate is exceeded mid-execution (5+ file reads or 3+ file edits), halt immediately and restart via delegation.</li>
-    <li><strong>TDD sequence (Cycle 30)</strong> — all new features and bug fixes in autonomous mode or large-task dispatch: failing test first (red) → impl (green) → refactor → commit. Bug fix without a regression test = incomplete.</li>
-    <li><strong><code>/compact</code> arg mandatory (Cycle 54)</strong> — at context 50% in autonomous mode, <code>/compact &lt;remaining tasks&gt;</code> with a non-empty summary is required. Empty <code>/compact</code> triggers <span class="chip q">Q-COMPACT-EVASION</span> halt.</li>
-  </ol>
-
-  <h3>Model / thinking-level summary (Cycle 29–30)</h3>
+<section id="external-loading">
+  <h2>8. External skills &amp; tools — where and how they load</h2>
+  <p>
+    The kzk-* skills actively rely on other plugins, MCP servers, and CLI tools.
+    The table below maps each dependency to <strong>how it enters the main session</strong> and which skills consume it:
+  </p>
   <table>
-    <thead><tr><th>Tier</th><th>Use</th></tr></thead>
+    <thead><tr><th>Component</th><th>Role</th><th>Load location / method</th><th>Consumed by</th></tr></thead>
     <tbody>
-      <tr><td><strong>Opus + xhigh</strong></td><td>Plan authoring (default), critic on architecture/security, semantic verify, ambiguous spec</td></tr>
-      <tr><td><strong>Opus + high</strong></td><td>Well-scoped plan, mechanical critic (≤ 200 LoC, no security), pre-spec'd verify</td></tr>
-      <tr><td><strong>Sonnet</strong></td><td>General implementation (executor), mechanical verify (build/test/screenshot), explorer deep read</td></tr>
-      <tr><td><strong>Haiku</strong></td><td>Version bump, frontmatter rewrite, single-line config, lint follow-up, progress log append, atomic rename, explorer targeted lookup, simple git ops (status/log/diff/commit -m/fast-forward merge/non-conflict cherry-pick)</td></tr>
+      <tr>
+        <td><code>kzk-* (18 skills)</code></td>
+        <td>This repo's core</td>
+        <td>
+          <strong>Global</strong>: <span class="path">~/.claude/skills/kzk-*/SKILL.md</span> (README install one-liner → <code>install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard</code>).<br/>
+          <strong>Project-only</strong>: <span class="path">.claude/skills/kzk-*/SKILL.md</span> (README PROJECT-ONLY procedure).
+        </td>
+        <td>All skills</td>
+      </tr>
+      <tr>
+        <td><code>harness-share.md</code></td>
+        <td>Cross-cutting SoT (§1–§33)</td>
+        <td>
+          Global install copies to <span class="path">~/.claude/skills/.kzk-harness-shared/harness-share.md</span> (dot-prefix — not an invocable skill).<br/>
+          Project-only: copied to repo root as <span class="path">harness-share.md</span>.<br/>
+          Dev mode (<code>--symlink-mode</code>): this file only is symlinked.
+        </td>
+        <td>All skills — each SKILL.md's "Authoritative source" line references it</td>
+      </tr>
+      <tr>
+        <td><code>~/.claude/CLAUDE.md</code> marker block</td>
+        <td>Global skill routing table</td>
+        <td>
+          <code>install-global.sh</code> idempotently replaces the <code>&lt;!-- kzk-harness:START --&gt;</code> marker block (everything outside the block is preserved byte-for-byte).
+        </td>
+        <td>Keyword → skill mapping table</td>
+      </tr>
+      <tr>
+        <td><code>oh-my-claudecode</code> (OMC) plugin</td>
+        <td>Subagent dispatch / deepinit / ToolSearch helpers</td>
+        <td>
+          Installed inside a Claude Code session via <code>/plugin</code>. Detected by checking for the <code>oh-my-claudecode@*</code> key in <span class="path">~/.claude/plugins/installed_plugins.json</span>.<br/>
+          If not installed, <code>install/dependencies.sh</code> prints guidance — never a hard fail.
+        </td>
+        <td>large-task-delegation, pre-commit-gate (Gate 0 deepinit_manifest), spec-and-review (critic fallback), pre-merge-sync (deepinit), test-coverage (verifier)</td>
+      </tr>
+      <tr>
+        <td><code>playwright-mcp</code></td>
+        <td>Browser automation MCP</td>
+        <td>
+          Inside the session via <code>/plugin</code> or <code>claude mcp add playwright -- npx -y @playwright/mcp@latest</code>.<br/>
+          Detected via <span class="path">~/.claude.json</span> + <span class="path">&lt;project&gt;/.mcp.json</span> entries.
+        </td>
+        <td>playwright-verification (Gate 4), web-loop</td>
+      </tr>
+      <tr>
+        <td><code>gstack</code> plugin</td>
+        <td><code>/learn</code> JSONL store</td>
+        <td>
+          Session <code>/plugin</code> install. Detected by presence of <span class="path">~/.gstack/projects/</span>.
+        </td>
+        <td>regression-memory (recall hook), web-loop (cycle retrospective)</td>
+      </tr>
+      <tr>
+        <td><code>context7</code> MCP</td>
+        <td>External library doc fetch</td>
+        <td>
+          Plugin or <code>.mcp.json</code> registration (often bundled with OMC). Tool names: <code>mcp__plugin_context7_context7__resolve-library-id</code>, <code>...__query-docs</code>.
+        </td>
+        <td>codebase-survey Step 4</td>
+      </tr>
+      <tr>
+        <td><code>code-review-graph</code> (CRG)</td>
+        <td>Tree-sitter + SQLite code graph</td>
+        <td>
+          <code>install/dependencies.sh</code> auto-installs via <code>pip --user → pipx</code> fallback, then calls <code>code-review-graph install</code> to self-register as an MCP server in the project's <span class="path">.mcp.json</span>. Also usable as a CLI.<br/>
+          Graph build is <strong>per-project</strong>: <code>code-review-graph build</code> or triggered on first survey.
+        </td>
+        <td>codebase-survey (Steps 0.5/1/2), freshness-guard, fix-scope-expansion, pre-commit-gate (Gate 0.5)</td>
+      </tr>
+      <tr>
+        <td><code>codex</code> CLI (OpenAI)</td>
+        <td>Cross-vendor second opinion</td>
+        <td>
+          <code>install/dependencies.sh</code> tries <code>npm i -g @openai/codex</code> then <code>brew install codex</code>. Detected via PATH.<br/>
+          Invocation rules live in <code>kzk-codex-handoff</code> SKILL.md (5 hard rules: stdin pipe, <code>--ephemeral</code>, etc.).
+        </td>
+        <td>spec-and-review (Step 2 review), large-task-delegation (plan-critic loop)</td>
+      </tr>
+      <tr>
+        <td><code>gh</code> CLI</td>
+        <td>GitHub PR / CI / comments</td>
+        <td>Detection only — install manually via <code>brew install gh</code>. Absent → PR workflow halts.</td>
+        <td>pre-merge-sync, autonomous-boundary (PR creation step)</td>
+      </tr>
+      <tr>
+        <td><code>aws-vault</code></td>
+        <td>STS-backed AWS credential vault</td>
+        <td>Detection only — install via <code>brew install aws-vault</code>. Absent → fall back to <code>aws sso login</code>; plaintext AKIA keys are always refused.</td>
+        <td>production-access (recommended, not required)</td>
+      </tr>
+      <tr>
+        <td><code>superpowers:*</code> skills</td>
+        <td>writing-plans, brainstorming, subagent-driven-development, etc.</td>
+        <td>External superpowers plugin — Claude Code auto-discovers it. This repo does not install it (compatible dependency).</td>
+        <td>spec-and-review (Step -1 brainstorming), web-loop (writing-plans + subagent-driven-development)</td>
+      </tr>
     </tbody>
   </table>
-  <p>Target distribution: 50% sonnet + 30% haiku + 20% opus. Omitting <code>model</code> parameter defaults to opus — cost explosion, strictly forbidden.</p>
-
-  <h3>Trigger gaps (currently unmatched phrases)</h3>
-  <ul>
-    <li><code>"&lt;X&gt; 만들어줘"</code> (simple new feature) — intentional: simple tasks handled by main directly</li>
-    <li><code>"성능 개선"</code> / <code>"perf"</code> — no performance audit trigger (candidate for a future cycle)</li>
-    <li><code>"보안 감사"</code> / <code>"security review"</code> — partially covered by <a href="#s-production-access"><span class="chip">kzk-production-access</span></a>; no dedicated audit trigger</li>
-  </ul>
-  <p>To close a gap: trigger <code class="chip k">자가개선 루프</code> → extends <span class="path">install/hooks/keyword-detector.mjs</span> RULES.</p>
+  <div class="note">
+    <strong>Design intent</strong>: every external dependency supports <em>graceful degradation</em>. Missing tool → the skill drops to its fallback path.
+    E.g., no codex CLI → OMC <code>critic</code> opus (same vendor, same blind spots — noted); no CRG → grep fallback (lower transitive accuracy).
+    No install ever hard-fails.
+  </div>
 </section>
 
 <section id="harness-share">

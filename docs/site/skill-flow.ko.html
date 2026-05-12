@@ -147,7 +147,7 @@
   <ul>
     <li><a href="#intro">1. 개요</a></li>
     <li><a href="#mental-model">2. 멘탈 모델</a></li>
-    <li><a href="#external-loading">3. 외부 스킬 로딩</a></li>
+    <li><a href="#usage-by-task">3. 작업 유형별 가이드</a></li>
     <li><a href="#big-picture">4. 전체 구조</a></li>
     <li><a href="#entry-points">5. 5개 진입점 (다이어그램)</a>
       <ul>
@@ -181,7 +181,7 @@
       </ul>
     </li>
     <li><a href="#self-trigger">7. 자동 트리거 매트릭스</a></li>
-    <li><a href="#usage-by-task">8. 작업 유형별 가이드</a></li>
+    <li><a href="#external-loading">8. 외부 스킬 로딩</a></li>
     <li><a href="#harness-share">9. harness-share.md 섹션 지도</a></li>
     <li><a href="#hooks-infra">10. 훅 인프라</a></li>
   </ul>
@@ -256,119 +256,214 @@
   </div>
 </section>
 
-<section id="external-loading">
-  <h2>3. 외부 스킬 &amp; 도구 — 로딩 위치와 방법</h2>
-  <p>
-    kzk-* 스킬은 다른 플러그인, MCP 서버, CLI 도구에 적극적으로 의존합니다.
-    아래 표는 각 의존성이 <strong>메인 세션에 진입하는 방식</strong>과 어떤 스킬이 사용하는지를 보여줍니다:
-  </p>
+<section id="usage-by-task">
+  <h2>3. 작업 유형별 가이드</h2>
+  <p>각 시나리오는 구체적인 prompt 패턴 → 자동 로드 스킬 → 메인 역할 → 피해야 할 것을 매핑합니다. 한국어 트리거 phrase 는 키워드 감지기가 그대로 매칭하므로 chip 형식으로 표시합니다.</p>
+
+  <div class="card" id="task-1">
+    <div class="head"><span class="name">1. 단순 버그 픽스</span></div>
+    <p><em>1 파일 / ≤ 30 LoC / 명확한 증상</em></p>
+    <h4>좋은 prompt</h4>
+    <p><code class="chip k">&lt;X&gt; 가 &lt;Y&gt; 로 동작 안 함. 기대: &lt;Z&gt;. 고쳐줘.</code></p>
+    <h4>자동 로드</h4>
+    <p>없음 (메인 직접 처리). 커밋 시 <code>commit</code> 발화로 <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> 자동 활성.</p>
+    <h4>메인 역할</h4>
+    <p>직접 read + edit + commit. 서브에이전트 dispatch 불필요.</p>
+    <h4>피하기</h4>
+    <p>단일 버그에 <code class="chip k">버그 전수조사</code> / <code class="chip k">사용성 버그</code> 같은 large-task trigger 발화 → over-dispatch.</p>
+  </div>
+
+  <div class="card" id="task-2">
+    <div class="head"><span class="name">2. 다중 버그 / 사용성 회귀 sweep</span></div>
+    <p><em>3+ 파일 또는 모호한 증상</em></p>
+    <h4>좋은 prompt</h4>
+    <p><code class="chip k">사용성 버그 모두 잡아줘</code> &nbsp; <code class="chip k">버그 전수조사 해줘</code> &nbsp; <code class="chip k">플랜 여러개로 쪼개고 사이클 자율로 돌면서 모두 개선</code></p>
+    <h4>자동 로드</h4>
+    <p><a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> (R2 chain rule)</p>
+    <h4>메인 역할</h4>
+    <p>5+ 파일 직접 read <strong>금지</strong>. EXPLORER subagent (<code>oh-my-claudecode:explore</code>) 위임 → 결과 합성 → 메타 plan → executor sonnet 위임 cycle 반복. 메인은 orchestrate + verify + commit 만.</p>
+    <h4>피하기</h4>
+    <p>메인이 EXPLORER 대신 직접 파일 read. <code class="chip k">끝까지 끝내줘</code> 추가 시 <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a> 3-슬롯 contract 확인 없이 진입.</p>
+  </div>
+
+  <div class="card" id="task-3">
+    <div class="head"><span class="name">3. 소규모 신기능</span></div>
+    <p><em>≤ 200 LoC, 1–2 파일, 명확한 spec</em></p>
+    <h4>좋은 prompt</h4>
+    <p><code>"&lt;기능 설명&gt;. 인수기준: &lt;AC&gt;. 테스트 포함."</code></p>
+    <h4>자동 로드</h4>
+    <p>없음. 메인 직접 진행. 테스트 원할 시 prompt 에 <code class="chip k">TDD 로 진행</code> 명시 → <a href="#s-test-coverage"><span class="chip">kzk-test-coverage</span></a> + <code>superpowers:test-driven-development</code> 발동.</p>
+    <h4>메인 역할</h4>
+    <p>직접 구현. 서브에이전트 불필요.</p>
+    <h4>피하기</h4>
+    <p>소규모 기능을 large-task 로 처리 — 불필요한 spec phase + codex consult 낭비.</p>
+  </div>
+
+  <div class="card" id="task-4">
+    <div class="head"><span class="name">4. 중·대형 신기능</span></div>
+    <p><em>3+ 파일 또는 200+ LoC — ORM / API / DB 영역</em></p>
+    <h4>좋은 prompt</h4>
+    <p>권장 3-phase 시퀀스: (1) <code class="chip k">이 기능 spec 잡자: &lt;description&gt;</code> → (2) <code class="chip k">plan 작성해줘</code> → (3) <code>"ok 이대로 진행"</code> 또는 <code class="chip k">ralph로 돌려</code></p>
+    <h4>자동 로드</h4>
+    <p>Phase 1–2: <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> (Step 0 <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> 자동 선행 포함). Phase 3: <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> + <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a></p>
+    <h4>메인 역할</h4>
+    <p>spec/plan 작성 + executor 결과 review + Pre-commit Gate 0–5 (전체 10-gate) + 최종 commit. spec 산출물: <span class="path">docs/plans/&lt;topic&gt;-design.md</span>.</p>
+    <h4>피하기</h4>
+    <p>대형 기능에 spec phase 건너뛰기. Phase 3 진입 전 3-슬롯 autonomous contract 확인 생략.</p>
+  </div>
+
+  <div class="card" id="task-5">
+    <div class="head"><span class="name">5. 아키텍처 / 설계 결정 / DB schema / 보안</span></div>
+    <h4>좋은 prompt</h4>
+    <p><code class="chip k">spec 잡자: &lt;topic&gt;. major design 이라 codex review 필수.</code></p>
+    <h4>자동 로드</h4>
+    <p><a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> (codex consult 필수 — 아키텍처 주제에서 생략 불가)</p>
+    <h4>메인 역할</h4>
+    <p>planner opus dispatch → codex CLI 병렬 consult → critic opus → 합성된 frozen plan. plan / critic / verify 모두 opus + xhigh effort. 코드는 executor 위임, 메인 직접 금지.</p>
+    <h4>피하기</h4>
+    <p>보안·schema 결정에 codex review 생략. major architecture 에 sonnet planner 사용.</p>
+  </div>
+
+  <div class="card" id="task-6">
+    <div class="head"><span class="name">6. 메커니컬 리팩토링 (Cycle 29 신규 haiku tier)</span></div>
+    <p><em>rename / version bump / config flag toggle / lint follow-up / single-line change × N 파일</em></p>
+    <h4>좋은 prompt</h4>
+    <p><code>"[mechanical] X 를 Y 로 모든 파일에서 rename"</code></p>
+    <h4>자동 로드</h4>
+    <p>3+ 파일 시 <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a></p>
+    <h4>메인 역할</h4>
+    <p>executor <code>model: 'haiku'</code> dispatch — codex consult, opus thinking 불필요. inferring 이 필요한 부분 (variable name 결정, error 메시지 wording, conditional 분기) 있으면 sonnet 으로 escalate.</p>
+    <h4>피하기</h4>
+    <p>단순 rename 에 opus 사용. 메인이 N 개 파일을 직접 edit.</p>
+  </div>
+
+  <div class="card" id="task-7">
+    <div class="head"><span class="name">7. 구현 검증 / spec audit (read-only)</span></div>
+    <h4>좋은 prompt</h4>
+    <p><code class="chip k">ralph로 체크</code> &nbsp; <code class="chip k">구현 검증해줘</code> &nbsp; <code class="chip k">하나하나 확인</code> &nbsp; <code class="chip k">spec vs implementation 매칭 확인</code></p>
+    <h4>자동 로드</h4>
+    <p>R2 chain: <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a></p>
+    <h4>메인 역할</h4>
+    <p>절대 직접 read 금지. EXPLORER subagent 위임 (<code>oh-my-claudecode:explore</code>, <code>model: 'sonnet'</code> 깊은 read / <code>'haiku'</code> 타겟 lookup). CRG MCP / CLI 우선, grep fallback. 출력: <span class="path">docs/harness/surveys/YYYY-MM-DD-&lt;topic&gt;-verification.md</span>.</p>
+    <h4>피하기</h4>
+    <p>spec 검증 목적으로 메인이 5+ 파일 직접 read. fresh-agent verifier 없이 자가 선언 "verification PASS".</p>
+  </div>
+
+  <div class="card" id="task-8">
+    <div class="head"><span class="name">8. 자가개선 (harness 룰 변경 / 메타 갭 닫기)</span></div>
+    <h4>좋은 prompt</h4>
+    <p><code class="chip k">자가개선 루프 돌려보자</code> &nbsp; <code class="chip k">harness 개선 루프</code> &nbsp; <code class="chip k">재발 방지</code> &nbsp; <code class="chip k">메타 갭 닫자</code></p>
+    <h4>자동 로드</h4>
+    <p>R5 4-set 메타 스택: <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> + <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> + <a href="#s-autonomous-loop"><span class="chip">kzk-autonomous-loop</span></a></p>
+    <h4>메인 역할</h4>
+    <p>spec phase (codex skip 시 명시 + 사유 필수) → executor sonnet/haiku dispatch → 메인 검증 + atomic commit. <strong>자기 자신에게 룰 적용 의무</strong> — 메인이 직접 large-task 실행하면 그 자체가 메타 갭 (Session-28 lesson).</p>
+    <h4>피하기</h4>
+    <p>메인이 3+ 스킬 SKILL.md 파일을 executor 없이 직접 edit. harness 룰 변경에 spec phase 건너뛰기.</p>
+  </div>
+
+  <div class="card" id="task-9">
+    <div class="head"><span class="name">9. 자율 모드 진입 (장시간 / 사용자 부재)</span></div>
+    <h4>좋은 prompt</h4>
+    <p><code class="chip k">끝까지 끝내줘</code> &nbsp; <code class="chip k">자는 동안 진행</code> &nbsp; <code class="chip k">ralph로 돌려</code> &nbsp; <code class="chip k">실행해놔야 queue 보지</code></p>
+    <h4>자동 로드</h4>
+    <p><a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a> 즉시 발동</p>
+    <h4>메인 역할 (필수)</h4>
+    <p>진입 전 ASK FIRST — 3-슬롯 명시 답 받기: (a) 별 branch vs 직접 commit (b) branch 이름 (c) PR 여부. silent default 금지. 직접 main commit 은 사용자 명시 인가 시만 허용. context 50% 도달 시: <code>/compact &lt;remaining tasks&gt;</code> + 비어있지 않은 요약 인자 필수 (<span class="chip q">Q-COMPACT-EVASION</span> halt 방지). 대용량 변경 dispatch 전: <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> 필수; 없으면 → <span class="chip q">Q-SURVEY-MISSING</span> halt.</p>
+    <h4>피하기</h4>
+    <p>3-슬롯 contract 확인 전 자율 작업 시작. 요약 인자 없이 <code>/compact</code> 실행. survey 없이 large-task dispatch.</p>
+  </div>
+
+  <div class="card" id="task-10">
+    <div class="head"><span class="name">10. commit / PR / merge</span></div>
+    <h4>좋은 prompt</h4>
+    <p><code class="chip k">commit</code> &nbsp; <code class="chip k">PR 올려줘</code> &nbsp; <code>"merge it"</code></p>
+    <h4>자동 로드</h4>
+    <p><a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> (Gate 0–5, 전체 10-gate) → <a href="#s-pre-merge-sync"><span class="chip">kzk-pre-merge-sync</span></a> (PR/milestone 직전 deepinit + CLAUDE.md sync)</p>
+    <h4>메인 역할</h4>
+    <p><strong>doc-only 아닌 일반 commit:</strong> Gate 0 (AGENTS sync) → 0.5 (freshness) → 1 (ai-slop) → 1.5 (secrets AKIA/ASIA) → 1.6 (prod code-first) → 2 (build) → 3 (test) → 4 (Playwright, UI 변경 시) → 4.5 (fix-scope) → 5 (fresh-agent verifier).<br/>
+    <strong>doc-only 빠른 길</strong> (<code>*.md</code> / <code>docs/**</code> 단독): Gate 1.5 secrets + verify-install AC2 만. full suite 는 cycle close 1회.</p>
+    <h4>피하기</h4>
+    <p>doc-only 아닌 변경에 Gate 5 fresh-agent verifier 생략. production 코드 staged 상태에서 doc-only 빠른 길 사용.</p>
+  </div>
+
+  <div class="card" id="task-11">
+    <div class="head"><span class="name">11. production / DB / IAM / credential</span></div>
+    <h4>좋은 prompt</h4>
+    <p><code class="chip k">AWS 에 SSM 으로 접속해서 ...</code> &nbsp; <code class="chip k">production DB &lt;X&gt; drop</code> (명시적 사용자 인가 필수)</p>
+    <h4>자동 로드</h4>
+    <p><a href="#s-production-access"><span class="chip">kzk-production-access</span></a></p>
+    <h4>메인 역할</h4>
+    <p>read-only 접근도 사용자 명시 요청 없이는 금지. 상태 변경: AI는 스크립트 작성만, 사용자/CI가 실행. multi-step 시 단계별 OK 사인 필수. STS (<code>ASIA</code> prefix + SessionToken) 만 한시 허용. permanent <code>AKIA</code> 는 거부 + revoke 절차 안내.</p>
+    <h4>피하기</h4>
+    <p>사용자 명시 없이 production 데이터 read. AI 에이전트가 직접 상태 변경 스크립트 실행.</p>
+  </div>
+
+  <div class="card" id="task-12">
+    <div class="head"><span class="name">12. UI / Playwright Gate 4 / OAuth 로그인</span></div>
+    <h4>좋은 prompt</h4>
+    <p><code class="chip k">Google 로그인 화면 떴어</code> &nbsp; <code class="chip k">로그인 버튼</code> (OAuth click-through 자동 시작)</p>
+    <h4>자동 로드</h4>
+    <p><a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> Gate 4 가 <code>web/src/**/*.{tsx,ts,css}</code> 변경 staged 시 <a href="#s-playwright-verification"><span class="chip">kzk-playwright-verification</span></a> 자동 호출.</p>
+    <h4>메인 역할</h4>
+    <p>스크린샷 전 dev 서버 health pre-check (process alive + log tail error grep) 필수. 3+ 페이지 navigate + screenshot fullPage + console error 0 확인 + 1–3 문장 narration 의무. OAuth: 에이전트가 직접 click-through — 사용자 대기 없이 계정 picker 까지 처리. password/MFA prompt 만 halt + user-queue.<br/>
+    6개 halt: <span class="chip q">Q-PW-OAUTH-NEW-ACCOUNT</span> <span class="chip q">Q-PW-OAUTH-MULTI-ACCOUNT</span> <span class="chip q">Q-PW-OAUTH-CONSENT-LOOP</span> <span class="chip q">Q-PW-OAUTH-STUCK</span> <span class="chip q">Q-PW-OAUTH-CHALLENGE</span> <span class="chip q">Q-PW-OAUTH-PROVIDER-ERROR</span></p>
+    <h4>피하기</h4>
+    <p>Gate 4 Playwright 실행 없이 UI 변경 commit. 에이전트가 자동 처리 가능한 OAuth 단계를 사용자 대기. dev 서버 health check 생략 (dev/prod build trap — Tailwind v4 <code>@import</code> 순서 문제 등).</p>
+  </div>
+
+  <div class="card" id="task-13">
+    <div class="head"><span class="name">13. 자율 모드 + 대용량 변경 (autonomous + multi-file)</span></div>
+    <p><em>v1.13.0 신규 — 시나리오 2 (다중 버그) + 시나리오 9 (자율 모드) 결합</em></p>
+    <h4>좋은 prompt</h4>
+    <p><code class="chip k">끝까지 끝내줘</code> + <code class="chip k">버그 전수조사</code> / <code class="chip k">사용성 회귀 모두 잡아줘</code> 조합</p>
+    <h4>자동 로드</h4>
+    <p><a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a> (3-슬롯 contract) + <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> (pre-dispatch survey 필수) + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> (executor sonnet dispatch)</p>
+    <h4>메인 역할</h4>
+    <ol>
+      <li>branch contract 3-슬롯 ASK FIRST (destination / branch name / PR 여부)</li>
+      <li>EXPLORER subagent 로 <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> 선행 — autonomous 모드에서 multi-file scope 의 large-task dispatch 직전 필수</li>
+      <li>survey 결과 + frozen plan 포함하여 executor sonnet dispatch</li>
+      <li>각 cycle 끝 <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> Gate 0–5 + atomic commit</li>
+      <li>context 50% 도달 시 <code>/compact &lt;remaining tasks&gt;</code> 인자 필수 (<span class="chip q">Q-COMPACT-EVASION</span> 방지)</li>
+    </ol>
+    <h4>피하기</h4>
+    <p>survey 없이 executor dispatch → <span class="chip q">Q-SURVEY-MISSING</span>. 메인이 5+ 파일 직접 read → <span class="chip q">Q-MAIN-DIRECT-EDIT</span>.</p>
+  </div>
+
+  <hr/>
+
+  <h3>메타 룰 (모든 작업 공통)</h3>
+  <ol>
+    <li><strong>Branch contract</strong> — autonomous 또는 multi-commit 작업 시 시작 전 ASK FIRST 3-슬롯. 사용자 명시 외엔 새 branch 가 default.</li>
+    <li><strong>5+ file read = 메인 금지</strong> — 무조건 EXPLORER subagent 위임 (read-heavy audit dispatch shape).</li>
+    <li><strong>3+ file edit OR 200+ LoC = executor 위임</strong> — 메인은 orchestrate + verify + commit. 직접 실행하면 Session-6/Session-28 anti-pattern.</li>
+    <li><strong>Session 단위 contract 고정</strong> — scope 가 material 하게 바뀔 때만 재확인 (doc-only → code, single-module → multi-module, low-risk → destructive).</li>
+    <li><strong>doc-only 빠른 길</strong> — <code>*.md</code> / <code>docs/**</code> 단독 commit 은 Gate 1.5 + AC2 만, full suite 는 cycle close 1회 (Cycle 29 fast path).</li>
+    <li><strong>Scope estimation (Cycle 30 신규)</strong> — non-trivial 요청은 <code>git status</code> + 디렉토리 scan + CRG 로 30초 추정 → 1-line preamble <code>[scope] est. N files / M LoC → &lt;route&gt;</code> → 그 라우팅으로 진행. 추정 빗나가면 (mid-execution 5+ 파일 read 또는 3+ 파일 edit) 즉시 halt + restart 위임.</li>
+    <li><strong>TDD sequence (Cycle 30 신규)</strong> — autonomous 모드 또는 large-task dispatch 의 모든 신기능/버그픽스: 실패 test 먼저 (red) → impl (green) → refactor → commit. 버그픽스 = 회귀 test 가 first artifact, 없으면 incomplete.</li>
+    <li><strong><code>/compact</code> 인자 의무 (Cycle 54 신규)</strong> — autonomous 모드 내 context 50% 도달 시 반드시 <code>/compact &lt;remaining tasks&gt;</code> 형태로 호출. 빈 <code>/compact</code> 는 <span class="chip q">Q-COMPACT-EVASION</span> halt 발동.</li>
+  </ol>
+
+  <h3>모델 / thinking-level 요약 (Cycle 29–30)</h3>
   <table>
-    <thead><tr><th>컴포넌트</th><th>역할</th><th>로드 위치 / 방법</th><th>사용 스킬</th></tr></thead>
+    <thead><tr><th>Tier</th><th>사용</th></tr></thead>
     <tbody>
-      <tr>
-        <td><code>kzk-* (18 skills)</code></td>
-        <td>이 레포의 핵심</td>
-        <td>
-          <strong>Global</strong>: <span class="path">~/.claude/skills/kzk-*/SKILL.md</span> (README install one-liner → <code>install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard</code>).<br/>
-          <strong>Project-only</strong>: <span class="path">.claude/skills/kzk-*/SKILL.md</span> (README PROJECT-ONLY procedure).
-        </td>
-        <td>모든 스킬</td>
-      </tr>
-      <tr>
-        <td><code>harness-share.md</code></td>
-        <td>공통 SoT (§1–§33)</td>
-        <td>
-          Global install copies to <span class="path">~/.claude/skills/.kzk-harness-shared/harness-share.md</span> (dot-prefix — not an invocable skill).<br/>
-          Project-only: copied to repo root as <span class="path">harness-share.md</span>.<br/>
-          Dev 모드 (<code>--symlink-mode</code>): 이 파일만 symlink.
-        </td>
-        <td>모든 스킬 — 각 SKILL.md의 "Authoritative source" 행이 참조</td>
-      </tr>
-      <tr>
-        <td><code>~/.claude/CLAUDE.md</code> marker block</td>
-        <td>글로벌 스킬 라우팅 테이블</td>
-        <td>
-          <code>install-global.sh</code> 가 <code>&lt;!-- kzk-harness:START --&gt;</code> marker block 을 idempotent 하게 교체 (블록 외부는 byte-for-byte 보존).
-        </td>
-        <td>키워드 → 스킬 매핑 테이블</td>
-      </tr>
-      <tr>
-        <td><code>oh-my-claudecode</code> (OMC) plugin</td>
-        <td>서브에이전트 디스패치 / deepinit / ToolSearch 헬퍼</td>
-        <td>
-          Claude Code 세션 안에서 <code>/plugin</code> 으로 설치. <span class="path">~/.claude/plugins/installed_plugins.json</span> 의 <code>oh-my-claudecode@*</code> 키 유무로 감지.<br/>
-          미설치 시 <code>install/dependencies.sh</code> 가 안내 출력 — 절대 hard-fail 아님.
-        </td>
-        <td>large-task-delegation, pre-commit-gate (Gate 0 deepinit_manifest), spec-and-review (critic fallback), pre-merge-sync (deepinit), test-coverage (verifier)</td>
-      </tr>
-      <tr>
-        <td><code>playwright-mcp</code></td>
-        <td>브라우저 자동화 MCP</td>
-        <td>
-          세션 안에서 <code>/plugin</code> 또는 <code>claude mcp add playwright -- npx -y @playwright/mcp@latest</code> 로 추가.<br/>
-          <span class="path">~/.claude.json</span> + <span class="path">&lt;project&gt;/.mcp.json</span> 항목으로 감지.
-        </td>
-        <td>playwright-verification (Gate 4), web-loop</td>
-      </tr>
-      <tr>
-        <td><code>gstack</code> plugin</td>
-        <td><code>/learn</code> JSONL 저장소</td>
-        <td>
-          Session <code>/plugin</code> install. Detected by presence of <span class="path">~/.gstack/projects/</span>.
-        </td>
-        <td>regression-memory (recall hook), web-loop (사이클 회고)</td>
-      </tr>
-      <tr>
-        <td><code>context7</code> MCP</td>
-        <td>외부 라이브러리 문서 조회</td>
-        <td>
-          플러그인 또는 <code>.mcp.json</code> 등록 (OMC 와 함께 묶이는 경우 많음). 호출명: <code>mcp__plugin_context7_context7__resolve-library-id</code>, <code>...__query-docs</code>.
-        </td>
-        <td>codebase-survey Step 4</td>
-      </tr>
-      <tr>
-        <td><code>code-review-graph</code> (CRG)</td>
-        <td>Tree-sitter + SQLite 코드 그래프</td>
-        <td>
-          <code>install/dependencies.sh</code> auto-installs via <code>pip --user → pipx</code> fallback, then calls <code>code-review-graph install</code> to self-register as an MCP server in the project's <span class="path">.mcp.json</span>. Also usable as a CLI.<br/>
-          그래프 build 는 <strong>프로젝트별</strong>: <code>code-review-graph build</code> 또는 첫 survey 시 자동 트리거.
-        </td>
-        <td>codebase-survey (Steps 0.5/1/2), freshness-guard, fix-scope-expansion, pre-commit-gate (Gate 0.5)</td>
-      </tr>
-      <tr>
-        <td><code>codex</code> CLI (OpenAI)</td>
-        <td>크로스 벤더 2차 검토</td>
-        <td>
-          <code>install/dependencies.sh</code> tries <code>npm i -g @openai/codex</code> then <code>brew install codex</code>. Detected via PATH.<br/>
-          호출 규칙은 <code>kzk-codex-handoff</code> SKILL.md (5 hard rules: stdin pipe, <code>--ephemeral</code> 등) 참조.
-        </td>
-        <td>spec-and-review (Step 2 review), large-task-delegation (plan-critic loop)</td>
-      </tr>
-      <tr>
-        <td><code>gh</code> CLI</td>
-        <td>GitHub PR / CI / 댓글</td>
-        <td>감지 전용 — <code>brew install gh</code> 로 수동 설치. 없으면 PR 워크플로우 중단.</td>
-        <td>pre-merge-sync, autonomous-boundary (PR 생성 단계)</td>
-      </tr>
-      <tr>
-        <td><code>aws-vault</code></td>
-        <td>STS 기반 AWS 자격 증명 저장소</td>
-        <td>감지 전용 — <code>brew install aws-vault</code> 로 수동 설치. 없으면 <code>aws sso login</code> 으로 폴백; 평문 AKIA 키는 항상 거부.</td>
-        <td>production-access (권장, 필수 아님)</td>
-      </tr>
-      <tr>
-        <td><code>superpowers:*</code> 스킬</td>
-        <td>writing-plans, brainstorming, subagent-driven-development 등</td>
-        <td>외부 superpowers 플러그인 — Claude Code 가 자동으로 검색. 이 repo 는 설치하지 않음 (호환 의존성).</td>
-        <td>spec-and-review (Step -1 brainstorming), web-loop (writing-plans + subagent-driven-development)</td>
-      </tr>
+      <tr><td><strong>Opus + xhigh</strong></td><td>plan authoring (default), critic on architecture/security, semantic verify, ambiguous spec</td></tr>
+      <tr><td><strong>Opus + high</strong></td><td>well-scoped plan, mechanical critic (≤ 200 LoC, no security), pre-spec'd verify</td></tr>
+      <tr><td><strong>Sonnet</strong></td><td>일반 implementation (executor), mechanical verify (build/test/screenshot), explorer 깊은 read</td></tr>
+      <tr><td><strong>Haiku</strong></td><td>version bump, frontmatter rewrite, single-line config, lint follow-up, progress log append, atomic rename, explorer 타겟 lookup, git ops 단순 (status/log/diff/commit -m/fast-forward merge/non-conflict cherry-pick)</td></tr>
     </tbody>
   </table>
-  <div class="note">
-    <strong>설계 의도</strong>: 모든 외부 의존성은 <em>점진적 저하(graceful degradation)</em>를 지원합니다. 도구 미설치 시 스킬은 폴백 경로로 전환합니다.
-    예: codex CLI 없음 → OMC <code>critic</code> opus (동일 벤더, 동일 맹점 — 명시됨); CRG 없음 → grep 폴백 (전이 정확도 낮음).
-    어떤 설치도 하드 실패하지 않습니다.
-  </div>
+  <p>목표 분포: 50% sonnet + 30% haiku + 20% opus. <code>model</code> 파라미터 명시 누락 = opus default = 비용 폭증, 절대 금지.</p>
+
+  <h3>트리거 갭 (현재 매칭 안 되는 흔한 phrase)</h3>
+  <ul>
+    <li><code>"&lt;X&gt; 만들어줘"</code> (단순 신기능) — 의도된 동작 (단순 작업은 메인 직접)</li>
+    <li><code>"성능 개선"</code> / <code>"perf"</code> — performance audit trigger 없음 (별도 cycle 후보)</li>
+    <li><code>"보안 감사"</code> / <code>"security review"</code> — <a href="#s-production-access"><span class="chip">kzk-production-access</span></a> 가 부분 cover, audit 자체 trigger 없음</li>
+  </ul>
+  <p>닫힌 갭: Cycle 30 — <code>"테스트 추가"</code> / <code>"TDD"</code> → R6. Cycle 50+ — <code>"상세하게 봐줘"</code> → R2. Cycle 54 — <code>context 50%</code> compact 인자 의무 → R12 coverage.<br/>
+  갭 닫으려면 <code class="chip k">자가개선 루프</code> 호출 → <span class="path">install/hooks/keyword-detector.mjs</span> RULES 확장 cycle.</p>
 </section>
 
 <section id="big-picture">
@@ -1058,214 +1153,119 @@ flowchart TD
   </table>
 </section>
 
-<section id="usage-by-task">
-  <h2>8. 작업 유형별 가이드</h2>
-  <p>각 시나리오는 구체적인 prompt 패턴 → 자동 로드 스킬 → 메인 역할 → 피해야 할 것을 매핑합니다. 한국어 트리거 phrase 는 키워드 감지기가 그대로 매칭하므로 chip 형식으로 표시합니다.</p>
-
-  <div class="card" id="task-1">
-    <div class="head"><span class="name">1. 단순 버그 픽스</span></div>
-    <p><em>1 파일 / ≤ 30 LoC / 명확한 증상</em></p>
-    <h4>좋은 prompt</h4>
-    <p><code class="chip k">&lt;X&gt; 가 &lt;Y&gt; 로 동작 안 함. 기대: &lt;Z&gt;. 고쳐줘.</code></p>
-    <h4>자동 로드</h4>
-    <p>없음 (메인 직접 처리). 커밋 시 <code>commit</code> 발화로 <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> 자동 활성.</p>
-    <h4>메인 역할</h4>
-    <p>직접 read + edit + commit. 서브에이전트 dispatch 불필요.</p>
-    <h4>피하기</h4>
-    <p>단일 버그에 <code class="chip k">버그 전수조사</code> / <code class="chip k">사용성 버그</code> 같은 large-task trigger 발화 → over-dispatch.</p>
-  </div>
-
-  <div class="card" id="task-2">
-    <div class="head"><span class="name">2. 다중 버그 / 사용성 회귀 sweep</span></div>
-    <p><em>3+ 파일 또는 모호한 증상</em></p>
-    <h4>좋은 prompt</h4>
-    <p><code class="chip k">사용성 버그 모두 잡아줘</code> &nbsp; <code class="chip k">버그 전수조사 해줘</code> &nbsp; <code class="chip k">플랜 여러개로 쪼개고 사이클 자율로 돌면서 모두 개선</code></p>
-    <h4>자동 로드</h4>
-    <p><a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> (R2 chain rule)</p>
-    <h4>메인 역할</h4>
-    <p>5+ 파일 직접 read <strong>금지</strong>. EXPLORER subagent (<code>oh-my-claudecode:explore</code>) 위임 → 결과 합성 → 메타 plan → executor sonnet 위임 cycle 반복. 메인은 orchestrate + verify + commit 만.</p>
-    <h4>피하기</h4>
-    <p>메인이 EXPLORER 대신 직접 파일 read. <code class="chip k">끝까지 끝내줘</code> 추가 시 <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a> 3-슬롯 contract 확인 없이 진입.</p>
-  </div>
-
-  <div class="card" id="task-3">
-    <div class="head"><span class="name">3. 소규모 신기능</span></div>
-    <p><em>≤ 200 LoC, 1–2 파일, 명확한 spec</em></p>
-    <h4>좋은 prompt</h4>
-    <p><code>"&lt;기능 설명&gt;. 인수기준: &lt;AC&gt;. 테스트 포함."</code></p>
-    <h4>자동 로드</h4>
-    <p>없음. 메인 직접 진행. 테스트 원할 시 prompt 에 <code class="chip k">TDD 로 진행</code> 명시 → <a href="#s-test-coverage"><span class="chip">kzk-test-coverage</span></a> + <code>superpowers:test-driven-development</code> 발동.</p>
-    <h4>메인 역할</h4>
-    <p>직접 구현. 서브에이전트 불필요.</p>
-    <h4>피하기</h4>
-    <p>소규모 기능을 large-task 로 처리 — 불필요한 spec phase + codex consult 낭비.</p>
-  </div>
-
-  <div class="card" id="task-4">
-    <div class="head"><span class="name">4. 중·대형 신기능</span></div>
-    <p><em>3+ 파일 또는 200+ LoC — ORM / API / DB 영역</em></p>
-    <h4>좋은 prompt</h4>
-    <p>권장 3-phase 시퀀스: (1) <code class="chip k">이 기능 spec 잡자: &lt;description&gt;</code> → (2) <code class="chip k">plan 작성해줘</code> → (3) <code>"ok 이대로 진행"</code> 또는 <code class="chip k">ralph로 돌려</code></p>
-    <h4>자동 로드</h4>
-    <p>Phase 1–2: <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> (Step 0 <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> 자동 선행 포함). Phase 3: <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> + <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a></p>
-    <h4>메인 역할</h4>
-    <p>spec/plan 작성 + executor 결과 review + Pre-commit Gate 0–5 (전체 10-gate) + 최종 commit. spec 산출물: <span class="path">docs/plans/&lt;topic&gt;-design.md</span>.</p>
-    <h4>피하기</h4>
-    <p>대형 기능에 spec phase 건너뛰기. Phase 3 진입 전 3-슬롯 autonomous contract 확인 생략.</p>
-  </div>
-
-  <div class="card" id="task-5">
-    <div class="head"><span class="name">5. 아키텍처 / 설계 결정 / DB schema / 보안</span></div>
-    <h4>좋은 prompt</h4>
-    <p><code class="chip k">spec 잡자: &lt;topic&gt;. major design 이라 codex review 필수.</code></p>
-    <h4>자동 로드</h4>
-    <p><a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> (codex consult 필수 — 아키텍처 주제에서 생략 불가)</p>
-    <h4>메인 역할</h4>
-    <p>planner opus dispatch → codex CLI 병렬 consult → critic opus → 합성된 frozen plan. plan / critic / verify 모두 opus + xhigh effort. 코드는 executor 위임, 메인 직접 금지.</p>
-    <h4>피하기</h4>
-    <p>보안·schema 결정에 codex review 생략. major architecture 에 sonnet planner 사용.</p>
-  </div>
-
-  <div class="card" id="task-6">
-    <div class="head"><span class="name">6. 메커니컬 리팩토링 (Cycle 29 신규 haiku tier)</span></div>
-    <p><em>rename / version bump / config flag toggle / lint follow-up / single-line change × N 파일</em></p>
-    <h4>좋은 prompt</h4>
-    <p><code>"[mechanical] X 를 Y 로 모든 파일에서 rename"</code></p>
-    <h4>자동 로드</h4>
-    <p>3+ 파일 시 <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a></p>
-    <h4>메인 역할</h4>
-    <p>executor <code>model: 'haiku'</code> dispatch — codex consult, opus thinking 불필요. inferring 이 필요한 부분 (variable name 결정, error 메시지 wording, conditional 분기) 있으면 sonnet 으로 escalate.</p>
-    <h4>피하기</h4>
-    <p>단순 rename 에 opus 사용. 메인이 N 개 파일을 직접 edit.</p>
-  </div>
-
-  <div class="card" id="task-7">
-    <div class="head"><span class="name">7. 구현 검증 / spec audit (read-only)</span></div>
-    <h4>좋은 prompt</h4>
-    <p><code class="chip k">ralph로 체크</code> &nbsp; <code class="chip k">구현 검증해줘</code> &nbsp; <code class="chip k">하나하나 확인</code> &nbsp; <code class="chip k">spec vs implementation 매칭 확인</code></p>
-    <h4>자동 로드</h4>
-    <p>R2 chain: <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a></p>
-    <h4>메인 역할</h4>
-    <p>절대 직접 read 금지. EXPLORER subagent 위임 (<code>oh-my-claudecode:explore</code>, <code>model: 'sonnet'</code> 깊은 read / <code>'haiku'</code> 타겟 lookup). CRG MCP / CLI 우선, grep fallback. 출력: <span class="path">docs/harness/surveys/YYYY-MM-DD-&lt;topic&gt;-verification.md</span>.</p>
-    <h4>피하기</h4>
-    <p>spec 검증 목적으로 메인이 5+ 파일 직접 read. fresh-agent verifier 없이 자가 선언 "verification PASS".</p>
-  </div>
-
-  <div class="card" id="task-8">
-    <div class="head"><span class="name">8. 자가개선 (harness 룰 변경 / 메타 갭 닫기)</span></div>
-    <h4>좋은 prompt</h4>
-    <p><code class="chip k">자가개선 루프 돌려보자</code> &nbsp; <code class="chip k">harness 개선 루프</code> &nbsp; <code class="chip k">재발 방지</code> &nbsp; <code class="chip k">메타 갭 닫자</code></p>
-    <h4>자동 로드</h4>
-    <p>R5 4-set 메타 스택: <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> + <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> + <a href="#s-autonomous-loop"><span class="chip">kzk-autonomous-loop</span></a></p>
-    <h4>메인 역할</h4>
-    <p>spec phase (codex skip 시 명시 + 사유 필수) → executor sonnet/haiku dispatch → 메인 검증 + atomic commit. <strong>자기 자신에게 룰 적용 의무</strong> — 메인이 직접 large-task 실행하면 그 자체가 메타 갭 (Session-28 lesson).</p>
-    <h4>피하기</h4>
-    <p>메인이 3+ 스킬 SKILL.md 파일을 executor 없이 직접 edit. harness 룰 변경에 spec phase 건너뛰기.</p>
-  </div>
-
-  <div class="card" id="task-9">
-    <div class="head"><span class="name">9. 자율 모드 진입 (장시간 / 사용자 부재)</span></div>
-    <h4>좋은 prompt</h4>
-    <p><code class="chip k">끝까지 끝내줘</code> &nbsp; <code class="chip k">자는 동안 진행</code> &nbsp; <code class="chip k">ralph로 돌려</code> &nbsp; <code class="chip k">실행해놔야 queue 보지</code></p>
-    <h4>자동 로드</h4>
-    <p><a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a> 즉시 발동</p>
-    <h4>메인 역할 (필수)</h4>
-    <p>진입 전 ASK FIRST — 3-슬롯 명시 답 받기: (a) 별 branch vs 직접 commit (b) branch 이름 (c) PR 여부. silent default 금지. 직접 main commit 은 사용자 명시 인가 시만 허용. context 50% 도달 시: <code>/compact &lt;remaining tasks&gt;</code> + 비어있지 않은 요약 인자 필수 (<span class="chip q">Q-COMPACT-EVASION</span> halt 방지). 대용량 변경 dispatch 전: <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> 필수; 없으면 → <span class="chip q">Q-SURVEY-MISSING</span> halt.</p>
-    <h4>피하기</h4>
-    <p>3-슬롯 contract 확인 전 자율 작업 시작. 요약 인자 없이 <code>/compact</code> 실행. survey 없이 large-task dispatch.</p>
-  </div>
-
-  <div class="card" id="task-10">
-    <div class="head"><span class="name">10. commit / PR / merge</span></div>
-    <h4>좋은 prompt</h4>
-    <p><code class="chip k">commit</code> &nbsp; <code class="chip k">PR 올려줘</code> &nbsp; <code>"merge it"</code></p>
-    <h4>자동 로드</h4>
-    <p><a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> (Gate 0–5, 전체 10-gate) → <a href="#s-pre-merge-sync"><span class="chip">kzk-pre-merge-sync</span></a> (PR/milestone 직전 deepinit + CLAUDE.md sync)</p>
-    <h4>메인 역할</h4>
-    <p><strong>doc-only 아닌 일반 commit:</strong> Gate 0 (AGENTS sync) → 0.5 (freshness) → 1 (ai-slop) → 1.5 (secrets AKIA/ASIA) → 1.6 (prod code-first) → 2 (build) → 3 (test) → 4 (Playwright, UI 변경 시) → 4.5 (fix-scope) → 5 (fresh-agent verifier).<br/>
-    <strong>doc-only 빠른 길</strong> (<code>*.md</code> / <code>docs/**</code> 단독): Gate 1.5 secrets + verify-install AC2 만. full suite 는 cycle close 1회.</p>
-    <h4>피하기</h4>
-    <p>doc-only 아닌 변경에 Gate 5 fresh-agent verifier 생략. production 코드 staged 상태에서 doc-only 빠른 길 사용.</p>
-  </div>
-
-  <div class="card" id="task-11">
-    <div class="head"><span class="name">11. production / DB / IAM / credential</span></div>
-    <h4>좋은 prompt</h4>
-    <p><code class="chip k">AWS 에 SSM 으로 접속해서 ...</code> &nbsp; <code class="chip k">production DB &lt;X&gt; drop</code> (명시적 사용자 인가 필수)</p>
-    <h4>자동 로드</h4>
-    <p><a href="#s-production-access"><span class="chip">kzk-production-access</span></a></p>
-    <h4>메인 역할</h4>
-    <p>read-only 접근도 사용자 명시 요청 없이는 금지. 상태 변경: AI는 스크립트 작성만, 사용자/CI가 실행. multi-step 시 단계별 OK 사인 필수. STS (<code>ASIA</code> prefix + SessionToken) 만 한시 허용. permanent <code>AKIA</code> 는 거부 + revoke 절차 안내.</p>
-    <h4>피하기</h4>
-    <p>사용자 명시 없이 production 데이터 read. AI 에이전트가 직접 상태 변경 스크립트 실행.</p>
-  </div>
-
-  <div class="card" id="task-12">
-    <div class="head"><span class="name">12. UI / Playwright Gate 4 / OAuth 로그인</span></div>
-    <h4>좋은 prompt</h4>
-    <p><code class="chip k">Google 로그인 화면 떴어</code> &nbsp; <code class="chip k">로그인 버튼</code> (OAuth click-through 자동 시작)</p>
-    <h4>자동 로드</h4>
-    <p><a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> Gate 4 가 <code>web/src/**/*.{tsx,ts,css}</code> 변경 staged 시 <a href="#s-playwright-verification"><span class="chip">kzk-playwright-verification</span></a> 자동 호출.</p>
-    <h4>메인 역할</h4>
-    <p>스크린샷 전 dev 서버 health pre-check (process alive + log tail error grep) 필수. 3+ 페이지 navigate + screenshot fullPage + console error 0 확인 + 1–3 문장 narration 의무. OAuth: 에이전트가 직접 click-through — 사용자 대기 없이 계정 picker 까지 처리. password/MFA prompt 만 halt + user-queue.<br/>
-    6개 halt: <span class="chip q">Q-PW-OAUTH-NEW-ACCOUNT</span> <span class="chip q">Q-PW-OAUTH-MULTI-ACCOUNT</span> <span class="chip q">Q-PW-OAUTH-CONSENT-LOOP</span> <span class="chip q">Q-PW-OAUTH-STUCK</span> <span class="chip q">Q-PW-OAUTH-CHALLENGE</span> <span class="chip q">Q-PW-OAUTH-PROVIDER-ERROR</span></p>
-    <h4>피하기</h4>
-    <p>Gate 4 Playwright 실행 없이 UI 변경 commit. 에이전트가 자동 처리 가능한 OAuth 단계를 사용자 대기. dev 서버 health check 생략 (dev/prod build trap — Tailwind v4 <code>@import</code> 순서 문제 등).</p>
-  </div>
-
-  <div class="card" id="task-13">
-    <div class="head"><span class="name">13. 자율 모드 + 대용량 변경 (autonomous + multi-file)</span></div>
-    <p><em>v1.13.0 신규 — 시나리오 2 (다중 버그) + 시나리오 9 (자율 모드) 결합</em></p>
-    <h4>좋은 prompt</h4>
-    <p><code class="chip k">끝까지 끝내줘</code> + <code class="chip k">버그 전수조사</code> / <code class="chip k">사용성 회귀 모두 잡아줘</code> 조합</p>
-    <h4>자동 로드</h4>
-    <p><a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a> (3-슬롯 contract) + <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> (pre-dispatch survey 필수) + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> (executor sonnet dispatch)</p>
-    <h4>메인 역할</h4>
-    <ol>
-      <li>branch contract 3-슬롯 ASK FIRST (destination / branch name / PR 여부)</li>
-      <li>EXPLORER subagent 로 <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> 선행 — autonomous 모드에서 multi-file scope 의 large-task dispatch 직전 필수</li>
-      <li>survey 결과 + frozen plan 포함하여 executor sonnet dispatch</li>
-      <li>각 cycle 끝 <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> Gate 0–5 + atomic commit</li>
-      <li>context 50% 도달 시 <code>/compact &lt;remaining tasks&gt;</code> 인자 필수 (<span class="chip q">Q-COMPACT-EVASION</span> 방지)</li>
-    </ol>
-    <h4>피하기</h4>
-    <p>survey 없이 executor dispatch → <span class="chip q">Q-SURVEY-MISSING</span>. 메인이 5+ 파일 직접 read → <span class="chip q">Q-MAIN-DIRECT-EDIT</span>.</p>
-  </div>
-
-  <hr/>
-
-  <h3>메타 룰 (모든 작업 공통)</h3>
-  <ol>
-    <li><strong>Branch contract</strong> — autonomous 또는 multi-commit 작업 시 시작 전 ASK FIRST 3-슬롯. 사용자 명시 외엔 새 branch 가 default.</li>
-    <li><strong>5+ file read = 메인 금지</strong> — 무조건 EXPLORER subagent 위임 (read-heavy audit dispatch shape).</li>
-    <li><strong>3+ file edit OR 200+ LoC = executor 위임</strong> — 메인은 orchestrate + verify + commit. 직접 실행하면 Session-6/Session-28 anti-pattern.</li>
-    <li><strong>Session 단위 contract 고정</strong> — scope 가 material 하게 바뀔 때만 재확인 (doc-only → code, single-module → multi-module, low-risk → destructive).</li>
-    <li><strong>doc-only 빠른 길</strong> — <code>*.md</code> / <code>docs/**</code> 단독 commit 은 Gate 1.5 + AC2 만, full suite 는 cycle close 1회 (Cycle 29 fast path).</li>
-    <li><strong>Scope estimation (Cycle 30 신규)</strong> — non-trivial 요청은 <code>git status</code> + 디렉토리 scan + CRG 로 30초 추정 → 1-line preamble <code>[scope] est. N files / M LoC → &lt;route&gt;</code> → 그 라우팅으로 진행. 추정 빗나가면 (mid-execution 5+ 파일 read 또는 3+ 파일 edit) 즉시 halt + restart 위임.</li>
-    <li><strong>TDD sequence (Cycle 30 신규)</strong> — autonomous 모드 또는 large-task dispatch 의 모든 신기능/버그픽스: 실패 test 먼저 (red) → impl (green) → refactor → commit. 버그픽스 = 회귀 test 가 first artifact, 없으면 incomplete.</li>
-    <li><strong><code>/compact</code> 인자 의무 (Cycle 54 신규)</strong> — autonomous 모드 내 context 50% 도달 시 반드시 <code>/compact &lt;remaining tasks&gt;</code> 형태로 호출. 빈 <code>/compact</code> 는 <span class="chip q">Q-COMPACT-EVASION</span> halt 발동.</li>
-  </ol>
-
-  <h3>모델 / thinking-level 요약 (Cycle 29–30)</h3>
+<section id="external-loading">
+  <h2>8. 외부 스킬 &amp; 도구 — 로딩 위치와 방법</h2>
+  <p>
+    kzk-* 스킬은 다른 플러그인, MCP 서버, CLI 도구에 적극적으로 의존합니다.
+    아래 표는 각 의존성이 <strong>메인 세션에 진입하는 방식</strong>과 어떤 스킬이 사용하는지를 보여줍니다:
+  </p>
   <table>
-    <thead><tr><th>Tier</th><th>사용</th></tr></thead>
+    <thead><tr><th>컴포넌트</th><th>역할</th><th>로드 위치 / 방법</th><th>사용 스킬</th></tr></thead>
     <tbody>
-      <tr><td><strong>Opus + xhigh</strong></td><td>plan authoring (default), critic on architecture/security, semantic verify, ambiguous spec</td></tr>
-      <tr><td><strong>Opus + high</strong></td><td>well-scoped plan, mechanical critic (≤ 200 LoC, no security), pre-spec'd verify</td></tr>
-      <tr><td><strong>Sonnet</strong></td><td>일반 implementation (executor), mechanical verify (build/test/screenshot), explorer 깊은 read</td></tr>
-      <tr><td><strong>Haiku</strong></td><td>version bump, frontmatter rewrite, single-line config, lint follow-up, progress log append, atomic rename, explorer 타겟 lookup, git ops 단순 (status/log/diff/commit -m/fast-forward merge/non-conflict cherry-pick)</td></tr>
+      <tr>
+        <td><code>kzk-* (18 skills)</code></td>
+        <td>이 레포의 핵심</td>
+        <td>
+          <strong>Global</strong>: <span class="path">~/.claude/skills/kzk-*/SKILL.md</span> (README install one-liner → <code>install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard</code>).<br/>
+          <strong>Project-only</strong>: <span class="path">.claude/skills/kzk-*/SKILL.md</span> (README PROJECT-ONLY procedure).
+        </td>
+        <td>모든 스킬</td>
+      </tr>
+      <tr>
+        <td><code>harness-share.md</code></td>
+        <td>공통 SoT (§1–§33)</td>
+        <td>
+          Global install copies to <span class="path">~/.claude/skills/.kzk-harness-shared/harness-share.md</span> (dot-prefix — not an invocable skill).<br/>
+          Project-only: copied to repo root as <span class="path">harness-share.md</span>.<br/>
+          Dev 모드 (<code>--symlink-mode</code>): 이 파일만 symlink.
+        </td>
+        <td>모든 스킬 — 각 SKILL.md의 "Authoritative source" 행이 참조</td>
+      </tr>
+      <tr>
+        <td><code>~/.claude/CLAUDE.md</code> marker block</td>
+        <td>글로벌 스킬 라우팅 테이블</td>
+        <td>
+          <code>install-global.sh</code> 가 <code>&lt;!-- kzk-harness:START --&gt;</code> marker block 을 idempotent 하게 교체 (블록 외부는 byte-for-byte 보존).
+        </td>
+        <td>키워드 → 스킬 매핑 테이블</td>
+      </tr>
+      <tr>
+        <td><code>oh-my-claudecode</code> (OMC) plugin</td>
+        <td>서브에이전트 디스패치 / deepinit / ToolSearch 헬퍼</td>
+        <td>
+          Claude Code 세션 안에서 <code>/plugin</code> 으로 설치. <span class="path">~/.claude/plugins/installed_plugins.json</span> 의 <code>oh-my-claudecode@*</code> 키 유무로 감지.<br/>
+          미설치 시 <code>install/dependencies.sh</code> 가 안내 출력 — 절대 hard-fail 아님.
+        </td>
+        <td>large-task-delegation, pre-commit-gate (Gate 0 deepinit_manifest), spec-and-review (critic fallback), pre-merge-sync (deepinit), test-coverage (verifier)</td>
+      </tr>
+      <tr>
+        <td><code>playwright-mcp</code></td>
+        <td>브라우저 자동화 MCP</td>
+        <td>
+          세션 안에서 <code>/plugin</code> 또는 <code>claude mcp add playwright -- npx -y @playwright/mcp@latest</code> 로 추가.<br/>
+          <span class="path">~/.claude.json</span> + <span class="path">&lt;project&gt;/.mcp.json</span> 항목으로 감지.
+        </td>
+        <td>playwright-verification (Gate 4), web-loop</td>
+      </tr>
+      <tr>
+        <td><code>gstack</code> plugin</td>
+        <td><code>/learn</code> JSONL 저장소</td>
+        <td>
+          Session <code>/plugin</code> install. Detected by presence of <span class="path">~/.gstack/projects/</span>.
+        </td>
+        <td>regression-memory (recall hook), web-loop (사이클 회고)</td>
+      </tr>
+      <tr>
+        <td><code>context7</code> MCP</td>
+        <td>외부 라이브러리 문서 조회</td>
+        <td>
+          플러그인 또는 <code>.mcp.json</code> 등록 (OMC 와 함께 묶이는 경우 많음). 호출명: <code>mcp__plugin_context7_context7__resolve-library-id</code>, <code>...__query-docs</code>.
+        </td>
+        <td>codebase-survey Step 4</td>
+      </tr>
+      <tr>
+        <td><code>code-review-graph</code> (CRG)</td>
+        <td>Tree-sitter + SQLite 코드 그래프</td>
+        <td>
+          <code>install/dependencies.sh</code> auto-installs via <code>pip --user → pipx</code> fallback, then calls <code>code-review-graph install</code> to self-register as an MCP server in the project's <span class="path">.mcp.json</span>. Also usable as a CLI.<br/>
+          그래프 build 는 <strong>프로젝트별</strong>: <code>code-review-graph build</code> 또는 첫 survey 시 자동 트리거.
+        </td>
+        <td>codebase-survey (Steps 0.5/1/2), freshness-guard, fix-scope-expansion, pre-commit-gate (Gate 0.5)</td>
+      </tr>
+      <tr>
+        <td><code>codex</code> CLI (OpenAI)</td>
+        <td>크로스 벤더 2차 검토</td>
+        <td>
+          <code>install/dependencies.sh</code> tries <code>npm i -g @openai/codex</code> then <code>brew install codex</code>. Detected via PATH.<br/>
+          호출 규칙은 <code>kzk-codex-handoff</code> SKILL.md (5 hard rules: stdin pipe, <code>--ephemeral</code> 등) 참조.
+        </td>
+        <td>spec-and-review (Step 2 review), large-task-delegation (plan-critic loop)</td>
+      </tr>
+      <tr>
+        <td><code>gh</code> CLI</td>
+        <td>GitHub PR / CI / 댓글</td>
+        <td>감지 전용 — <code>brew install gh</code> 로 수동 설치. 없으면 PR 워크플로우 중단.</td>
+        <td>pre-merge-sync, autonomous-boundary (PR 생성 단계)</td>
+      </tr>
+      <tr>
+        <td><code>aws-vault</code></td>
+        <td>STS 기반 AWS 자격 증명 저장소</td>
+        <td>감지 전용 — <code>brew install aws-vault</code> 로 수동 설치. 없으면 <code>aws sso login</code> 으로 폴백; 평문 AKIA 키는 항상 거부.</td>
+        <td>production-access (권장, 필수 아님)</td>
+      </tr>
+      <tr>
+        <td><code>superpowers:*</code> 스킬</td>
+        <td>writing-plans, brainstorming, subagent-driven-development 등</td>
+        <td>외부 superpowers 플러그인 — Claude Code 가 자동으로 검색. 이 repo 는 설치하지 않음 (호환 의존성).</td>
+        <td>spec-and-review (Step -1 brainstorming), web-loop (writing-plans + subagent-driven-development)</td>
+      </tr>
     </tbody>
   </table>
-  <p>목표 분포: 50% sonnet + 30% haiku + 20% opus. <code>model</code> 파라미터 명시 누락 = opus default = 비용 폭증, 절대 금지.</p>
-
-  <h3>트리거 갭 (현재 매칭 안 되는 흔한 phrase)</h3>
-  <ul>
-    <li><code>"&lt;X&gt; 만들어줘"</code> (단순 신기능) — 의도된 동작 (단순 작업은 메인 직접)</li>
-    <li><code>"성능 개선"</code> / <code>"perf"</code> — performance audit trigger 없음 (별도 cycle 후보)</li>
-    <li><code>"보안 감사"</code> / <code>"security review"</code> — <a href="#s-production-access"><span class="chip">kzk-production-access</span></a> 가 부분 cover, audit 자체 trigger 없음</li>
-  </ul>
-  <p>닫힌 갭: Cycle 30 — <code>"테스트 추가"</code> / <code>"TDD"</code> → R6. Cycle 50+ — <code>"상세하게 봐줘"</code> → R2. Cycle 54 — <code>context 50%</code> compact 인자 의무 → R12 coverage.<br/>
-  갭 닫으려면 <code class="chip k">자가개선 루프</code> 호출 → <span class="path">install/hooks/keyword-detector.mjs</span> RULES 확장 cycle.</p>
+  <div class="note">
+    <strong>설계 의도</strong>: 모든 외부 의존성은 <em>점진적 저하(graceful degradation)</em>를 지원합니다. 도구 미설치 시 스킬은 폴백 경로로 전환합니다.
+    예: codex CLI 없음 → OMC <code>critic</code> opus (동일 벤더, 동일 맹점 — 명시됨); CRG 없음 → grep 폴백 (전이 정확도 낮음).
+    어떤 설치도 하드 실패하지 않습니다.
+  </div>
 </section>
 
 <section id="harness-share">
