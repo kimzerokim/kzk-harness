@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.10.0
+version: 1.11.0
 description: "Autonomous web page improvement loop (P0/P1/P2 prioritization). P0 fast-path → executor; P1/P2 → codebase-survey + writing-plans + subagent-driven-development. Reviewer-FAIL skip override (vs autonomous-loop default). Triggers: 'web loop', '웹 루프', '자율 개선', '계속 돌려', '무한 루프'. References harness-share.md §25."
 ---
 
@@ -195,7 +195,7 @@ Every failure skips the current issue and picks the next one. All skipped issues
 | Playwright MCP hangs | Cascade recovery → degraded mode | No |
 | Playwright auth expired | Skip visual this cycle → continue | No |
 | Rate limit (5 h window) | `ScheduleWakeup(delaySeconds=600)` → resume | No |
-| Context ≥ 80 % | `/compact` → one-line restate → continue | No |
+| Context ≥ 50 % | `/compact <remaining-tasks summary>` → one-line restate → continue | No |
 | Subagent returns BLOCKED | Skip → next issue | No |
 | Git conflict | `git fetch && git rebase` → skip file if fails | No |
 | Missing npm package | `npm install <pkg>` → retry | No |
@@ -212,6 +212,7 @@ After every cycle, append to `harness-flow-progress.md`:
 Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue one-liner] — queue: N remaining — PW: ok|degraded
 ```
 
+Before `/compact`: pre-compute the remaining-tasks summary; pass it as the `/compact` argument (see harness-share.md §13).
 After `/compact`, restate in one line before the next tool call:
 "Cycle N, last: [issue], queue: [N remaining], PW: [ok/degraded]"
 

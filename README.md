@@ -66,7 +66,7 @@ Skills load when you say their trigger keyword in chat. You don't `/invoke` anyt
 
 3. **Branch + dispatch.** Switch to `feature/<topic>` (NEVER edit on `main`). Say "ok 이대로 ralph로 돌려" or "executor에게 넘겨" — `kzk-large-task-delegation` dispatches a sonnet executor subagent with the frozen plan + survey report + Gate 0–4 instructions in the prompt.
 
-4. **Autonomous run (optional).** Phrases like "끝까지 끝내줘", "자는 동안 진행해" trigger `kzk-autonomous-boundary`. The loop continues until completion, halts on (a) ≥ 2 consecutive reviewer/critic FAILs OR ≥ 3 consecutive build/test FAILs on the same area, (b) destructive op without ok-sign, (c) `kzk-tool-retry` exhausted. Halts append to `docs/harness/user-queue.md` for you to resolve when you return. Rate-limit / context-80% / multi-plan continuation handled by `kzk-autonomous-loop` (sleep + ScheduleWakeup, then resume).
+4. **Autonomous run (optional).** Phrases like "끝까지 끝내줘", "자는 동안 진행해" trigger `kzk-autonomous-boundary`. The loop continues until completion, halts on (a) ≥ 2 consecutive reviewer/critic FAILs OR ≥ 3 consecutive build/test FAILs on the same area, (b) destructive op without ok-sign, (c) `kzk-tool-retry` exhausted. Halts append to `docs/harness/user-queue.md` for you to resolve when you return. Rate-limit / context-50% / multi-plan continuation handled by `kzk-autonomous-loop` (sleep + ScheduleWakeup, then resume).
 
 5. **Commit.** Saying "commit" loads `kzk-pre-commit-gate`. The skill runs up to 6 gates per commit batch — Gate 0 (AGENTS.md sync, conditional), Gate 1 (ai-slop-cleaner), Gate 1.5 (secrets scan), Gate 2 (build), Gate 3 (tests), Gate 4 (Playwright UI smoke if UI changed via `kzk-playwright-verification`). Each commit message ends with the gate-PASS line consumed by `kzk-pre-merge-sync`.
 
@@ -82,7 +82,7 @@ The skills cross-reference each other; you don't have to memorize the whole chai
 | `kzk-large-task-delegation` | 3+ file edits, 200+ LoC, subagent dispatch, opus/sonnet routing, read-heavy audit, spec 검증, 버그 전수조사, 마무리 해줘, 전수 검토, 끝내줘 |
 | `kzk-playwright-verification` | Playwright, Gate 4, browser_navigate, screenshot, MCP drop |
 | `kzk-autonomous-boundary` | ralph, ralph로 체크, ralph로 확인, autonomous mode, halt condition, main branch boundary |
-| `kzk-autonomous-loop` | rate limit, context 80%, multi-plan continuation |
+| `kzk-autonomous-loop` | rate limit, context 50%, multi-plan continuation |
 | `kzk-background-monitoring` | run_in_background, Monitor, long-running, build, install |
 | `kzk-spec-and-review` | spec 잡자/작성, plan 작성, spec/plan/design draft, major design, architecture review, codex review, cross-verify |
 | `kzk-pre-merge-sync` | merge, feature branch, CLAUDE.md sync, deepinit |
@@ -190,7 +190,7 @@ Also installed: `harness-share.md` — a portable workflow guide covering the fu
 - **좋은 prompt**: `"끝까지 끝내줘"`, `"자는 동안 진행"`, `"ralph로 돌려"`, `"실행해놔야 queue 보지"`
 - **자동 로드**: `kzk-autonomous-boundary` 즉시 발동
 - **메인 역할 (필수)**: 진입 전 ASK FIRST 3-슬롯 명시 답 받기 — (a) 별 branch vs 직접 commit (b) branch 이름 (c) PR 여부. silent default 금지. 직접 main commit 은 사용자 명시 인가 ("main 직접", "main에 바로 커밋") 시만 허용.
-- **rate limit / context 80% / multi-Plan**: `kzk-autonomous-loop` 자동 (silent compact + ScheduleWakeup 5h 윈도우).
+- **rate limit / context 50% / multi-Plan**: `kzk-autonomous-loop` 자동 (`/compact <remaining tasks>` + ScheduleWakeup 5h 윈도우).
 
 #### 10. commit / PR / merge
 

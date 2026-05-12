@@ -1,7 +1,7 @@
 ---
 name: kzk-autonomous-loop
-version: 1.10.0
-description: "Autonomous loop continuation — anti-polite-stop contract. Governs rate-limit polling (ScheduleWakeup 600s), extra-usage/overage tier override (no halt), auto /compact at 80% context, Plan A→N auto-continuation. Polite stops forbidden inside autonomous scope (9 canonical examples in body). References harness-share.md §12/§13/§14."
+version: 1.11.0
+description: "Autonomous loop continuation — anti-polite-stop contract. Governs rate-limit polling (ScheduleWakeup 600s), extra-usage/overage tier override (no halt), auto /compact at 50% context with remaining-tasks summary arg, Plan A→N auto-continuation. Polite stops forbidden inside autonomous scope (9 canonical examples in body). References harness-share.md §12/§13/§14."
 ---
 
 > Authoritative source: `harness-share.md` §12 / §13 / §14. On conflict, that wins.
@@ -39,15 +39,23 @@ The 5h-window polling rule (above) applies ONLY when requests actually fail with
 
 **Anti-pattern: cost-driven polite stop.** "extra usage 중이라 일단 멈추고 사용자 확인" 은 polite-stop 위반. cross-ref: §Polite-stop ban examples #9.
 
-## Context budget — auto `/compact` at 80%
+## Context budget — auto `/compact` at 50%
 
-Per turn, internally estimate context-token usage from system reminder hints. At ≥ 80% usage:
+Per turn, internally estimate context-token usage from system reminder hints. At ≥ 50% usage:
 
 1. Do NOT stop. Run `/compact` just before starting the next task
 2. Immediately after `/compact`, restate in one line: current Plan / in-progress task / remaining tasks. Preserves continuity
 3. Allowed to call `/compact` multiple times in one autonomous run if context refills
 
 Polite-stop here is forbidden too — completion within the user-granted autonomous scope means run until done, even across multiple compacts.
+
+### `/compact` invocation pattern (v1.11.0+)
+
+Empty `/compact` (no argument) is forbidden. Always pass a one-line summary of remaining tasks as the argument:
+
+`/compact 남은 작업: <remaining tasks>. 진행 중: <current task>. 다음 단계: <next action>.`
+
+Rationale: the argument is used by Claude Code as the compact summary instruction. Without it, the compact may preserve context unrelated to the current cycle's focus. SoT: `harness-share.md §13`.
 
 ## Plan auto-continuation (multi-Plan run)
 

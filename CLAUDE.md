@@ -12,7 +12,7 @@ All 18 skills are active in this repo. Load one by mentioning its trigger keywor
 | `kzk-large-task-delegation` | 3+ file edits, 200+ LoC, subagent dispatch, opus/sonnet routing, read-heavy audit, spec 검증, 버그 전수조사, 마무리 해줘, 전수 검토, 끝내줘 |
 | `kzk-playwright-verification` | Playwright, Gate 4, browser_navigate, screenshot, MCP drop, dev/prod build trap, dev server health, OAuth multi-account, Q-PW-OAUTH-* |
 | `kzk-autonomous-boundary` | ralph, ralph로 체크, ralph로 확인, autonomous mode, halt condition, main branch boundary, autonomous completion verifier, Q-COMPLETION-SELF-VERIFY, autonomous TDD enforce, Q-TDD-AUTO-MISSING |
-| `kzk-autonomous-loop` | rate limit, context 80%, multi-plan continuation |
+| `kzk-autonomous-loop` | rate limit, context 50%, multi-plan continuation |
 | `kzk-background-monitoring` | run_in_background, Monitor, long-running, build, install |
 | `kzk-spec-and-review` | spec 잡자/작성, plan 작성, spec/plan/design draft, major design, architecture review, codex review, cross-verify, iterative loop, PASS/CONTINUE/HALT gate, brainstorm default ON |
 | `kzk-pre-merge-sync` | merge, feature branch, CLAUDE.md sync, deepinit |
@@ -67,7 +67,7 @@ Each cycle:
 - **메인이 cross-cutting 검증 필요 시** = `kzk-codebase-survey §code-review-graph` (CRG MCP / CLI 우선, grep fallback). 이 레포 자체에 CRG 인덱스 없으면 `code-review-graph build` 부터 — 자기 인프라 부트스트랩 안 한 채 grep 으로 우회하면 메타 갭
 - **새 스킬 추가 / 큰 구조 변경 / 글로벌 install 등 메타 작업** = `kzk-spec-and-review` Step 0 (codebase survey 선행) → Step 1–3 (spec → codex 리뷰 → frozen plan)
 - **Cycle 끝에서 변경 commit** = `kzk-pre-commit-gate` (Gate 0 conditional + Gate 1.5 secrets) + `kzk-pre-merge-sync` (PR-flow 면 PR 직전, direct-main flow 면 milestone 직전)
-- **다중 cycle 자율 실행** = `kzk-autonomous-loop` + `kzk-autonomous-boundary` (rate limit / context 80% / halt 조건)
+- **다중 cycle 자율 실행** = `kzk-autonomous-loop` + `kzk-autonomous-boundary` (rate limit / context 50% / halt 조건)
 - **사용자 prompt 가 'plan 쪼개', '사이클 자율', '사용성 버그', '버그 전수조사' 등 large-task signal 포함 시** = `install/hooks/keyword-detector.mjs` (UserPromptSubmit hook, `--enable-hooks` 로 활성화 — 매칭 시 system-reminder 강제 주입)
 - **메인이 reference collection 목적으로 Bash(ls) / Read 를 연속 호출** = 메타 갭 = 즉시 EXPLORER subagent 로 전환 (`kzk-codebase-survey §Preparation phase delegation`)
 - **메인이 multi-file 라이브러리 변경 / 5+ 파일 edit** = `kzk-large-task-delegation §Model routing` (executor sonnet) 으로 위임, 메인 직접 Edit 금지 (`kzk-autonomous-boundary §Q-MAIN-DIRECT-EDIT`)

@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>kzk-harness — Skill &amp; Workflow Map</title>
-<!-- KZK_SKILL_FLOW_FINGERPRINT: f9d62fbf1622b980 -->
+<!-- KZK_SKILL_FLOW_FINGERPRINT: f88d8dec4f65673b -->
 <!--
   Single-page reference for the 18 kzk-* skills, their workflow entry points,
   and the hook infrastructure that enforces discipline at runtime.
@@ -479,9 +479,9 @@ flowchart TD
   LOOP --> WORK[Work cycle]
   WORK --> RL{rate limit?}
   RL -->|YES| WAKE[ScheduleWakeup 600s]
-  RL -->|NO| CTX{context 80%?}
+  RL -->|NO| CTX{context 50%?}
   WAKE --> WORK
-  CTX -->|YES| COMPACT["/compact + restate"]
+  CTX -->|YES| COMPACT["/compact &lt;summary&gt; + restate"]
   CTX -->|NO| WORK
   COMPACT --> WORK
   WORK --> DONE{Done?}
@@ -694,14 +694,14 @@ flowchart TD
 
   <!-- ============== kzk-autonomous-loop ============== -->
   <div class="card" id="s-autonomous-loop">
-    <div class="head"><span class="name">kzk-autonomous-loop</span><span class="ver">v1.10.0</span><span class="badge auto">auto</span></div>
-    <div class="blurb">Once inside autonomous mode, polite stops are forbidden. Handles rate-limit polling (ScheduleWakeup 600 s), automatic /compact at 80% context, and Plan A→N auto-continuation. The skill body lists 9 canonical polite-stop violation examples so they can be recognized and rejected.</div>
+    <div class="head"><span class="name">kzk-autonomous-loop</span><span class="ver">v1.11.0</span><span class="badge auto">auto</span></div>
+    <div class="blurb">Once inside autonomous mode, polite stops are forbidden. Handles rate-limit polling (ScheduleWakeup 600 s), automatic /compact at 50% context with a remaining-tasks summary as the argument, and Plan A→N auto-continuation. The skill body lists 9 canonical polite-stop violation examples so they can be recognized and rejected.</div>
     <h4>Triggers</h4>
-    <div class="triggers"><span class="chip k">rate limit</span><span class="chip k">context 80%</span><span class="chip k">multi-plan continuation</span></div>
+    <div class="triggers"><span class="chip k">rate limit</span><span class="chip k">context 50%</span><span class="chip k">multi-plan continuation</span></div>
     <h4>Core mechanism</h4>
     <ul>
       <li>Rate limit: <code>ScheduleWakeup({ delaySeconds: 600, ... })</code> — polls until the 5-hour window closes</li>
-      <li>At 80% context: auto <code>/compact</code> + restate-before-dispatch on resume</li>
+      <li>At 50% context: auto <code>/compact &lt;remaining-tasks summary&gt;</code> + restate-before-dispatch on resume</li>
       <li>When Plan A completes: auto-start Plan B (open-PR conflict guard checked first)</li>
       <li>9 polite-stop violations: "X done so far, what next?", "waiting for user confirmation before proceeding", etc.</li>
     </ul>
@@ -901,7 +901,7 @@ flowchart TD
 
   <!-- ============== kzk-web-loop ============== -->
   <div class="card" id="s-web-loop">
-    <div class="head"><span class="name">kzk-web-loop</span><span class="ver">v1.10.0</span><span class="badge entry">entry</span></div>
+    <div class="head"><span class="name">kzk-web-loop</span><span class="ver">v1.11.0</span><span class="badge entry">entry</span></div>
     <div class="blurb">Autonomous web-page improvement loop. P0 issues take a fast-path directly to executor; P1/P2 go through survey + writing-plans + subagent-driven-dev. Reviewer-FAIL skip override differs from the autonomous-loop default. Each cycle ends with a /learn retrospective.</div>
     <h4>Triggers</h4>
     <div class="triggers"><span class="chip k">web loop</span><span class="chip k">웹 루프</span><span class="chip k">자율 개선</span><span class="chip k">loop forever</span><span class="chip k">무한 개선</span><span class="chip k">무한 루프</span><span class="chip k">계속 돌려</span></div>
@@ -1077,7 +1077,7 @@ flowchart TD
       <tr><td>§10</td><td>UI Component Standard (React)</td><td>shadcn etc. (optional)</td></tr>
       <tr><td>§11</td><td>Test Coverage 100%</td><td>TDD sequence, exceptions, coverage script</td></tr>
       <tr><td>§12</td><td>Rate Limit Polling</td><td>ScheduleWakeup 600 s, wakeup restate</td></tr>
-      <tr><td>§13</td><td>Context Budget — 80% /compact</td><td>compact trigger, restate</td></tr>
+      <tr><td>§13</td><td>Context Budget — 50% /compact with summary arg</td><td>compact trigger, summary arg, restate</td></tr>
       <tr><td>§14</td><td>Plan Auto-Continuation</td><td>Plan A→N, open-PR conflict guard</td></tr>
       <tr><td>§14.5</td><td>Pre-Merge CLAUDE.md Update</td><td>6-section sync, subagent dispatch</td></tr>
       <tr><td>§15</td><td>Pre-Merge /deepinit</td><td>mandatory run, PR description line</td></tr>

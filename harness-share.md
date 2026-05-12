@@ -598,13 +598,38 @@ autonomous 세션 중 5h rate-limit 도달 시:
 
 ---
 
-## 13. Context Budget — Auto-/compact at 80%
+## 13. Context Budget — Auto-/compact at 50%
 
-context token 사용률 ≥ 80% 시 다음 작업 시작 직전 `/compact` 실행:
+Context token 사용률 ≥ 50% 시 다음 작업 시작 직전 `/compact` 실행. (이전 임계값 80% 는 너무 늦었음 — main agent 가 자주 인식 실패 + compact 직전 burst tool 사용으로 가용 context 추가 소모.)
 
-- token usage 추정은 매 turn 내부에서 자체 판단
-- compact 직후 현재 plan / in-progress task / 남은 작업 목록 한 줄로 재언급해 맥락 유지
+### 호출 패턴 — `/compact` 에 작업 요약 인자 전달 의무
+
+```
+/compact 남은 작업: <one-line summary of remaining tasks>. 진행 중: <current task>. 다음 단계: <next planned action>.
+```
+
+빈 `/compact` 금지. Claude Code 의 `/compact` 는 인자를 "compact summary instruction" 으로 사용하므로, 인자 없이 호출하면 compact 가 무관한 부분을 보존할 수 있음. 인자에 남은 작업 + 진행 중 + 다음 단계를 명시하면 compact 가 그 focus 로 압축한다.
+
+### Pre-compact 절차
+
+1. 현재 plan 의 미완료 step 열거 (TodoWrite / Task list 참조)
+2. 진행 중인 single task (executor dispatch / verifier 대기 / 테스트 실행 등)
+3. 다음 cycle 또는 다음 action 의 이름
+4. 위 셋을 한 줄로 묶어 `/compact <line>` 호출
+
+### Post-compact 절차
+
+compact 직후 1줄 restate 의무:
+```
+Cycle N, last: [issue], queue: [N remaining], PW: [ok/degraded]
+```
+restate 후 즉시 next tool call 진행 (polite-stop 금지).
+
+### Autonomous mode 룰
+
 - "polite stop" 금지: autonomous 범위 안에선 작업 완료까지 멈추지 않고 필요 시 여러 번 `/compact` 반복
+- 한 cycle 안에서 2번 이상 50% 도달 시 cycle 자체가 너무 큼 — `kzk-large-task-delegation` 으로 추가 분할 dispatch
+- 50% 도달 후 polite stop ("작업이 많아서 일단 여기까지...") 검출 시 즉시 `Q-COMPACT-EVASION` halt 항목 추가 — 직접 polite stop 대신 `/compact` 호출이 정답
 
 ---
 
@@ -977,7 +1002,7 @@ Run a self-directed improvement cycle on a web project until the user explicitly
 
 ### No-halt Policy
 
-Every failure skips the current issue and picks the next. Halt only when: (a) user stops explicitly, (b) every queue item failed 3×, (c) system-level failure. Rate limit → `ScheduleWakeup(delaySeconds=600)`. Context 80% → `/compact` + one-line restate. Playwright drop → cascade recovery (pre-flight ToolSearch → 3-attempt retry → degraded mode), auto-retry next cycle.
+Every failure skips the current issue and picks the next. Halt only when: (a) user stops explicitly, (b) every queue item failed 3×, (c) system-level failure. Rate limit → `ScheduleWakeup(delaySeconds=600)`. Context 50% → `/compact <remaining-tasks summary>` + one-line restate. Playwright drop → cascade recovery (pre-flight ToolSearch → 3-attempt retry → degraded mode), auto-retry next cycle.
 
 ### Playwright as Optional Enhancement
 
@@ -988,7 +1013,7 @@ Pre-flight: `ToolSearch("+browser navigate")` — if not found, DEGRADED MODE im
 One-liner per cycle in `harness-flow-progress.md`:
 `Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue] — queue: N remaining — PW: ok|degraded`
 
-After `/compact`, restate: "Cycle N, last: [issue], queue: [N remaining], PW: [ok/degraded]"
+Before `/compact`, pre-compute the remaining-tasks summary (see §13 호출 패턴). After `/compact`, restate: "Cycle N, last: [issue], queue: [N remaining], PW: [ok/degraded]"
 
 ### Reviewer FAIL override
 
