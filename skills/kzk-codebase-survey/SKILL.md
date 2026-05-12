@@ -1,6 +1,6 @@
 ---
 name: kzk-codebase-survey
-version: 1.15.0
+version: 1.17.0
 description: "Mandatory pre-planning deep codebase explorer via oh-my-claudecode:explore subagent. Hub for fix-start ('fix 시작', '버그 수정', 'callsite 전수'), spec/plan drafts, and detailed analysis ('상세하게 봐줘', '상세히 봐줘'). 8-step survey: CRG verify, scope expansion, deep read, library detect. 5+ main reads forbidden. References harness-share.md §26."
 ---
 
@@ -18,6 +18,8 @@ Run all steps in order (Step 0.5 + Step 1–8). Save report before returning.
 
 `code-review-graph --version` only confirms the binary exists. The build log is not a reliable success signal — it shows the last incremental pass and may report `8 files, 5 edges` even when the full graph holds 2000+ nodes. **`code-review-graph status` is the oracle.** Always verify the index before trusting any query.
 
+> **CRG is mandatory (v1.17.0+).** The survey MUST use CRG. The grep fallback is a last-resort path only when CRG genuinely cannot be made available on the host (binary missing AND auto-install impossible). Empty index + skill silently switching to grep = bug; the skill MUST instead halt with an explicit error so the user knows the survey ran without graph data.
+
 Sequence:
 
 **(a) Binary check.**
@@ -25,11 +27,15 @@ Sequence:
 export PATH="$HOME/.local/bin:$PATH"
 command -v code-review-graph >/dev/null 2>&1
 ```
-If missing AND running in autonomous mode AND `python3 -m pip --version` succeeds:
+If missing AND `python3 -m pip --version` succeeds (both autonomous and interactive):
 ```bash
 python3 -m pip install --user code-review-graph && code-review-graph install
 ```
-PEP 668 fallback: `pipx install code-review-graph`. Both fail → set `CRG_AVAILABLE=false`, queue `Q-INSTALL-CRG-MANUAL`, proceed to grep fallback. Interactive mode without auto-install: log the install command and set `CRG_AVAILABLE=false`. Never halt.
+PEP 668 fallback: `pipx install code-review-graph`.
+
+- **Install succeeds** → proceed to (b).
+- **Both install paths fail** → HALT with `Q-CRG-INSTALL-FAIL` appended to `docs/harness/user-queue.md`. The entry must record: OS, python version, pip error message, suggested manual command. Survey body MUST NOT run; downstream skills (`kzk-spec-and-review`, `kzk-large-task-delegation`) treat this as a Stage-0 blocker. Grep fallback is forbidden when CRG could plausibly be installed.
+- **Interactive sandbox without `pip --version`** → HALT with `Q-CRG-INSTALL-MANUAL` and a one-line install command the user can run. Do not silently degrade to grep.
 
 **(b) Index status (oracle).**
 ```bash
@@ -38,32 +44,37 @@ code-review-graph status 2>&1
 Parse for `Files: <N>`, `Nodes: <N>`, `Edges: <N>`, `Last updated: <ISO>`, `Built at commit: <sha>`. If status command fails OR `Files: 0` OR `Nodes: 0` → index empty/missing.
 
 **(c) Build if empty or stale.**
-- Empty: run `code-review-graph build` (foreground — block on it).
+- Empty: run `code-review-graph build` (foreground — block on it). Must complete; do not background.
 - Stale: if `Built at commit: <sha>` differs from `git rev-parse HEAD` AND `git rev-list --count <sha>..HEAD` > 0 AND this is the **first CRG call this session** → run `code-review-graph update` (incremental). If `update` fails or drift is very large (> 50 commits) → fall back to `code-review-graph build` (full).
 
-**(d) Verify after build.** Re-run `code-review-graph status` and confirm `Files > 0` AND `Nodes > 0`. If still empty after a build → set `CRG_AVAILABLE=false`, queue `Q-CRG-EMPTY-INDEX — build produced 0 nodes, investigate`, proceed to grep fallback.
+**(d) Verify after build (HARD FAIL on empty).** Re-run `code-review-graph status` and confirm `Files > 0` AND `Nodes > 0`. If still empty after a build:
+- HALT with `Q-CRG-EMPTY-INDEX` in `docs/harness/user-queue.md`. Entry must include: full `code-review-graph status` output, full `code-review-graph build` stderr/stdout tail, project file count from `git ls-files | wc -l`, suggested root causes (unsupported language, `.gitignore` over-excluding, missing tree-sitter grammar).
+- Grep fallback is **forbidden** here. The user must see that the survey could not run against the graph and decide explicitly (fix CRG / extend grammars / approve grep for this single run).
+- Override (single-use, requires explicit user instruction): `KZK_CRG_GREP_FALLBACK=1` env var. Setting this records the override in the user-queue entry and proceeds with grep, but the survey report MUST flag itself as `degraded: grep-only` in its header so callers know the result lacks call-site accuracy.
 
 **(e) Cache for session.** Set `CRG_AVAILABLE=true`, `CRG_FILES=<N>`, `CRG_NODES=<N>`, `CRG_LAST_BUILT_SHA=<sha>`. Subsequent survey calls within the same session trust this cache; only re-run `status` if > 30 minutes elapsed OR new commits detected since `CRG_LAST_BUILT_SHA`.
 
-**Cache invalidate triggers** (`CRG_LAST_BUILT_SHA` reset → 다음 CRG call 시 `(f)` 재발동):
-- commit 성공 직후 (`kzk-pre-commit-gate §Post-commit CRG refresh` 적용)
-- multi-Plan continuation 의 plan 사이 (`kzk-autonomous-loop §Multi-plan CRG refresh` 적용)
-- 30분 경과 (기존 룰)
-- new commits detected since `CRG_LAST_BUILT_SHA`
+**Cache invalidate triggers** (`CRG_LAST_BUILT_SHA` reset → next CRG call re-triggers `(f)`):
+- Immediately after a successful commit (`kzk-pre-commit-gate §Post-commit CRG refresh` applies)
+- Between plans during multi-Plan continuation (`kzk-autonomous-loop §Multi-plan CRG refresh` applies)
+- 30 minutes elapsed (existing rule)
+- New commits detected since `CRG_LAST_BUILT_SHA`
 
 **(f) Auto-refresh on first CRG call (session-scoped)**
 
-session 안 처음 CRG 호출 시 (Step 0.5 cache 미설정 또는 cache 만료) 자동 refresh:
-1. `code-review-graph status` 로 `Built at commit: <sha>` vs `git rev-parse HEAD` 비교
-2. drift > 0 commit (`git rev-list --count <sha>..HEAD`) 시 incremental update — `code-review-graph update` 실행 (CLI `update` subcommand — incremental, changed files only). `update` 실패 시 full `code-review-graph build` fallback.
-3. session cache update — `CRG_LAST_BUILT_SHA=<new sha>`, `CRG_FILES=<N>`, `CRG_NODES=<N>`
-4. session 동안 추가 CRG call 은 cache 신뢰 (반복 build X)
+On the first CRG call this session (Step 0.5 cache not set or expired), auto-refresh:
+1. Compare `Built at commit: <sha>` from `code-review-graph status` vs `git rev-parse HEAD`
+2. If drift > 0 commits (`git rev-list --count <sha>..HEAD`) → incremental update — run `code-review-graph update` (CLI `update` subcommand — incremental, changed files only). If `update` fails → full `code-review-graph build` fallback.
+3. Update session cache — `CRG_LAST_BUILT_SHA=<new sha>`, `CRG_FILES=<N>`, `CRG_NODES=<N>`
+4. Subsequent CRG calls this session trust the cache (no repeated builds)
 
-**Anti-pattern** — drift > 0 인데 "작은 drift 라서 skip" (이전 룰 ">10 commit drift" 너무 보수적 — 삭제됨). 작업 처음 CRG call 시 *항상* refresh 의무.
+**Anti-pattern** — drift > 0 but "skip because small drift" (the old ">10 commit drift" rule was too conservative — deleted). Always refresh on the first CRG call of any work session.
 
-**Skip 조건**: `KZK_CRG_NO_REFRESH=1` env (CI / debug 용).
+**Skip condition**: `KZK_CRG_NO_REFRESH=1` env (CI / debug).
 
 **Anti-pattern**: trusting build log output alone. The build log shows the most recent incremental pass — it can read tiny numbers even when the full graph is healthy. Only `status` is authoritative.
+
+**Anti-pattern (v1.17.0)**: EXPLORER subagent silently uses grep when CRG is available but the index is empty. The subagent dispatch report MUST include a verbatim `code-review-graph status` block (Files / Nodes / Edges / Last updated / Built at commit) before any scope-expansion results. If that block is missing from the report, the main agent MUST re-dispatch the survey with an explicit "run Step 0.5 first and quote `code-review-graph status` output in the report header" instruction — and append `Q-SURVEY-CRG-SKIPPED` to the user-queue so the lapse is visible.
 
 ### Step 1 — Scope Expansion
 
@@ -225,12 +236,13 @@ Target files (starting scope): <list of files>
 Working directory: <absolute path>
 Report save path: .web-loop/surveys/cycle-<N>-survey.md
 
-Required reading before starting: CLAUDE.md, harness-share.md §26.
+Required reading before starting: CLAUDE.md, harness-share.md §26, the kzk-codebase-survey SKILL.md (Step 0.5 in particular).
 
-Run all steps from kzk-codebase-survey SKILL.md in order (Step 0.5 + Step 1–8).
+Run all steps in order (Step 0.5 + Step 1–8). CRG is MANDATORY per v1.17.0+ — Step 0.5 must run, the index must be non-empty, and your survey report header MUST include a verbatim 'code-review-graph status' block (Files / Nodes / Edges / Last updated / Built at commit). If the index is empty after a build attempt, do NOT silently switch to grep — halt and append Q-CRG-EMPTY-INDEX to docs/harness/user-queue.md with the diagnostic data the skill spec calls for.
+
 Save the completed report to the path above.
 Return: the absolute path to the saved report file.
-If any step is blocked, note the reason in the report and continue.`,
+If any step is blocked, note the reason in the report and continue — except for the Q-CRG-* halts above, which must short-circuit the survey.`,
   run_in_background: false,
 });
 ```
@@ -262,21 +274,21 @@ Fallback order: MCP → CLI → grep. Skill never halts on missing MCP server. A
 
 ## Preparation phase delegation
 
-spec 작성 / plan 작성 / library 변경의 preparation phase 에서 reference 파일 collection 도 EXPLORER subagent 위임 의무다.
+During the preparation phase of spec authoring / plan authoring / library changes, reference file collection is also mandatory to delegate to an EXPLORER subagent.
 
-### 5+ 파일 read = EXPLORER subagent 무조건
+### 5+ file reads = EXPLORER subagent, unconditionally
 
-메인이 preparation 목적으로 5+ 파일을 직접 read 하면 안 된다. context saturation 으로 결론 품질이 저하되고 ("main reads code weirdly" failure mode), 이후 plan 이나 spec 에 갭이 생긴다.
+Main must not directly read 5+ files for preparation purposes. Context saturation degrades conclusion quality (the "main reads code weirdly" failure mode), leading to gaps in the resulting plan or spec.
 
-- **5+ 파일 read** → `oh-my-claudecode:explore` (model=sonnet) dispatch. 메인은 200-word evidence summary 만 받는다.
-- **raw 파일 내용이 메인 컨텍스트로 직접 유입되는 것 자체가 갭** — 축약 summary 도 200 words 상한.
-- 3-4 파일 이하 read 도 preparation 목적이면 EXPLORER 우선 권장 (must 아님, 단 5+ 는 must).
+- **5+ file reads** → dispatch `oh-my-claudecode:explore` (model=sonnet). Main receives only a 200-word evidence summary.
+- **Raw file contents flowing directly into main context is itself the gap** — even summaries are capped at 200 words.
+- 3-4 file reads for preparation purposes should prefer EXPLORER (not mandatory, but 5+ is mandatory).
 
 ### Anti-pattern — Main direct-read during preparation
 
-메인이 Bash(ls/find) → Read 를 연속 호출하거나 같은 응답에서 3+ 파일 read 시도 시 즉시 EXPLORER subagent dispatch 로 전환.
+If main calls Bash(ls/find) → Read in sequence, or attempts 3+ file reads in a single response, switch immediately to EXPLORER subagent dispatch.
 
-> Full signal list + 대응: `kzk-large-task-delegation` §Anti-pattern §Main direct-edit. `kzk-autonomous-boundary` §Q-MAIN-DIRECT-EDIT.
+> Full signal list + response: `kzk-large-task-delegation` §Anti-pattern §Main direct-edit. `kzk-autonomous-boundary` §Q-MAIN-DIRECT-EDIT.
 
 ## Interaction with other kzk-*
 
@@ -285,5 +297,5 @@ spec 작성 / plan 작성 / library 변경의 preparation phase 에서 reference
 - **kzk-spec-and-review §"Step 0 — Codebase survey precondition"**: This skill is the precondition for any spec / plan / major design draft. The codex review skill blocks Step 1 (Draft) until a survey report exists. Survey report path is then cited in the draft prompt's CONTEXT block as "Required reading", and the same path is appended to the Codex CLI prompt's DESIGN UNDER REVIEW section.
 - **kzk-background-monitoring**: EXPLORER dispatch is a long-running subagent; narrate after completion per result-narration mandate.
 - **kzk-tool-retry**: If any EXPLORER Edit/Write/Bash call fails mid-survey, apply the 1-retry policy before halting — do not abort the entire survey on a single tool failure.
-- **kzk-fix-scope-expansion (Plan B)**: fix 시작 시 CRG callsite 전수 조회 트리거 (`fix 시작`, `버그 수정`, `callsite 전수` 등). SoT = harness-share §3.5. fix-start hook 발동 시 자동 invoke 관계.
-- **kzk-freshness-guard**: survey 시작 전 기존 리포트의 stale 여부 검증. `crg-utils.validateLineRefs()` 로 line reference 유효성 CRG 체크. recursion guard 적용.
+- **kzk-fix-scope-expansion (Plan B)**: Triggers CRG callsite sweep on fix start ('fix 시작', '버그 수정', 'callsite 전수', etc.). SoT = harness-share §3.5. Auto-invoked when the fix-start hook fires.
+- **kzk-freshness-guard**: Verify staleness of any existing report before starting a new survey. `crg-utils.validateLineRefs()` checks line reference validity via CRG. Recursion guard applies.

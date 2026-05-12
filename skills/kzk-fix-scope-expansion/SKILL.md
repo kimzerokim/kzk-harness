@@ -1,6 +1,6 @@
 ---
 name: kzk-fix-scope-expansion
-version: 1.5.0
+version: 1.6.0
 description: "Fix scope expansion + Gate 4.5 callsite sanity. Cross-ref invoked from kzk-codebase-survey on fix-start flows. Direct triggers: 'callsite 전수', 'Gate 4.5', 'fix-scope-cache', 'KZK_GATE45_SKIP', 'callsite 누락'. Default DISABLED until kzk-pre-merge-sync step 3. References harness-share.md §3.5."
 ---
 
@@ -10,193 +10,194 @@ description: "Fix scope expansion + Gate 4.5 callsite sanity. Cross-ref invoked 
 
 ## Why
 
-AI 자율실행 cycle 의 **Fix scope 누수** 메타갭: 한 callsite 만 수정하고 같은 함수를 호출하는 다른 파일은 누락. Plan B (spec rev7 Axis B) 가 이를 차단.
+**Fix scope leakage** is a meta-gap in AI autonomous execution cycles: one callsite is patched while other files calling the same function are missed. Plan B (spec rev7 Axis B) blocks this.
 
-진입점 2개:
-1. **fix-start hook** — UserPromptSubmit 시 fix intent 감지 → callsite 전수 조회 → system-reminder inject
-2. **fix-verify manual self-check** — Edit + test 완료 후 직접 callsite grep 실행 의무
-Pre-commit **Gate 4.5** 가 최종 sanity check.
+Two entry points:
+1. **fix-start hook** — detects fix intent on UserPromptSubmit → sweeps all callsites → injects system-reminder
+2. **fix-verify manual self-check** — after Edit + test complete, run callsite grep manually
+
+Pre-commit **Gate 4.5** is the final sanity check.
 
 ## Fix-start hook
 
-### Trigger 룰
+### Trigger rules
 
 `install/hooks/fix-scope-trigger.mjs` (UserPromptSubmit):
 
-1. `hook-shared.shouldSkip(prompt, env)` → skip reason 있으면 즉시 `{continue:true}` 반환
-2. `hook-shared.detectFixIntent(prompt)` → false 면 즉시 `{continue:true}` 반환 (non-fix silent pass)
-3. 심볼 추출 (prompt 에서):
-   - backtick 패턴: `` `functionName` ``
-   - camelCase 단어 (길이 ≥ 4, 대문자 포함)
-   - `functionName()` 패턴
-   - snake_case 단어
-4. CRG 가용 시 `code-review-graph detect-changes` 실행. 실패/미설치 → grep fallback
-5. callsite list 캡처 → 200 char truncation
-6. `.kzk-harness/fix-scope-cache.jsonl` 에 `writeSingleEntryWithLock(path, commitSHA, callsiteList)` append
-7. system-reminder inject
+1. `hook-shared.shouldSkip(prompt, env)` → if skip reason found, return `{continue:true}` immediately
+2. `hook-shared.detectFixIntent(prompt)` → if false, return `{continue:true}` immediately (non-fix silent pass)
+3. Symbol extraction (from prompt):
+   - backtick pattern: `` `functionName` ``
+   - camelCase word (length ≥ 4, contains uppercase)
+   - `functionName()` pattern
+   - snake_case word
+4. If CRG available: run `code-review-graph detect-changes`. On failure/not-installed → grep fallback
+5. Capture callsite list → 200 char truncation
+6. Append to `.kzk-harness/fix-scope-cache.jsonl` via `writeSingleEntryWithLock(path, commitSHA, callsiteList)`
+7. Inject system-reminder
 
-### hook-shared import 의무
+### hook-shared import requirement
 
 ```js
 import { shouldSkip, detectFixIntent, FIX_KEYWORDS } from '../lib/hook-shared.mjs';
 import { writeSingleEntryWithLock } from '../lib/cache-write.mjs';
 ```
 
-독자 `FIX_KEYWORDS` / `shouldSkip` 정의 금지 — hook-shared 가 단일 SoT.
+Do not define independent `FIX_KEYWORDS` / `shouldSkip` — hook-shared is the single SoT.
 
-### CRG 시그니처 (Task 0 확정본)
+### CRG signature (Task 0 confirmed)
 
 ```bash
 code-review-graph detect-changes --base HEAD~1
 ```
 
-`--symbol`, `--file`, `query`, `blast-radius` 서브커맨드 없음 — 사용 금지.
+`--symbol`, `--file`, `query`, `blast-radius` subcommands do not exist — do not use.
 
 ### grep fallback
 
-CRG 미설치 또는 실패 시:
+When CRG is not installed or fails:
 
 ```bash
 grep -rn <symbol> --include='*.{ts,tsx,js,mjs,sh,py}' --exclude-dir={node_modules,.git,docs}
 ```
 
-`docs/` 제외 의무 — 문서 내 언급 callsite 오염 차단.
+`docs/` exclusion is mandatory — prevents callsite contamination from documentation mentions.
 
-### cache 위치
+### cache location
 
 `.kzk-harness/fix-scope-cache.jsonl` (JSONL append, key=commit SHA, value=callsite list array).
 
-### recall consumer 관계 (Plan D)
+### recall consumer relationship (Plan D)
 
-fix-scope-trigger.mjs 는 regression-recall.mjs **다음 슬롯** 에 `UserPromptSubmit` 배열 등록.
-Plan D recall 결과가 먼저 inject 된 후, B 의 callsite reminder 가 그 다음 슬롯에서 inject.
+fix-scope-trigger.mjs registers in the `UserPromptSubmit` array **after** regression-recall.mjs.
+Plan D recall results are injected first; Plan B callsite reminder is injected in the next slot.
 
 ## Fix-verify hook (manual self-check rule)
 
-`PostToolUse` hook 은 `install-global.sh` 미지원 → 수동 rule:
+`PostToolUse` hook is not supported by `install-global.sh` → manual rule:
 
-1. Edit + test (기능 구현 + 테스트 통과) 완료 후
-2. `hook-shared.detectFixIntent` 의 `FIX_KEYWORDS` 목록으로 수정한 함수명 callsite grep 실행:
+1. After Edit + test complete (feature implemented + tests passing)
+2. Run callsite grep using the `FIX_KEYWORDS` list from `hook-shared.detectFixIntent` for the modified function name:
    ```bash
    grep -rn <functionName> --include='*.{ts,tsx,js,mjs,sh,py}' --exclude-dir={node_modules,.git,docs}
    ```
-3. 미수정 callsite 발견 시: 수정 OR commit body 에 `"intentionally skipped: <path>"` 기재
-4. Gate 4.5 에서 `.kzk-harness/fix-scope-cache.jsonl` 기반 BLOCK 됨 — 이 self-check 로 사전 차단 가능
+3. If unmodified callsites found: either fix them OR add `"intentionally skipped: <path>"` to commit body
+4. Gate 4.5 will BLOCK based on `.kzk-harness/fix-scope-cache.jsonl` — this self-check catches it early
 
-이 룰은 `kzk-pre-commit-gate` Gate 4.5 의 사전 self-check 에 해당.
+This rule is the pre-emptive self-check counterpart to `kzk-pre-commit-gate` Gate 4.5.
 
 ## Gate 4.5
 
-> SoT: harness-share.md §3.5. 충돌 시 §3.5 우선.
+> SoT: harness-share.md §3.5. On conflict, §3.5 wins.
 
-`kzk-pre-commit-gate` Gate 4 와 commit 사이에 위치 (Gate 5 = Plan C 이전).
+Positioned between `kzk-pre-commit-gate` Gate 4 and commit (before Gate 5 = Plan C).
 
-**Trigger**: `.kzk-harness/fix-scope-cache.jsonl` 존재 시.
+**Trigger**: when `.kzk-harness/fix-scope-cache.jsonl` exists.
 
-**Skip**: `KZK_GATE45_SKIP=1` env var 설정 시 N/A (사유 commit body 기재 권고).
+**Skip**: when `KZK_GATE45_SKIP=1` env var is set (recommended to note reason in commit body).
 
-**Cache policy**: JSONL append/list — 현재 cycle commit SHA (`$(git rev-parse HEAD)`) key 의 모든 항목 union 체크. `last-fix-wins` 아님 — 여러 번 호출 시 누적.
+**Cache policy**: JSONL append/list — union-check all entries whose key is the current cycle commit SHA (`$(git rev-parse HEAD)`). Not `last-fix-wins` — accumulated across multiple calls.
 
 **Sanity check**: callsite list ⊄ `git diff --cached --name-only` → BLOCK.
 
-BLOCK 시 메시지:
+BLOCK message:
 ```
 Gate 4.5: callsite N곳 중 M곳 미수정.
 누락 의도를 commit body 에 명시하거나 해당 callsite 도 수정.
 ```
 
-**Cache 부재**: N/A (fix-scope-trigger hook 비활성 또는 fix intent 아닌 commit).
+**No cache**: N/A (fix-scope-trigger hook inactive or non-fix commit).
 
 ## Fix layer pivot (Phase 2)
 
-> Authoritative source: 현재 self-authoritative. harness-share.md §N 신설 시 그것이 우선.
+> Authoritative source: currently self-authoritative. If harness-share.md §N is added, that takes precedence.
 
 ### Operational definitions (added cycle 47)
 
-- **"같은 방향 (same direction)"**: 두 연속 fix attempt 가 같은 root-cause label 을 공유한 경우. label 형식 = `<layer>:<symptom-key>` (예: `L1:tailscale-mtu-fragmentation`). label 충돌 시 = same direction.
-- **"실패 (failure)"**: 다음 중 하나 — (a) 추가한 test 가 red 상태로 남음, (b) 사용자 보고 증상이 fix 후 동일 (변화 없음), (c) fix 후 30 초 내 동일 stack trace 재발. (a)(b)(c) 모두 검증 가능 신호.
-- **레이어 라벨 사전** (L3 표 의미 = 본체 코드, 예시 텍스트 충돌 수정):
-  - L0 = 외부 설정 / OS / 네트워크 / 인프라 (kubelet config, /etc/, route table)
-  - L1 = wrapper / IaC / 배포 스크립트
-  - L2 = SW 내부 설정 (config file, env var consumed by app)
-  - L3 = 본체 application 소스 코드
+- **"Same direction"**: two consecutive fix attempts share the same root-cause label. Label format = `<layer>:<symptom-key>` (e.g. `L1:tailscale-mtu-fragmentation`). Label conflict = same direction.
+- **"Failure"**: any of — (a) added test remains red, (b) user-reported symptom is unchanged after fix, (c) same stack trace recurs within 30 seconds of fix. All three are verifiable signals.
+- **Layer label dictionary** (L3 table meaning = application source code, example text conflict resolved):
+  - L0 = external config / OS / network / infrastructure (kubelet config, /etc/, route table)
+  - L1 = wrapper / IaC / deployment scripts
+  - L2 = SW internal config (config file, env var consumed by app)
+  - L3 = core application source code
 
 ### When to escalate
 
-**Same-layer consecutive fail rule**: 동일 레이어에서 같은 방향 fix 가 2회 연속 실패 시 → 한 레이어 바깥으로 escalate.
+**Same-layer consecutive fail rule**: if the same-direction fix fails twice in a row at the same layer → escalate one layer outward.
 
-Layer 계층 (바깥 → 안):
+Layer hierarchy (outer → inner):
 
-| 레이어 | 범위 예시 |
+| Layer | Scope examples |
 |---|---|
-| **L0** | OS / 외부 환경 — route, DNS, firewall, env var, 시스템 권한 |
+| **L0** | OS / external environment — route, DNS, firewall, env var, system permissions |
 | **L1** | wrapper / middleware config — proxy, reverse-proxy, load balancer |
-| **L2** | SW internal config — app config, feature flag, 설정 파일 |
-| **L3** | SW core logic — 소스 코드, 알고리즘, 데이터 구조 |
+| **L2** | SW internal config — app config, feature flag, config files |
+| **L3** | SW core logic — source code, algorithms, data structures |
 
-탐색 순서: 문제가 발생한 레이어 → L0 방향으로 escalate.
+Exploration order: start at the layer where the problem appears → escalate toward L0.
 
-**예시 (Tailscale 케이스)**: Claude 가 L3 (본체 소스 코드) 에서 2회 실패 → L2 (SW 내부 설정) 확인 → L1 (wrapper) 확인 → L0 (route add) 에서 1줄 fix 성공.
+**Example (Tailscale case)**: Claude fails twice at L3 (core source code) → check L2 (SW internal config) → check L1 (wrapper) → succeed with a one-line fix at L0 (route add).
 
-### Fix-verify hook 확장
+### Fix-verify hook extension
 
-Fix-verify hook (§Fix-verify hook 참조) 실행 후, 동일 레이어에서 2회 연속 실패 감지 시:
+After running the fix-verify hook (see §Fix-verify hook), if two consecutive failures at the same layer are detected:
 
-1. 현재 레이어 기록 (L0/L1/L2/L3)
-2. 한 레이어 바깥으로 이동, 해당 레이어에서 원인 재조사
-3. L0 도달 후에도 미해결 → `Q-FIX-PIVOT-FAIL` entry 를 `docs/harness/user-queue.md` `## OPEN` 섹션에 추가 후 halt
+1. Record the current layer (L0/L1/L2/L3)
+2. Move one layer outward; re-investigate the root cause at that layer
+3. If still unresolved after reaching L0 → append `Q-FIX-PIVOT-FAIL` entry to the `## OPEN` section of `docs/harness/user-queue.md`, then halt
 
-### Q-FIX-PIVOT-FAIL entry 형식
+### Q-FIX-PIVOT-FAIL entry format
 
 ~~~markdown
-- [ ] YYYY-MM-DD HH:MM — Q-FIX-PIVOT-FAIL — <함수명/증상> 모든 레이어 escalate 후 미해결 (cycle N)
+- [ ] YYYY-MM-DD HH:MM — Q-FIX-PIVOT-FAIL — <function/symptom> unresolved after all layer escalations (cycle N)
 ~~~
 
-상세 항목은 entry 아래 sub-list:
+Detail items as sub-list:
 ~~~markdown
-  - Context: <증상 + 레이어별 시도 내역 (L3→L2→L1→L0)>
-  - Tentative default: 사용자 직접 L0 환경 확인
-  - Impact: 자율실행 halt — 레이어 전환 없이 진행 불가
+  - Context: <symptom + per-layer attempt history (L3→L2→L1→L0)>
+  - Tentative default: user to inspect L0 environment directly
+  - Impact: autonomous execution halted — cannot continue without layer pivot
 ~~~
 
 ### Anti-patterns (G1/G2/G4)
 
-- G1: L3 단독 집중, L0 미검토 → layer 계층 순서대로 바깥부터 확인
-- G2: 실패 후 동일 방향으로 variation 반복 2회 → 즉시 레이어 전환
-- G4: "왜 안 되는지" 설명만 제공, 1줄 fix 미제공 → 진단은 sub-bullet, 첫 줄은 항상 실행 가능한 fix
+- G1: Focusing only on L3, never checking L0 → check outward from the problem layer in order
+- G2: After failure, trying variations in the same direction twice → immediately pivot layers
+- G4: Providing only an explanation for why it doesn't work, no one-line fix → diagnosis goes in sub-bullets; first line is always an actionable fix
 
-## 자가-skip guard
+## Self-skip guard
 
-> `hook-shared.shouldSkip(prompt, env)` 재사용. 패턴 단일 SoT: `install/lib/hook-shared.mjs` §SELF_IMPROVE_VERBPHRASES. Cross-ref: `kzk-regression-memory` §자가-skip guard.
+> Reuses `hook-shared.shouldSkip(prompt, env)`. Single SoT for patterns: `install/lib/hook-shared.mjs` §SELF_IMPROVE_VERBPHRASES. Cross-ref: `kzk-regression-memory` §Self-skip guard.
 
-## Default DISABLED 정책
+## Default DISABLED policy
 
-`fix-scope-trigger.mjs` 는 commit 시점에 `settings.json` 에 등록되지 않음.
+`fix-scope-trigger.mjs` is not registered in `settings.json` at commit time.
 
-활성화: 5 plan (A→D→B→C→E) 모두 끝나고 `kzk-pre-merge-sync` step 3:
+Enable after all 5 plans (A→D→B→C→E) complete, at `kzk-pre-merge-sync` step 3:
 ```bash
 bash install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger
 ```
 
-자가오염 차단: B/C cycle 동안 hook 비활성 → 자기 fix 가 자기 recall 를 트리거하는 패턴 차단.
+Self-contamination prevention: hook stays inactive during B/C cycles → blocks the pattern where the agent's own fix triggers its own recall.
 
-## Rollback (6 level)
+## Rollback (6 levels)
 
-1. **CRG probe 실패** — grep-only fallback 모드로 동작. `_warn:"crg-not-installed-grep-fallback"` stderr 출력.
-2. **hook-shared 마이그레이션으로 test 실패** — hook-shared export 시그니처 재확인. D commit 53885de 내용과 동일 보장.
-3. **cache-write lockdir race** — `writeSingleEntryWithLock` timeout 5초 + best-effort write fallback (stderr WARN + lock 없이 write 강행).
-4. **Gate 4.5 false positive** — `KZK_GATE45_SKIP=1 git commit` 으로 일시 bypass. 다음 session 에서 callsite grep 패턴 수정.
-5. **install-global.sh --fix-scope-trigger 실패 (jq 부재)** — `brew install jq` 후 재시도. jq 없는 환경 → stderr WARN.
-6. **global install 산출물 cleanup** — `~/.claude/skills/.kzk-harness-shared/hooks/fix-scope-trigger.mjs` 제거 + `~/.claude/settings.json` hook entry 제거. `install-global.sh --disable-fix-scope-trigger` 또는 수동 jq edit.
+1. **CRG probe fails** — operate in grep-only fallback mode. Print `_warn:"crg-not-installed-grep-fallback"` to stderr.
+2. **hook-shared migration causes test failure** — re-verify hook-shared export signatures. Ensure they match D commit 53885de.
+3. **cache-write lockdir race** — `writeSingleEntryWithLock` timeout 5s + best-effort write fallback (stderr WARN + write without lock).
+4. **Gate 4.5 false positive** — bypass temporarily with `KZK_GATE45_SKIP=1 git commit`. Fix the callsite grep pattern in the next session.
+5. **install-global.sh --fix-scope-trigger fails (jq missing)** — run `brew install jq` then retry. On environments without jq → stderr WARN.
+6. **global install artifact cleanup** — remove `~/.claude/skills/.kzk-harness-shared/hooks/fix-scope-trigger.mjs` + remove hook entry from `~/.claude/settings.json`. Use `install-global.sh --disable-fix-scope-trigger` or manual jq edit.
 
-즉시 비활성: `OMC_SKIP_HOOKS=fix-scope-trigger` (env var 설정).
+Immediate disable: set `OMC_SKIP_HOOKS=fix-scope-trigger` env var.
 
 ## Interaction with other kzk-*
 
-- **kzk-regression-memory (Plan D)**: fix-scope-trigger 는 D 의 regression-recall.mjs 다음 슬롯에 등록 (consumer). 두 hook 모두 `hook-shared.mjs` 공유 (drift 차단).
-- **kzk-pre-commit-gate**: Gate 4.5 를 본 skill 이 정의. `kzk-pre-commit-gate §Gate 4.5` 는 harness-share §3.5 cross-ref.
-- **kzk-codebase-survey**: fix 시작 시 자동 invoke. SoT = harness-share §3.5. `kzk-codebase-survey §fix-time trigger` cross-ref.
-- **kzk-pre-merge-sync**: step 3 에서 `--fix-scope-trigger` flag 로 자동 enable. fail-closed.
-- **kzk-large-task-delegation**: dispatch 시 `.kzk-harness/fix-scope-cache.jsonl` 존재 시 callsite list dispatch prompt 에 inject (200 char cap).
-- **hook-shared.mjs**: `install/lib/hook-shared.mjs` — FIX_KEYWORDS / shouldSkip / detectFixIntent 단일 SoT. regression-recall.mjs + fix-scope-trigger.mjs 둘 다 import 의무.
-- **kzk-freshness-guard**: fix 시 변경 심볼의 impact radius 확장 — `crg-utils.reverseRefs()` 결과에서 메타 문서 자동 감지. 영향받는 메타 문서를 fix scope 에 포함.
+- **kzk-regression-memory (Plan D)**: fix-scope-trigger registers after D's regression-recall.mjs slot (consumer). Both hooks share `hook-shared.mjs` (prevents drift).
+- **kzk-pre-commit-gate**: Gate 4.5 is defined by this skill. `kzk-pre-commit-gate §Gate 4.5` cross-refs harness-share §3.5.
+- **kzk-codebase-survey**: auto-invoked on fix start. SoT = harness-share §3.5. Cross-ref: `kzk-codebase-survey §fix-time trigger`.
+- **kzk-pre-merge-sync**: step 3 auto-enables via `--fix-scope-trigger` flag. fail-closed.
+- **kzk-large-task-delegation**: when dispatching, if `.kzk-harness/fix-scope-cache.jsonl` exists, inject callsite list into dispatch prompt (200 char cap).
+- **hook-shared.mjs**: `install/lib/hook-shared.mjs` — FIX_KEYWORDS / shouldSkip / detectFixIntent single SoT. Both regression-recall.mjs + fix-scope-trigger.mjs must import it.
+- **kzk-freshness-guard**: on fix, expands impact radius of changed symbols — `crg-utils.reverseRefs()` results auto-detect meta-docs. Meta-docs in the impact radius are included in fix scope.

@@ -1,6 +1,6 @@
 ---
 name: kzk-user-queue
-version: 1.3.0
+version: 1.4.0
 description: "Autonomous-run ambiguous-decision queue at docs/harness/user-queue.md. Append Pending entry with tentative default and proceed — never halt. On user return: Stage 1 classify A/B/C, Stage 2 GROUP A interactive, Stage 3 resolution loop max 3. References harness-share.md §6."
 ---
 

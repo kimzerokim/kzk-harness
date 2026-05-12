@@ -1,6 +1,6 @@
 ---
 name: kzk-pre-merge-sync
-version: 1.7.0
+version: 1.8.0
 description: "Pre-merge / milestone checklist before gh pr create (PR-flow) or direct-main milestone commits. Enforces: CLAUDE.md sync, deepinit run, regression-recall + fix-scope hook auto-enable, full freshness sweep. Triggers: 'merge', 'feature branch', 'CLAUDE.md sync', 'deepinit'. References harness-share.md §14.5 + §15."
 ---
 
@@ -45,33 +45,33 @@ Skill("oh-my-claudecode:deepinit")
 
 ## 3. Hook auto-enable (Plan D + Plan B, fail-closed)
 
-**5 plan (A→D→B→C→E)** 모두 끝나고 `feature/memory` → `main` 머지 직전, regression-recall + fix-scope-trigger hook 의 default DISABLED 를 ENABLED 로 전환:
+After all **5 plans (A→D→B→C→E)** complete, immediately before merging `feature/memory` → `main`, switch `regression-recall` + `fix-scope-trigger` hooks from default DISABLED to ENABLED:
 
 ```bash
 bash install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger
 ```
 
-`--regression-recall` + `--fix-scope-trigger` 는 explicit dependency 로 `--enable-hooks` (keyword-detector) 도 자동 enable.
+`--regression-recall` + `--fix-scope-trigger` are explicit dependencies, so `--enable-hooks` (keyword-detector) is also auto-enabled.
 
-**사용자 confirm 게이트 의무** — 자동 호출 전 user 명시 confirm 받음. 거부 시 manual enable path 안내:
-- 거부 → 후속 enable 은 사용자가 직접 위 command 실행. PR description 또는 milestone commit message 에 "regression-recall hook left disabled by user request" 명시 의무
-- ACK → install-global.sh 자동 호출, 결과 stdout 로 사용자에게 보고
+**Mandatory user confirm gate** — obtain explicit user confirmation before auto-invoking. If declined, guide the manual enable path:
+- Declined → user runs the command above directly. Must state "regression-recall hook left disabled by user request" in PR description or milestone commit message.
+- Confirmed → auto-invoke install-global.sh, report stdout result to user.
 
-**fail-closed 검증** (codex #3):
-1. `install-global.sh --enable-hooks --regression-recall --fix-scope-trigger` exit code 검사 — non-zero → merge block (`exit 1`)
-2. settings.json 의 `UserPromptSubmit` 배열에 `regression-recall.mjs` entry 1개만 존재 검증 (jq 로 count). 0개 또는 2개+ → merge block
-3. `jq` 미설치 시 사전 검사 → 사용자에게 `brew install jq` 안내 + merge block
+**Fail-closed verification** (codex answer #3):
+1. Check `install-global.sh --enable-hooks --regression-recall --fix-scope-trigger` exit code — non-zero → block merge (`exit 1`)
+2. Verify exactly 1 `regression-recall.mjs` entry exists in the `UserPromptSubmit` array in settings.json (count with jq). 0 or 2+ → block merge
+3. If `jq` is not installed, check first → guide user to `brew install jq` + block merge
 
-위 3 검증 모두 PASS 시만 머지 진행.
+All 3 verifications must PASS to proceed with merge.
 
-**왜**: Plan D + B commit 시점에는 default DISABLED — 다음 cycle 의 자가오염 차단. 5 plan 끝나고 머지 단계가 first-enable 의 자연 게이트 (망각 차단). fail-closed 라 silent install 실패가 사용자 모르게 머지되는 패턴 차단.
+**Why**: Plans D + B commits default DISABLED — prevents self-contamination during the next cycle. The 5-plan milestone merge is the natural first-enable gate (prevents amnesia). Fail-closed means a silent install failure cannot slip through to merge undetected.
 
-Skip = block merge. 단, 사용자가 명시적으로 "regression-recall 비활성 유지" 선언한 경우만 skip 허용 (PR description 또는 milestone commit message 에 명시).
+Skip = block merge. Exception: user has explicitly declared "regression-recall keep disabled" (must be stated in PR description or milestone commit message).
 
-Checkpoint: PR description (PR-flow) 또는 milestone commit message (direct-main flow) 에 다음 줄 의무:
+Checkpoint: PR description (PR-flow) or milestone commit message (direct-main flow) must include:
 - ENABLED: `regression-recall hook enabled via kzk-pre-merge-sync step 3`
 - ENABLED: `fix-scope-trigger hook enabled via kzk-pre-merge-sync step 3`
-- 사용자 명시 거부: `regression-recall hook left disabled by user request`
+- User-declined: `regression-recall hook left disabled by user request`
 
 ## Combined PR description footer
 
@@ -87,12 +87,12 @@ Checkpoint: PR description (PR-flow) 또는 milestone commit message (direct-mai
 
 ## 4. Freshness sweep
 
-> See `kzk-freshness-guard` §Detection Logic — branch-wide stale sweep (getChangedFiles('base') → findStaleMetaDocs → auto-fix dispatch → PASS). Cross-ref: `kzk-freshness-guard` §자동 호출 지점 'kzk-pre-merge-sync' row.
+> See `kzk-freshness-guard` §Detection Logic — branch-wide stale sweep (getChangedFiles('base') → findStaleMetaDocs → auto-fix dispatch → PASS). Cross-ref: `kzk-freshness-guard` §Six auto-invocation points 'kzk-pre-merge-sync' row.
 
 ## Interaction with other kzk-*
 
 - **kzk-autonomous-boundary**: Defines when autonomous PR creation is allowed (post-review explicit user merge approval is the sole exception).
 - **kzk-pre-commit-gate**: Provides the gate-PASS line this skill writes into the PR footer.
 - **kzk-spec-and-review**: Pre-PR `deepinit_manifest` refresh updates the AGENTS.md memory that codex review reads.
-- **kzk-regression-memory**: 본 skill step 3 가 regression-recall hook 의 first-enable gate. spec rev6 §Default DISABLED 의 자동 enable 진입점. fail-closed (jq 부재 / install-global.sh non-zero / duplicate entry → merge block).
-- **kzk-freshness-guard**: merge 직전 전체 freshness sweep (§4)
+- **kzk-regression-memory**: This skill's step 3 is the first-enable gate for the regression-recall hook. spec rev6 §Default DISABLED auto-enable entry point. Fail-closed (jq absent / install-global.sh non-zero / duplicate entry → merge block).
+- **kzk-freshness-guard**: Full freshness sweep immediately before merge (§4)

@@ -1,6 +1,6 @@
 ---
 name: kzk-tool-retry
-version: 1.6.0
+version: 1.7.0
 description: "Edit/Write/Bash auto-retry discipline. Single automatic retry on first failure (no user prompt); double-failure → Q-TOOL queue entry. Pre-emptive Read on 7 read-tracker invalidator events. Triggers: 'Edit fail', 'File has not been read yet', 'String to replace not found'. References harness-share.md §27."
 ---
 
@@ -42,13 +42,13 @@ The Edit tool requires a Read of the file in the *same effective session window*
 
 A 1-line `Read` (offset=1, limit=5) is enough to refresh the tracker — cost is trivial vs. the round-trip cost of a failed Edit.
 
-**Default — Re-Read on doubt**: 위 표 어느 row 라도 hit 모호 시, 무조건 1-line Re-Read 먼저. cost = 1 tool call vs. failed Edit 의 round-trip (1 error reminder + 1 retry Edit + 메인 컨텍스트 흐름 끊김). 모든 Edit / Write 직전 다음 self-check 의무:
+**Default — Re-Read on doubt**: if any row in the table above might apply, run a 1-line Re-Read first. Cost = 1 tool call vs. failed Edit's round-trip (1 error reminder + 1 retry Edit + broken flow). Mandatory self-check before every Edit / Write:
 
-> "이 파일 마지막 Read 가 *이번 turn 안에* 일어났는가? 그 사이 invalidator (위 표) 발생했는가?"
+> "Did the last Read of this file happen *within this turn*? Did any invalidator (table above) occur since then?"
 
-답이 "확실히 yes" 이 아니면 → 1-line Re-Read 먼저. Edit 호출 직전 매 cycle.
+If the answer is not a confident "yes" → do a 1-line Re-Read first. Every cycle, immediately before each Edit call.
 
-**자율실행 cycle 진입 시 강제**: subagent dispatch 끝나고 메인이 Edit 시작할 때 — 그 turn 의 첫 Edit 은 *반드시* 1-line Read 선행. agent return 이 row 4 invalidator 라 추정만 하지 말고 즉시 Re-Read.
+**Forced on autonomous cycle entry**: when the main resumes editing after a subagent dispatch — the very first Edit of that turn *must* be preceded by a 1-line Read. Agent return is a row-4 invalidator; don't assume, Re-Read immediately.
 
 **Recovery if the protocol slipped (failure already occurred)**:
 1. Same path → call `Read` once.
@@ -59,24 +59,24 @@ A 1-line `Read` (offset=1, limit=5) is enough to refresh the tracker — cost is
 
 ## PreToolUse guard (edit-read-guard hook)
 
-Plan F 부터 PreToolUse `Edit`/`Write` 시스템 hook 으로 차단 강제. 메인 self-discipline 가 아닌 OS-level guard.
+Starting from Plan F, a PreToolUse `Edit`/`Write` system hook enforces this at the OS level — not just agent self-discipline.
 
-- **Read 인정 범위**: Claude Code `Read` tool 호출만 — read-log 에 file_path 의 realpath 가 기록될 때.
-- **인정 안 됨**: shell `cat`, `grep`, `sed`, `awk`, `head`, `tail` — Bash tool 안에서 실행되더라도 hook tracker 가 못 잡음. Edit 직전 반드시 별도 `Read` tool 호출.
-- **세션 내 cross-turn 허용**: read-log 는 turn 마다 초기화되지 않음. 시간 기반 만료 (2시간). 이전 turn 에서 Read 한 파일은 같은 세션 내 후속 turn 에서 Edit 가능.
-- **bypass**: `touch ~/.cache/kzk-harness/bypass-token` — 단발성 (1회 Edit/Write 후 자동 unlink, **PreToolUse 단독 소비**). 사용자 explicit 의도 표명용.
-- **kill switch**: `OMC_SKIP_HOOKS=edit-read-guard` env — 세션 단위 비활성.
+- **Valid Read**: only a Claude Code `Read` tool call counts — the file_path realpath must be recorded in the read-log.
+- **Not valid**: shell `cat`, `grep`, `sed`, `awk`, `head`, `tail` — even when run via the Bash tool, the hook tracker cannot see them. Always issue a separate `Read` tool call before Edit.
+- **Cross-turn within session**: the read-log is not cleared each turn. It expires by time (2 hours). A file Read in a previous turn is still valid for Edit in later turns of the same session.
+- **Bypass**: `touch ~/.cache/kzk-harness/bypass-token` — single-use (auto-unlinked after 1 Edit/Write, **consumed by PreToolUse only**). For explicit user-authorized edge cases.
+- **Kill switch**: `OMC_SKIP_HOOKS=edit-read-guard` env — disables for the entire session.
 
-### edit-read-guard block 시 무중단 자동 복구 (MANDATORY)
+### Automatic unblocked recovery on edit-read-guard block (MANDATORY)
 
-hook 이 block 하면 에러 메시지에 `AUTO-RETRY` 지시문이 포함됨. **이 block 은 플로우 중단 사유가 아님**:
+When the hook blocks, the error message includes an `AUTO-RETRY` directive. **This block is not a reason to pause the flow**:
 
-1. **즉시** `Read(file_path)` 호출 (1-line Read 충분: `offset=1, limit=5`)
-2. **즉시** 동일 Edit/Write 재시도
-3. **사용자 질문 절대 금지** — "다시 읽을까요?", "어떻게 할까요?" 등
-4. 자율실행 / autonomous mode 에서 이 block 으로 인한 halt = **규칙 위반**
+1. **Immediately** call `Read(file_path)` (1-line Read is enough: `offset=1, limit=5`)
+2. **Immediately** retry the same Edit/Write
+3. **Never ask the user** — "다시 읽을까요?", "어떻게 할까요?" are forbidden
+4. A halt caused by this block in autonomous / autonomous mode = **rule violation**
 
-이 패턴은 kzk-tool-retry 의 일반 retry 와 달리 **100% 성공 보장** (Read 하면 해결). 두 번째 실패가 나올 수 없으므로 queue 불필요.
+Unlike the general retry in kzk-tool-retry, this pattern has a **100% success guarantee** (Read resolves it). A second failure is impossible here, so no queue entry is needed.
 
 cross-ref: `harness-share.md` §27.1.
 

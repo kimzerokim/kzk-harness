@@ -1,6 +1,6 @@
 ---
 name: kzk-web-loop
-version: 1.9.0
+version: 1.10.0
 description: "Autonomous web page improvement loop (P0/P1/P2 prioritization). P0 fast-path → executor; P1/P2 → codebase-survey + writing-plans + subagent-driven-development. Reviewer-FAIL skip override (vs autonomous-loop default). Triggers: 'web loop', '웹 루프', '자율 개선', '계속 돌려', '무한 루프'. References harness-share.md §25."
 ---
 
@@ -37,7 +37,7 @@ Each cycle executes these steps in order:
 
 **1a. TOOL RUNNER** (`oh-my-claudecode:executor`, `model=sonnet`) — fresh subagent. Runs `npm test` (or project test command), Playwright screenshots + snapshots (if available, per §Playwright Resilience), counts console errors. Saves raw output to `.web-loop/cycle-N-report.md` (flat file directly under `.web-loop/`, e.g. `.web-loop/cycle-1-report.md`). Returns immediately after saving — does not interpret results.
 
-**1b. EVALUATOR AGENT** (`oh-my-claudecode:critic`, model 생략 → 메인 opus 상속) — fresh subagent with zero memory of previous cycles. Reads `.web-loop/cycle-N-report.md` + the built-in checklist (see §Evaluation Criteria). Outputs a prioritized issue list: P0 / P1 / P2.
+**1b. EVALUATOR AGENT** (`oh-my-claudecode:critic`, model omitted → inherits main opus) — fresh subagent with zero memory of previous cycles. Reads `.web-loop/cycle-N-report.md` + the built-in checklist (see §Evaluation Criteria). Outputs a prioritized issue list: P0 / P1 / P2.
 
 **2. Pick top-priority issue** — take the highest-severity issue for which `harness-flow-progress.md` has NO line starting with `Cycle N (` that contains this issue's text (N = current cycle number). Each cycle is independent — an issue fixed in Cycle 3 may recur and be picked again in Cycle 9.
 
@@ -55,8 +55,8 @@ Each cycle executes these steps in order:
 
   **superpowers unavailable (fallback):**
   1. `Skill("kzk-codebase-survey")` — EXPLORER runs, report saved to `.web-loop/surveys/cycle-N-survey.md`.
-  2. PLANNER (`oh-my-claudecode:planner`, model 생략 → 메인 opus 상속) authors frozen plan → `docs/plans/YYYY-MM-DD-<topic>.md` with `## Frozen` header. Main controller copies plan to `.web-loop/plans/cycle-N-plan.md` (canonical plan stays in `docs/plans/` for git tracking). Prompt includes survey report path.
-  3. CRITIC (`oh-my-claudecode:critic`, model 생략 → 메인 opus 상속) reviews. Critic prompt: "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL." FAIL → planner revises once. Second consecutive FAIL from the same reviewer, or 3+ FAILs total across all reviewers in the same cycle → skip + user-queue.
+  2. PLANNER (`oh-my-claudecode:planner`, model omitted → inherits main opus) authors frozen plan → `docs/plans/YYYY-MM-DD-<topic>.md` with `## Frozen` header. Main controller copies plan to `.web-loop/plans/cycle-N-plan.md` (canonical plan stays in `docs/plans/` for git tracking). Prompt includes survey report path.
+  3. CRITIC (`oh-my-claudecode:critic`, model omitted → inherits main opus) reviews. Critic prompt: "Check the plan covers every item in Features to Preserve and Integration Points in the survey report. Any gap = FAIL." FAIL → planner revises once. Second consecutive FAIL from the same reviewer, or 3+ FAILs total across all reviewers in the same cycle → skip + user-queue.
   4. EXECUTOR (`oh-my-claudecode:executor`, `model=sonnet`) implements via TDD → `kzk-pre-commit-gate` → commit.
 
   Either path: evaluator's issue description is passed verbatim (quoted string). All dispatches include file scope + branch name + pre-commit gate rules (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise).
@@ -65,17 +65,17 @@ Each cycle executes these steps in order:
 - Completed: `Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue one-liner] — queue: N remaining — PW: ok|degraded`
 - Skipped: `Cycle N (YYYY-MM-DD HH:MM) — skipped — [issue one-liner] — [reason] — queue: N remaining — PW: ok|degraded`
 
-**5.5. Cycle 회고 → Skill("learn") invocation** (Plan D)
+**5.5. Cycle retrospective → Skill("learn") invocation** (Plan D)
 
-cycle commit 직후, harness-flow-progress 갱신 다음 step 으로 회고 entry 자동 작성. gstack `/learn` skill 호출 (Claude Code 대화 컨텍스트 안에서):
+Immediately after the cycle commit and the harness-flow-progress update, auto-write a retrospective entry. Call gstack `/learn` skill (from within the Claude Code conversation context):
 
-> "learn add: key=cycle-N-<axis>, type=pattern, insight=<evaluator paragraph 한 줄 요약>, confidence=<verifier 결과 0-10>, source=retro"
+> "learn add: key=cycle-N-<axis>, type=pattern, insight=<evaluator paragraph one-line summary>, confidence=<verifier result 0-10>, source=retro"
 
-동시에 sidecar (`.kzk-harness/regression-meta.jsonl`) 에 append (atomic write via `install/lib/sidecar-write.mjs`).
+Also append atomically to the sidecar (`.kzk-harness/regression-meta.jsonl`) via `install/lib/sidecar-write.mjs`.
 
-**gstack plugin 미설치 또는 ~/.gstack/projects/ 부재 시**: stderr WARN 출력 + `harness-flow-progress.md` cycle entry 본문에 `regression memory 비활성 (gstack 미설치)` 의무 표기. cycle 진행 자체는 계속 (회고 entry 만 누락).
+**If gstack plugin is not installed or `~/.gstack/projects/` does not exist**: print a stderr WARN + mark the cycle entry in `harness-flow-progress.md` body with `regression memory inactive (gstack not installed)`. The cycle itself continues (only the retrospective entry is skipped).
 
-> JSONL template + file_snapshot canonical source: `kzk-regression-memory` §Cycle 회고 통합 5W1H — Where 행 참조.
+> JSONL template + file_snapshot canonical source: `kzk-regression-memory` §Cycle 회고 통합 5W1H — Where row.
 
 **6. Back to step 1a.**
 
@@ -238,4 +238,4 @@ Anything else → keep going.
 - **kzk-pre-commit-gate**: All executor dispatches must run all applicable gates (6 if AGENTS.md hierarchy present; 5 otherwise) before committing.
 - **kzk-autonomous-boundary**: All boundary conditions apply normally. The reviewer FAIL halt (defined in `kzk-autonomous-loop`) is overridden by web-loop per `harness-share.md` §25 — skip+next-issue instead of halt.
 - **kzk-user-queue**: skipped issues and ambiguous decisions are appended here with Q-WEBLOOP-<N>-<TOPIC> prefix.
-- **kzk-regression-memory**: cycle 끝 step 5.5 에서 `Skill("learn")` (gstack /learn skill) 호출 + sidecar atomic append. file_snapshot = `git rev-parse HEAD:<file>` (canonical, evaluator 가 cycle 끝에 캡처). 회고 entry 자동 작성.
+- **kzk-regression-memory**: At cycle end step 5.5, calls `Skill("learn")` (gstack /learn skill) + atomic sidecar append. file_snapshot = `git rev-parse HEAD:<file>` (canonical, captured by evaluator at cycle end). Retrospective entry is auto-written.

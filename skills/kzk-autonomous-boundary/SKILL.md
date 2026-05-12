@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.12.0
+version: 1.13.0
 description: "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contract (destination, name, PR mode) before any autonomous flow; post-contract continuation in same turn (Cycle 48). Autonomous completion fresh-agent verifier (mandatory pre-exit) — main self-declared 'verification PASS' / 'loop exit' forbidden. Halt conditions, destructive-op guardrails, Q-entry patterns (Q-TDD-MAIN, Q-TDD-AUTO-MISSING, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-*, Q-COMPLETION-SELF-VERIFY, Q-PW-OAUTH-NEW-ACCOUNT/MULTI-ACCOUNT/CONSENT-LOOP/STUCK/CHALLENGE/PROVIDER-ERROR). Triggers: 'ralph로 돌려', '끝까지 끝내줘', '자율실행', autonomous TDD enforce, Q-TDD-AUTO-MISSING. References harness-share.md §2 + §33."
 ---
 
@@ -13,9 +13,9 @@ description: "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contra
 - Auto-commit after `kzk-pre-commit-gate` full PASS (6 gates if AGENTS.md hierarchy present, otherwise 5; Gate 0 N/A without hierarchy; see that skill)
 - Move to next task after TDD test passes
 - Worktree parallel execution (`/superpowers:using-git-worktrees`)
-- **Subagent dispatch (mandatory for multi-file / 5+ file read / 200+ LoC work)** — `oh-my-claudecode:executor` (sonnet) for implementation, `oh-my-claudecode:explore` (sonnet) for reference collection, `oh-my-claudecode:code-reviewer` / `oh-my-claudecode:critic` / `oh-my-claudecode:verifier` for review. Multi-file / 5+ file read / 200+ LoC 작업은 메인 직접 수행 금지 — 항상 subagent 위임. 메인 직접 허용 범위: 1-2 파일 단순 edit (≤ 30 LoC) 또는 운영 명령 (git status, install, ls) 에 한함.
+- **Subagent dispatch (mandatory for multi-file / 5+ file read / 200+ LoC work)** — `oh-my-claudecode:executor` (sonnet) for implementation, `oh-my-claudecode:explore` (sonnet) for reference collection, `oh-my-claudecode:code-reviewer` / `oh-my-claudecode:critic` / `oh-my-claudecode:verifier` for review. Multi-file / 5+ file read / 200+ LoC work is forbidden for main to perform directly — always delegate to a subagent. Main's direct-action scope: 1-2 file simple edits (≤ 30 LoC) or operational commands (git status, install, ls) only.
 - Document writing, plan elaboration, review execution
-- **Autonomous completion fresh-agent verifier (mandatory pre-exit)** — autonomous loop 의 마지막 commit 후 다음 cycle 진입 또는 종료 보고 직전 `oh-my-claudecode:verifier` dispatch 의무. 본문 §Autonomous completion — fresh-agent verifier.
+- **Autonomous completion fresh-agent verifier (mandatory pre-exit)** — before the last commit of the autonomous loop leads to the next cycle or to a completion report, dispatch `oh-my-claudecode:verifier`. See §Autonomous completion — fresh-agent verifier.
 - **Autonomous + code-file change → TDD strict auto-trigger** (see `kzk-test-coverage §Autonomous mode TDD enforcement`). Explicit 'tdd' keyword not required — the presence of a code-file change in autonomous mode is sufficient. Fresh sonnet dispatch required for TDD red phase (`Q-TDD-MAIN` rule). No failing-then-passing test in the same cycle → halt `Q-TDD-AUTO-MISSING`.
 
 ## Branch contract — ASK FIRST (mandatory entry step)
@@ -53,14 +53,14 @@ Anti-pattern signature: turn ends with `User answered Claude's questions: ...` t
 - Adding files outside the declared source root (see CLAUDE.md for your repo's rootDir constraints)
 - Continuing the loop after reviewer FAILs **2 times in a row** → halt + user-queue entry
   Exception: `kzk-web-loop` intentionally overrides this — skip the failing issue, pick the next one (see `kzk-web-loop` §Failure Handling and `harness-share.md` §25 "Reviewer FAIL override").
-- **Main self-declared "verification PASS" / "다 됐다" / "loop exit" / "completion confirmed" 결론** — fresh-agent verifier dispatch 의무. main 자기 결과 (production build PASS + unit test PASS + 코드 wiring 확인) 만으로 종료 선언 금지. dev/prod 격차 + browser 시야 사각지대 (사용자가 직접 페이지 열어 stale 발견 → rework 큰 비용). 본문 §Autonomous completion — fresh-agent verifier.
+- **Main self-declared "verification PASS" / "done" / "loop exit" / "completion confirmed"** — fresh-agent verifier dispatch is mandatory. Main's own results (production build PASS + unit test PASS + code wiring confirmed) alone are not enough to end the run. Dev/prod divergence + browser blind spot (user opens the page and finds it stale → expensive rework). See §Autonomous completion — fresh-agent verifier.
 
 ## Halt conditions (entire autonomous run)
 
 Halt and append a user-queue entry when:
 
-- reviewer/critic 2 consecutive FAIL
-- build / test 3 consecutive FAIL
+- reviewer/critic 2 consecutive FAILs
+- build / test 3 consecutive FAILs
 - `main` access required for the next step **and** the session contract did not authorize direct-main flow
 - A user-queue decision is required to proceed
 - Crossing into a code/plan area pre-dating a current rule (e.g. plan written before PRD v1.13) — halt, do NOT retroactively rewrite policy via subagent guess
@@ -71,76 +71,76 @@ Anything else → keep going (see `kzk-autonomous-loop` for polite-stop ban).
 
 | Trigger | Reason | Action | Resume |
 |---|---|---|---|
-| `Q-TDD-MAIN` | 자율 mode 의 메인 컨텍스트가 직접 TDD red 단계 진입 시도 | halt + Q-TDD-MAIN entry. cross-ref: `kzk-test-coverage` §자율 mode 메인 직접 TDD 금지 | fresh sonnet dispatch PASS 또는 사용자 명시 override (1회만) |
-| `Q-MAIN-DIRECT-EDIT` | 자율 mode 에서 메인이 직접 Edit/Write 로 코드/스킬 변경 시도 (신호: 5+ 파일 read / 3+ 파일 edit / 200+ LoC) | halt + Q-MAIN-DIRECT-EDIT entry. cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit` | fresh executor subagent dispatch PASS 또는 사용자 명시 override (1회만) |
-| `Q-VERIFIER-FAIL` | verifier 가 같은 thread `(plan_path, acceptance_id, round)` 에서 2 consecutive FAIL | halt + Q-VERIFIER-FAIL entry. commit BLOCK 유지 | PASS 또는 user-approved plan revision (rev bump 명시) |
-| `Q-VERIFIER-INVALID` | verifier 응답 첫 줄이 `VERDICT: PASS\|FAIL\|PARTIAL` 정규식 매칭 실패 | fail-closed BLOCK + Q-VERIFIER-INVALID entry | retry (stricter prompt) PASS 또는 사용자 manual verify OK |
-| `Q-VERIFIER-DISPATCH-FAIL` | verifier subagent dispatch 자체 실패 (timeout / unavailable) | BLOCK + Q-VERIFIER-DISPATCH-FAIL entry. fallback: `oh-my-claudecode:code-reviewer` | fallback PASS 또는 사용자 manual review OK |
-| `Q-CODEX-DISPATCH-FAIL` | codex subagent dispatch 자체 실패 — `kzk-codex-handoff §Fresh subagent 호출 패턴` 정의 | BLOCK + Q-CODEX-DISPATCH-FAIL entry. fallback 1: 메인 직접 codex. fallback 2: critic opus | fallback PASS 또는 사용자 manual review OK |
-| `Q-FIX-PIVOT-FAIL` | layer-pivot 룰이 L0 도달 후에도 fix 실패 (`kzk-fix-scope-expansion §Fix layer pivot`) | halt + Q-FIX-PIVOT-FAIL entry. fallback: 외부 시스템 또는 사용자 manual 분석 | 사용자 결정 (분석 결과 기반 fix 재진입 또는 task abandon) |
-| `Q-COMPLETION-SELF-VERIFY` | 자율실행 종료 직전 main 이 fresh-agent verifier dispatch 없이 "다 됐다" / "verification PASS" / "loop exit" / "completion confirmed" 결론 시도 | halt + Q-COMPLETION-SELF-VERIFY entry. 종료 보고 BLOCK. cross-ref: §Autonomous completion — fresh-agent verifier | fresh-agent verifier dispatch PASS 또는 사용자 명시 override (1회만) |
-| `Q-PW-OAUTH-NEW-ACCOUNT` | OAuth account picker 에 cached 계정 row 0개 (fresh Chromium profile / no cached session). 절차: `kzk-playwright-verification §OAuth click-through protocol` | halt + user-queue entry | 사용자가 Chromium 창에서 1회 직접 로그인 → cached cookie 이후 runs 커버 |
-| `Q-PW-OAUTH-MULTI-ACCOUNT` | OAuth account picker 에 cached 계정 row ≥ 2개 — 어느 계정인지 모호. 절차: `kzk-playwright-verification §OAuth click-through protocol` | halt + user-queue entry (어느 email 사용할지 질문) | 사용자가 target email 명시 → agent 해당 row 만 클릭 |
-| `Q-PW-OAUTH-CONSENT-LOOP` | consent_page_count > 4 — 비정상 scope chain 또는 Google UI 변경 의심. 절차: `kzk-playwright-verification §OAuth click-through protocol` | halt + user-queue entry | 사용자 scope chain / UI 변경 수동 검토 후 resume |
-| `Q-PW-OAUTH-STUCK` | 동일 URL ≥ 30s + console/DOM 변화 없음, 또는 sign-in click 검증 2회 연속 실패. 절차: `kzk-playwright-verification §OAuth click-through protocol` | halt + user-queue entry | 수동 진단 (MCP 상태, login modal, 네트워크) 후 resume |
-| `Q-PW-OAUTH-CHALLENGE` | Google 페이지에서 reCAPTCHA / "Verify it's you" / SMS OTP / 비밀번호 입력 요구 / passkey prompt / security key / device verification / account locked / 'less secure apps' interstitial. 절차: `kzk-playwright-verification §OAuth click-through protocol` | halt + user-queue entry | 사용자가 Chromium 창에서 challenge 1회 완료 → 이후 runs 정상 |
+| `Q-TDD-MAIN` | Main context in autonomous mode attempts to enter TDD red phase directly | halt + Q-TDD-MAIN entry. cross-ref: `kzk-test-coverage` §Autonomous mode — main direct TDD forbidden | fresh sonnet dispatch PASS or explicit user override (one-time only) |
+| `Q-MAIN-DIRECT-EDIT` | Main in autonomous mode attempts to directly Edit/Write code/skill changes (signal: 5+ file reads / 3+ file edits / 200+ LoC) | halt + Q-MAIN-DIRECT-EDIT entry. cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit` | fresh executor subagent dispatch PASS or explicit user override (one-time only) |
+| `Q-VERIFIER-FAIL` | Verifier returns 2 consecutive FAILs on same thread `(plan_path, acceptance_id, round)` | halt + Q-VERIFIER-FAIL entry. commit BLOCK maintained | PASS or user-approved plan revision (explicit rev bump) |
+| `Q-VERIFIER-INVALID` | Verifier response first line fails `VERDICT: PASS\|FAIL\|PARTIAL` regex match | fail-closed BLOCK + Q-VERIFIER-INVALID entry | retry (stricter prompt) PASS or user manual verify OK |
+| `Q-VERIFIER-DISPATCH-FAIL` | Verifier subagent dispatch itself fails (timeout / unavailable) | BLOCK + Q-VERIFIER-DISPATCH-FAIL entry. fallback: `oh-my-claudecode:code-reviewer` | fallback PASS or user manual review OK |
+| `Q-CODEX-DISPATCH-FAIL` | Codex subagent dispatch itself fails — defined in `kzk-codex-handoff §Fresh subagent 호출 패턴` | BLOCK + Q-CODEX-DISPATCH-FAIL entry. fallback 1: main runs codex directly. fallback 2: critic opus | fallback PASS or user manual review OK |
+| `Q-FIX-PIVOT-FAIL` | Layer-pivot rule fails to resolve after reaching L0 (`kzk-fix-scope-expansion §Fix layer pivot`) | halt + Q-FIX-PIVOT-FAIL entry. fallback: external system or user manual analysis | user decision (re-enter fix based on analysis results, or abandon task) |
+| `Q-COMPLETION-SELF-VERIFY` | Main attempts "done" / "verification PASS" / "loop exit" / "completion confirmed" conclusion just before autonomous exit without dispatching fresh-agent verifier | halt + Q-COMPLETION-SELF-VERIFY entry. completion report BLOCKED. cross-ref: §Autonomous completion — fresh-agent verifier | fresh-agent verifier dispatch PASS or explicit user override (one-time only) |
+| `Q-PW-OAUTH-NEW-ACCOUNT` | OAuth account picker has 0 cached rows (fresh Chromium profile / no cached session). Procedure: `kzk-playwright-verification §OAuth click-through protocol` | halt + user-queue entry | User signs in once in Chromium window; cached cookie covers subsequent runs |
+| `Q-PW-OAUTH-MULTI-ACCOUNT` | OAuth account picker has ≥ 2 cached rows — target account is ambiguous. Procedure: `kzk-playwright-verification §OAuth click-through protocol` | halt + user-queue entry (ask which email to use) | User specifies target email; agent clicks that row only |
+| `Q-PW-OAUTH-CONSENT-LOOP` | consent_page_count > 4 — unusual scope chain or suspected Google UI change. Procedure: `kzk-playwright-verification §OAuth click-through protocol` | halt + user-queue entry | User manually reviews scope chain / UI change then resumes |
+| `Q-PW-OAUTH-STUCK` | Same URL ≥ 30s + no console/DOM activity, or sign-in click verification fails 2×. Procedure: `kzk-playwright-verification §OAuth click-through protocol` | halt + user-queue entry | Manual diagnose (MCP state, login modal, network) then resume |
+| `Q-PW-OAUTH-CHALLENGE` | Google page requires reCAPTCHA / "Verify it's you" / SMS OTP / password input / passkey prompt / security key / device verification / account locked / 'less secure apps' interstitial. Procedure: `kzk-playwright-verification §OAuth click-through protocol` | halt + user-queue entry | User completes the challenge once in the Chromium window; subsequent runs are normal |
 | `Q-PW-OAUTH-PROVIDER-ERROR` | OAuth provider config error / backend misconfig — e.g. `redirect_uri_mismatch`, `error=access_denied`, COOP/COEP-blocked popup, 4xx/5xx on callback. Note: `error=access_denied` can be EITHER (a) backend config issue OR (b) user-declined consent — full dual-cause note + resume guidance in `kzk-playwright-verification §OAuth click-through protocol` halt table. Full trigger body: `kzk-playwright-verification §OAuth click-through protocol` + halt table row | halt + Q-PW-OAUTH-PROVIDER-ERROR entry with captured error code + URL | Backend/OAuth config fix (Google Cloud Console redirect URI, OAuth client) — usually outside Playwright scope. If user-declined: re-prompt user with intent. Full resume: `kzk-playwright-verification §OAuth click-through protocol` halt table. |
-| `Q-TDD-AUTO-MISSING` | Autonomous mode active (Category A verb phrase OR `KZK_AUTONOMOUS=1`) AND code-file change detected (per `kzk-test-coverage §Autonomous mode TDD enforcement`) but no failing-then-passing test present in the same cycle (TDD bypass) | halt + Q-TDD-AUTO-MISSING entry. commit BLOCK | TDD test added (Red → Green) in the same cycle OR user explicit override ("TDD 빼고", 1회만) |
+| `Q-TDD-AUTO-MISSING` | Autonomous mode active (Category A verb phrase OR `KZK_AUTONOMOUS=1`) AND code-file change detected (per `kzk-test-coverage §Autonomous mode TDD enforcement`) but no failing-then-passing test present in the same cycle (TDD bypass) | halt + Q-TDD-AUTO-MISSING entry. commit BLOCK | TDD test added (Red → Green) in the same cycle OR explicit user override ("TDD 빼고", one-time only) |
 
 
 ## Autonomous completion — fresh-agent verifier (mandatory)
 
-자율실행 mode 가 "다 됐다" / "완료" / "verification PASS" / "loop exit" 결론을 내리기 직전 의무 단계. **main self-declared completion 금지** — main 의 자체 결과 (production build PASS + unit test PASS + 코드 wiring 확인) 만으로 종료 보고하면 dev/prod 환경 격차 + browser 시야 사각지대를 못 잡음 (사용자가 직접 페이지 열어 stale / 깨진 화면 발견 → rework 큰 비용).
+Mandatory step just before autonomous mode concludes with "done" / "complete" / "verification PASS" / "loop exit". **Main self-declared completion is forbidden** — main's own results (production build PASS + unit test PASS + code wiring confirmed) alone cannot catch dev/prod environment divergence + browser blind spot (user opens page, finds stale / broken screen → expensive rework).
 
 ### Trigger
 
-- 자율실행 loop (`ralph` / `ulw` / `web-loop` / `autopilot` / harness self-improvement / "끝까지 끝내줘" / "자는 동안 진행해") 의 마지막 commit 후, 다음 사이클 진입 또는 사용자에게 종료 보고 직전
-- Plan C Stage 3 verifier 와는 **별개 trigger** — Stage 3 = per-commit code-level lens, 본 절차 = autonomous run 전체의 exit gate (user-persona run-level lens)
-- 단일 cycle (`/improve` 1회) 도 의무. cycle 1개 = main 의 self-verification 사각지대 동일.
+- After the last commit of an autonomous loop (`ralph` / `ulw` / `web-loop` / `autopilot` / harness self-improvement / "끝까지 끝내줘" / "자는 동안 진행해"), before entering the next cycle or reporting completion to the user
+- **Separate trigger from Plan C Stage 3 verifier** — Stage 3 = per-commit code-level lens; this procedure = exit gate for the entire autonomous run (user-persona run-level lens)
+- Even a single cycle (`/improve` once) is mandatory. One cycle = same main self-verification blind spot.
 
 ### Dispatch
 
 ```
 Agent(
   subagent_type="oh-my-claudecode:verifier",
-  prompt=<완료-검증 prompt — 아래 §Verifier 임무 참조>,
+  prompt=<completion-verification prompt — see §Verifier tasks below>,
 )
 ```
 
-model 분기 (Gate 5 schema 동일):
-- 변경 합계 < 3 files && < 100 LoC && non-UI → `model="sonnet"` 명시
-- 그 외 (multi-file / UI 변경 포함 / high-risk: auth/payment/migration/public API) → model 생략 (메인 opus 상속)
+Model branching (same schema as Gate 5):
+- Total changes < 3 files && < 100 LoC && non-UI → specify `model="sonnet"`
+- Otherwise (multi-file / includes UI changes / high-risk: auth/payment/migration/public API) → omit model (inherits main opus)
 
-### Verifier 임무 (prompt 명시 의무 항목)
+### Verifier tasks (mandatory items in prompt)
 
-1. **Dev server health 사전 검수** — `kzk-playwright-verification §Dev/prod build divergence trap` 전체 절차 적용. `ps aux | grep -E "vite|next|nest"` + dev log tail 50 line error 패턴 grep (`vite:css`, `Module build failed`, `HMR ERROR`, `parse error`). 1개라도 발견 시 → FAIL.
-2. **Playwright user-persona navigate** — 변경 영역 포함 ≥ 3 페이지. `page.reload({ bypassCache: true })` 1회 강제 + full-page screenshot + `browser_console_messages level=error AND level=warning` (HMR warning 포함).
-3. **HMR / module reload error 점검** — browser console 의 `[HMR]`, `[vite]`, `[next]` prefix 경고 0개.
-4. **User-persona visual check** — 사용자가 페이지 열면 보일 화면 명시적 시각 검수. shadcn primitive default brittle (unstyled anchor / 무padding badge / border-only card), padding / layout, copy text 신선도. "looks good" 금지 — name elements + name tokens.
-5. **변경 의도 vs 실제 화면 일치 여부** — 이번 cycle 의 acceptance criteria 가 페이지에서 실제로 보이는지 사용자 시야에서 검수.
+1. **Dev server health pre-check** — apply full procedure from `kzk-playwright-verification §Dev/prod build divergence trap`. `ps aux | grep -E "vite|next|nest"` + dev log tail 50 lines error pattern grep (`vite:css`, `Module build failed`, `HMR ERROR`, `parse error`). Any match → FAIL.
+2. **Playwright user-persona navigate** — ≥ 3 pages including the changed area. Force one `page.reload({ bypassCache: true })` + full-page screenshot + `browser_console_messages level=error AND level=warning` (including HMR warnings).
+3. **HMR / module reload error check** — zero `[HMR]`, `[vite]`, `[next]` prefix warnings in browser console.
+4. **User-persona visual check** — explicitly visually verify what the user would see when opening the page. shadcn primitive default-brittle states (unstyled anchor / padding-less badge / border-only card), padding / layout, copy text freshness. "looks good" is forbidden — name elements + name tokens.
+5. **Change intent vs actual screen match** — verify from the user's perspective that this cycle's acceptance criteria are actually visible on the page.
 
-### VERDICT enforcement (Gate 5 schema 동일)
+### VERDICT enforcement (same schema as Gate 5)
 
-- 응답 첫 줄 `VERDICT: PASS|FAIL|PARTIAL` 정규식 강제
-- PASS 받기 전 autonomous loop 종료 / 완료 보고 BLOCK
-- 같은 thread (autonomous run id) 2 consecutive FAIL → halt + `Q-VERIFIER-FAIL` (기존 entry 재사용)
-- VERDICT line 정규식 위반 → fail-closed BLOCK + `Q-VERIFIER-INVALID`
-- verifier subagent dispatch 자체 실패 → BLOCK + `Q-VERIFIER-DISPATCH-FAIL` (fallback: `oh-my-claudecode:code-reviewer`)
-- main 이 dispatch 자체를 생략하고 "다 됐다" 결론 시도 → halt + `Q-COMPLETION-SELF-VERIFY` (§Halt conditions table)
+- First line of response must match `VERDICT: PASS|FAIL|PARTIAL` regex
+- Autonomous loop exit / completion report BLOCKED until PASS received
+- 2 consecutive FAILs on same thread (autonomous run id) → halt + `Q-VERIFIER-FAIL` (reuse existing entry)
+- VERDICT line regex violation → fail-closed BLOCK + `Q-VERIFIER-INVALID`
+- Verifier subagent dispatch itself fails → BLOCK + `Q-VERIFIER-DISPATCH-FAIL` (fallback: `oh-my-claudecode:code-reviewer`)
+- Main attempts "done" conclusion without dispatching → halt + `Q-COMPLETION-SELF-VERIFY` (§Halt conditions table)
 
 ### Anti-patterns
 
-- **main self-declared completion** — production build PASS + unit test PASS + 코드 wiring 확인 = "다 됐다" 결론. dev/prod 격차 (e.g. Tailwind v4 @import order = dev fail / prod pass) + browser 시야 사각지대 못 잡음. fresh-agent dispatch 의무.
-- **Stage 3 Gate 5 verifier PASS 했으므로 exit verifier 생략** — 다른 lens. Gate 5 = per-commit code-level, exit verifier = run-level user-persona. 모두 의무.
-- **"한 cycle 밖에 안 됐으니 verifier 과한 듯"** — cycle 1개 = main 의 self-verification 사각지대 동일. 비용은 sonnet 1회 (~50k token), rework 평균 비용 (이번 cycle 20 enum 작업: 5 추가 commit + 사용자 직접 진단) 대비 매우 저렴.
-- **"사용자가 직접 화면 보고 confirm 해주면 되니까 verifier 패스"** — 사용자에게 verification 책임 전가 = autonomous 의 의미 자체 위반. 사용자가 화면 열어보는 건 fallback 이지 primary path 가 아님.
+- **Main self-declared completion** — production build PASS + unit test PASS + code wiring confirmed = "done" conclusion. Cannot catch dev/prod divergence (e.g. Tailwind v4 @import order = dev fail / prod pass) + browser blind spot. Fresh-agent dispatch is mandatory.
+- **"Stage 3 Gate 5 verifier PASSED so skip exit verifier"** — different lens. Gate 5 = per-commit code-level, exit verifier = run-level user-persona. Both are mandatory.
+- **"Only one cycle so verifier seems excessive"** — one cycle = same main self-verification blind spot. Cost is one sonnet call (~50k tokens) vs average rework cost (this cycle's 20 enum work: 5 extra commits + user direct diagnosis) — far cheaper.
+- **"User can look at the screen and confirm, so skip verifier"** — delegating verification responsibility to the user violates the purpose of autonomous mode. User checking the screen is the fallback, not the primary path.
 
 ### Cross-ref
 
-- `kzk-playwright-verification §Dev/prod build divergence trap` — verifier Step 1 (dev server health) 에서 사용할 detection procedure
-- `kzk-pre-commit-gate §Gate 5` — per-commit verifier (별개 trigger, 같은 schema)
-- `harness-share.md §3 Gate 5` — Gate 5 SoT (본 § 는 그 위의 run-level exit gate)
-- §Halt conditions table 의 `Q-COMPLETION-SELF-VERIFY` / `Q-VERIFIER-*` entries — 본 절차 위반 / 실패 시 halt entry
+- `kzk-playwright-verification §Dev/prod build divergence trap` — detection procedure to use in verifier Step 1 (dev server health)
+- `kzk-pre-commit-gate §Gate 5` — per-commit verifier (separate trigger, same schema)
+- `harness-share.md §3 Gate 5` — Gate 5 SoT (this § is the run-level exit gate above it)
+- §Halt conditions table entries `Q-COMPLETION-SELF-VERIFY` / `Q-VERIFIER-*` — halt entries for violations / failures of this procedure
 
 ## Rollback / revert policy
 
@@ -163,11 +163,11 @@ If the autonomous loop committed code that is later found to be wrong (reviewer 
 - **kzk-tool-retry**: When any Edit/Write/Bash fails during autonomous execution, apply 1-retry before halting or queuing. This skill defines halt conditions; kzk-tool-retry defines the single-call retry discipline that runs before those conditions are evaluated.
 - **kzk-autonomous-loop**: polite-stop ban and multi-Plan continuation rules. This skill defines what STOPS the loop; that one defines how the loop CONTINUES.
 - **kzk-user-queue**: halt conditions that require a user decision append entries here and await a DECISION line before resuming.
-- **kzk-test-coverage**: Plan A Layer (b) 자율 mode 메인 직접 TDD 금지 룰의 halt entry (`Q-TDD-MAIN`) 가 본 skill 의 §Halt conditions 표에 등록됨. 추가: 자율 mode + code-file change 의 auto-trigger TDD enforcement 룰 본문은 `kzk-test-coverage §Autonomous mode TDD enforcement` 에 정의; 그 halt entry (`Q-TDD-AUTO-MISSING`) 는 본 skill §Halt conditions 표에 등록됨 (§Allowed actions + §Forbidden actions 에서도 cross-ref).
-- **kzk-large-task-delegation / kzk-pre-commit-gate**: Plan C Stage 3 / Gate 5 verifier 관련 halt entry (`Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `Q-VERIFIER-DISPATCH-FAIL`) 가 본 skill §Halt conditions 표에 등록됨.
-- **kzk-large-task-delegation / kzk-codebase-survey**: 메인 직접 multi-file edit / 5+ 파일 read 시도 halt entry (`Q-MAIN-DIRECT-EDIT`) 가 본 skill §Halt conditions 표에 등록됨. cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit` / `kzk-codebase-survey §Preparation phase delegation`.
-- **kzk-codex-handoff**: `Q-CODEX-DISPATCH-FAIL` halt entry 의 정의 출처. 본 skill §Halt conditions 표가 그 entry 를 등록.
-- **kzk-playwright-verification**: §Autonomous completion — fresh-agent verifier 의 Step 1 (dev server health) detection procedure 는 그 skill 의 §Dev/prod build divergence trap 에 위임. 본 skill 의 exit verifier 가 trigger / VERDICT enforcement / Halt entry 정의. Q-PW-OAUTH-* halt entries (6종 — NEW-ACCOUNT, MULTI-ACCOUNT, CONSENT-LOOP, STUCK, CHALLENGE, PROVIDER-ERROR) 정의는 그 skill 의 §OAuth click-through protocol 본문에 위임. 본 §Halt conditions 표는 entry 등록만 담당.
+- **kzk-test-coverage**: Plan A Layer (b) autonomous mode main-direct TDD forbidden rule's halt entry (`Q-TDD-MAIN`) is registered in this skill's §Halt conditions table. Additionally: the auto-trigger TDD enforcement rule for autonomous mode + code-file change is defined in `kzk-test-coverage §Autonomous mode TDD enforcement`; its halt entry (`Q-TDD-AUTO-MISSING`) is registered in this skill's §Halt conditions table (also cross-referenced in §Allowed actions + §Forbidden actions).
+- **kzk-large-task-delegation / kzk-pre-commit-gate**: Plan C Stage 3 / Gate 5 verifier-related halt entries (`Q-VERIFIER-FAIL`, `Q-VERIFIER-INVALID`, `Q-VERIFIER-DISPATCH-FAIL`) are registered in this skill's §Halt conditions table.
+- **kzk-large-task-delegation / kzk-codebase-survey**: Main direct multi-file edit / 5+ file read attempt halt entry (`Q-MAIN-DIRECT-EDIT`) is registered in this skill's §Halt conditions table. cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit` / `kzk-codebase-survey §Preparation phase delegation`.
+- **kzk-codex-handoff**: Source of the `Q-CODEX-DISPATCH-FAIL` halt entry definition. This skill's §Halt conditions table registers that entry.
+- **kzk-playwright-verification**: §Autonomous completion — fresh-agent verifier Step 1 (dev server health) detection procedure is delegated to that skill's §Dev/prod build divergence trap. This skill defines the trigger / VERDICT enforcement / halt entries. Q-PW-OAUTH-* halt entries (6 types — NEW-ACCOUNT, MULTI-ACCOUNT, CONSENT-LOOP, STUCK, CHALLENGE, PROVIDER-ERROR) are defined in that skill's §OAuth click-through protocol body. This §Halt conditions table only registers the entries.
 
 ## Pre-dispatch survey rule (autonomous mode)
 

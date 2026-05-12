@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-loop
-version: 1.9.0
+version: 1.10.0
 description: "Autonomous loop continuation — anti-polite-stop contract. Governs rate-limit polling (ScheduleWakeup 600s), extra-usage/overage tier override (no halt), auto /compact at 80% context, Plan A→N auto-continuation. Polite stops forbidden inside autonomous scope (9 canonical examples in body). References harness-share.md §12/§13/§14."
 ---
 
@@ -32,7 +32,7 @@ When the session is on Anthropic's extra-usage / overage / pay-per-use tier (not
 
 In overage mode, the agent MUST continue. Do NOT:
 - Schedule `ScheduleWakeup` (no rate-limit reset to wait for — requests already work)
-- Halt and ask the user "should I continue spending?"  — user already authorized the autonomous run
+- Halt and ask the user "should I continue spending?" — user already authorized the autonomous run
 - Slow down the loop or drop to lighter models without explicit user instruction
 
 The 5h-window polling rule (above) applies ONLY when requests actually fail with the strict rate-limit error. Cost-only signals never halt — that's user's billing concern, not the agent's halt condition.
@@ -98,20 +98,20 @@ Skip conditions:
 - `OMC_SKIP_HOOKS=autonomous-stop-guard` env → bypass
 - Any internal hook error → fail-open (allow stop)
 
-### Multi-plan CRG refresh 의무
+### Multi-plan CRG refresh requirement
 
-multi-Plan continuation (Plan A→B→…→N) 시작 시 + 각 plan 사이 CRG refresh 의무:
+At multi-Plan continuation (Plan A→B→…→N) start and between each plan, CRG refresh is mandatory:
 
-1. **시작 시 (Plan A 직전)**: `code-review-graph build` full rebuild — 이전 cycle commit 반영. 시간 ~30초–2분.
-2. **각 plan 끝나는 시점 (commit 직후)**: `code-review-graph update` incremental — `kzk-pre-commit-gate §Post-commit CRG refresh` 적용. session cache invalidate (`CRG_LAST_BUILT_SHA` reset).
-3. **새 plan 시작 직전 (Plan B 진입 전)**: `code-review-graph status` 로 cache 검증. `CRG_LAST_BUILT_SHA` 가 reset 상태 (cache miss) 이면 `(f)` 룰 재발동 → incremental update 후 진입. cache hit 이면 신뢰하고 진입.
-4. **session 안 동일 plan 안 추가 CRG call**: `kzk-codebase-survey §Step 0.5 (f)` session cache 신뢰. 반복 build X.
+1. **At start (immediately before Plan A)**: `code-review-graph build` full rebuild — reflects previous cycle commits. Takes ~30s–2min.
+2. **At plan end (immediately after commit)**: `code-review-graph update` incremental — apply `kzk-pre-commit-gate §Post-commit CRG refresh`. Invalidate session cache (`CRG_LAST_BUILT_SHA` reset).
+3. **Immediately before next plan (before entering Plan B)**: verify cache with `code-review-graph status`. If `CRG_LAST_BUILT_SHA` is reset (cache miss), re-trigger rule `(f)` → incremental update then proceed. Cache hit → trust and proceed.
+4. **Additional CRG calls within the same plan in the same session**: trust `kzk-codebase-survey §Step 0.5 (f)` session cache. No repeated builds.
 
-**요약**: plan 끝 = commit → CRG update → cache invalidate. 새 plan 시작 직전 = cache miss 확인 → (f) 재발동 → reload. 둘 다 명시 의무.
+**Summary**: plan end = commit → CRG update → cache invalidate. Before next plan = cache miss check → (f) re-trigger → reload. Both are mandatory to state explicitly.
 
-**Anti-pattern**: 이전 plan commit 반영 없이 새 plan 진입 — stale CRG 로 fix-scope-expansion / codebase-survey 가 outdated callsite 보고 위험.
+**Anti-pattern**: entering a new plan without reflecting the previous plan's commit — stale CRG causes fix-scope-expansion / codebase-survey to report outdated callsites.
 
-**Skip 조건**: `KZK_CRG_NO_REFRESH=1` env (CI / debug 용).
+**Skip condition**: `KZK_CRG_NO_REFRESH=1` env (for CI / debug).
 
 ## Plan-boundary checkpoints
 

@@ -1,6 +1,6 @@
 ---
 name: kzk-playwright-verification
-version: 1.7.4
+version: 1.8.0
 description: "Playwright MCP visual verification + OAuth click-through. Gate 4 catches unstyled shadcn primitives, padding-less badges, border-only cards. Dev server health pre-check (process alive + log tail error grep) blocks dev/prod divergence trap (e.g. Tailwind v4 @import order = dev fail / prod pass). 3+ pages, full-page screenshot, 0 console errors required. OAuth = agent-driven (no user wait). MCP drop → 5-step self-recovery. Multi-account picker halt (Q-PW-OAUTH-MULTI-ACCOUNT), consent loop 4-page cap (Q-PW-OAUTH-CONSENT-LOOP), stuck/challenge detection (Q-PW-OAUTH-STUCK, Q-PW-OAUTH-CHALLENGE). Popup OAuth branch (window.open) + provider-error halt (Q-PW-OAUTH-PROVIDER-ERROR) + 'Continue as <user>' picker fast-path. References harness-share.md §3 Gate 4. cycle-2 refinements: named popup branch, COOP/COEP signature list, access_denied user-decline note."
 ---
 
@@ -10,11 +10,11 @@ description: "Playwright MCP visual verification + OAuth click-through. Gate 4 c
 
 ## Standard verification routine (UI commit, just before Gate 4 PASS)
 
-0. **Dev server health pre-check** (frontend 변경 시 의무) — 본문 §Dev/prod build divergence trap 전체 절차 참조. 한 줄 요약: dev server process alive (`ps aux | grep -E "vite|next|nest" | grep -v grep`) AND dev log tail 마지막 50줄에 error 패턴 0개 (`vite:css`, `Module build failed`, `error during build`, `HMR ERROR`, `parse error`, `compilation error`). 어느 한 쪽이라도 FAIL → 페이지가 stale 빌드를 보여주는 상태이므로 그 위에 Playwright 검증 = 무의미. 먼저 root cause fix → dev rebuild success log 확인 → step 1 진입.
-1. Build/test green confirmed (production build PASS 만으로 verification 종료 금지 — §Dev/prod build divergence trap)
-2. `mcp__playwright__browser_navigate` — visit ≥3 representative pages including the changed area. 첫 navigate 후 `page.reload({ bypassCache: true })` 또는 동등 1회 강제 — stale browser cache 제거
+0. **Dev server health pre-check** (mandatory for frontend changes) — see full procedure in §Dev/prod build divergence trap. One-line summary: dev server process alive (`ps aux | grep -E "vite|next|nest" | grep -v grep`) AND the last 50 lines of the dev log have zero error patterns (`vite:css`, `Module build failed`, `error during build`, `HMR ERROR`, `parse error`, `compilation error`). If either check fails → the page is showing a stale build; running Playwright on top of it is meaningless. Fix the root cause first → confirm dev rebuild success in the log → then enter step 1.
+1. Build/test green confirmed (production build PASS alone is not enough to end verification — see §Dev/prod build divergence trap)
+2. `mcp__playwright__browser_navigate` — visit ≥3 representative pages including the changed area. After the first navigate, force one `page.reload({ bypassCache: true })` or equivalent to flush stale browser cache.
 3. Per page: `mcp__playwright__browser_snapshot` (functional regression) + `mcp__playwright__browser_take_screenshot fullPage=true` (saved to `docs/screenshots/<session>/<topic>-NN.png`)
-4. `mcp__playwright__browser_console_messages level=error` → 0 errors. `level=warning` 도 1회 확인 — HMR partial reload 실패가 warning 으로 뜨는 경우 있음 (`[vite] hmr update failed`, `[next] hmr error`)
+4. `mcp__playwright__browser_console_messages level=error` → 0 errors. Also check `level=warning` once — HMR partial reload failures sometimes surface as warnings (`[vite] hmr update failed`, `[next] hmr error`)
 5. **Visual inspection** — actually look at the screenshot. shadcn primitives in default-brittle states (unstyled anchors, padding-less badges, border-only cards) = FAIL. Visual regression blocks the commit.
 6. `mcp__playwright__browser_click` / `browser_fill_form` for primary interactions if any changed
 7. Commit body includes `Playwright: <screenshot_paths> + snapshot captured (console 0 err, dev log clean) + visual verified`
@@ -25,43 +25,43 @@ Exception: `kzk-web-loop` overrides this — see `kzk-web-loop` §Playwright Res
 
 ## Dev/prod build divergence trap (production PASS ≠ dev PASS)
 
-**Symptom**: `npm run build` (production) PASS + autonomous main 의 self-verification PASS 인데, 사용자가 페이지 열면 어제 빌드를 그대로 보여주거나 새 컴포넌트가 안 보임. main 이 "다 됐다" 라고 종료 보고했지만 사용자 시야에서는 망가짐.
+**Symptom**: `npm run build` (production) PASS + autonomous main's self-verification PASS, but when the user opens the page they see yesterday's build or a missing new component. Main reported "done" but from the user's perspective it's broken.
 
 **Root cause patterns** (known):
-- **Tailwind v4 + dev `@import` order**: `@import 'tailwindcss';` 가 inline expand 된 뒤 오는 `@import url(...)` 줄은 dev mode (esbuild) 의 `"@import must precede all other statements"` 위반. production build (rollup) 는 lenient 처리 — 같은 source 가 **dev fail / prod pass** 환경 격차.
-- **Vite HMR partial reload fail**: 새 파일 (e.g. `EnumSelectStep.tsx`) 추가 후 dev server 가 module graph refresh 실패 → 페이지가 마지막 성공 빌드 상태로 freeze. 새 import 시 console 의 chunk 404 또는 silent ignore.
-- **Next.js Turbopack / Webpack stale chunk**: 동일 패턴. `.next/cache` corruption 가능.
-- **Dev server died but page cached**: vite/next 프로세스가 죽어도 브라우저는 직전 빌드를 캐시로 표시. 사용자가 새로고침 (Cmd+R) 해도 캐시 hit 으로 stale.
-- **dev/prod 빌드 도구 격차 일반**: rollup vs esbuild, swc vs babel, turbopack vs webpack 등 환경마다 lint strictness 다름. dev fail / prod pass (혹은 그 역) 양쪽 가능.
+- **Tailwind v4 + dev `@import` order**: `@import 'tailwindcss';` after inline expansion is followed by `@import url(...)` lines which violate dev mode (esbuild) `"@import must precede all other statements"`. Production build (rollup) is lenient — same source causes **dev fail / prod pass** divergence.
+- **Vite HMR partial reload fail**: After adding a new file (e.g. `EnumSelectStep.tsx`), the dev server fails to refresh the module graph → page freezes at the last successful build state. New imports may result in console chunk 404 or silent ignore.
+- **Next.js Turbopack / Webpack stale chunk**: Same pattern. `.next/cache` corruption possible.
+- **Dev server died but page cached**: Even if vite/next process is dead, the browser shows the previous build from cache. User refreshing (Cmd+R) still hits cache, showing stale content.
+- **Dev/prod build tool divergence generally**: rollup vs esbuild, swc vs babel, turbopack vs webpack — lint strictness differs per environment. Either direction (dev fail / prod pass or dev pass / prod fail) is possible.
 
-**Detection (Gate 4 step 0 의무 절차)**:
+**Detection (mandatory procedure at Gate 4 step 0)**:
 
-1. **Process alive 체크**:
+1. **Process alive check**:
    ```bash
    ps aux | grep -E "vite|next|nest" | grep -v grep
    ```
-   결과 0개 → dev server 죽음. 재시작 + 빌드 success 확인 후 진입.
+   0 results → dev server is dead. Restart it + confirm build success before proceeding.
 
 2. **Dev log tail error grep**:
    ```bash
-   tail -50 <dev log path>   # 예: /tmp/vite-dev.log, /tmp/next-dev.log
+   tail -50 <dev log path>   # e.g. /tmp/vite-dev.log, /tmp/next-dev.log
    ```
-   error 패턴 grep (1개라도 발견 시 FAIL):
+   FAIL on any of these patterns (1 match = FAIL):
    - `vite:css`, `Module build failed`, `error during build`, `compilation error`
    - `HMR ERROR`, `hmr update failed`, `hmr error`
    - `parse error`, `Unexpected token`, `Cannot find module`
    - `[next-swc-error]`, `[turbopack-error]`
 
-3. **Browser console + warning 동반 확인**: `browser_console_messages level=error` AND `level=warning`. HMR 실패가 warning level 로 뜨는 경우 빈번.
+3. **Browser console + warning check**: `browser_console_messages level=error` AND `level=warning`. HMR failures frequently appear at warning level.
 
-4. **Stale cache 제거**: `browser_navigate` 후 `page.reload({ bypassCache: true })` 또는 hard refresh 1회 강제.
+4. **Stale cache flush**: After `browser_navigate`, force one `page.reload({ bypassCache: true })` or hard refresh.
 
 **Action when FAIL**:
-- dev build error 발견 → 화면 검증 자체 무의미. **root cause fix → dev 재시작 → log 새 빌드 success 확인 → routine step 1 부터 다시**.
-- production build PASS 만으로 verification 종료 금지. 사용자 환경 ≡ dev server output.
-- 이 갭은 main 의 self-verification 사각지대 — `kzk-autonomous-boundary §Autonomous completion — fresh-agent verifier` 가 본 procedure 의 dispatch 의무를 정의.
+- Dev build error found → page verification is meaningless. **Fix root cause → restart dev → confirm new build success in log → restart from routine step 1**.
+- Do not end verification on production build PASS alone. User environment ≡ dev server output.
+- This gap is in the blind spot of main's self-verification — `kzk-autonomous-boundary §Autonomous completion — fresh-agent verifier` defines the dispatch obligation for this procedure.
 
-**Cross-ref**: 사용자가 보는 stale 화면 → 본 § dev log tail 우선 → 본문 §Debug cheatsheet "stale 페이지" row.
+**Cross-ref**: User sees stale page → this §Dev log tail first → §Debug cheatsheet "stale page" row.
 
 ## Authentication (Playwright profile is persistent)
 
@@ -162,15 +162,15 @@ Final state verify: URL matches the protected route AND a known authenticated el
 | `Q-PW-OAUTH-CONSENT-LOOP` | consent_page_count > 4 | halt + user-queue entry | Manual review of scope chain or UI shift |
 | `Q-PW-OAUTH-STUCK` | Same URL ≥ 30s + no console/DOM activity, or sign-in click verification fails 2× | halt + user-queue entry | Manual diagnose (MCP state, login modal, network) |
 | `Q-PW-OAUTH-CHALLENGE` | reCAPTCHA / Verify-it's-you / SMS OTP / password input from Google / passkey prompt / security key / device verification / account locked / 'less secure apps' interstitial | halt + user-queue entry | User completes the challenge once in the Chromium window |
-| `Q-PW-OAUTH-PROVIDER-ERROR` | Callback URL or page shows `error=access_denied` / `error=invalid_client` / `redirect_uri_mismatch` / `error=admin_policy_enforced` / HTTP 4xx-5xx on callback, OR COOP/COEP-blocked popup, OR Google terminal error page. Note: `error=access_denied` can be EITHER (a) backend config issue OR (b) user-declined consent (사용자가 consent 페이지에서 'Cancel' / '거부' 클릭). User-queue entry MUST capture raw error code + full callback URL so the resumer distinguishes config-fix from user-intent. | halt + user-queue entry with exact error code + redirect URL captured | Backend/OAuth config fix (usually outside Playwright scope — likely Google Cloud Console redirect URI mismatch or app-side OAuth client misconfig). If user-declined: re-prompt user with intent ('재시도 vs abort'). If config: Google Cloud Console / OAuth client fix. |
+| `Q-PW-OAUTH-PROVIDER-ERROR` | Callback URL or page shows `error=access_denied` / `error=invalid_client` / `redirect_uri_mismatch` / `error=admin_policy_enforced` / HTTP 4xx-5xx on callback, OR COOP/COEP-blocked popup, OR Google terminal error page. Note: `error=access_denied` can be EITHER (a) backend config issue OR (b) user-declined consent (user clicked 'Cancel' / '거부' on the consent page). User-queue entry MUST capture raw error code + full callback URL so the resumer distinguishes config-fix from user-intent. | halt + user-queue entry with exact error code + redirect URL captured | Backend/OAuth config fix (usually outside Playwright scope — likely Google Cloud Console redirect URI mismatch or app-side OAuth client misconfig). If user-declined: re-prompt user with intent ('재시도 vs abort'). If config: Google Cloud Console / OAuth client fix. |
 
 **Forbidden patterns:**
 
 - Stopping at the app login screen with "사용자 로그인 대기" / "Google 로그인 화면 떴어요, 진행해주세요" — that's a regression; the agent must click the button itself.
 - Typing the user's email or password into Google's form — never. Cached profile or halt; no third option.
 - Re-running `browser_navigate('/auth/google')` repeatedly hoping the redirect just succeeds — when stuck, snapshot first, identify the actual block (account picker, consent, challenge), then act per the protocol above.
-- **Multi-account 환경에서 첫 row 자동 클릭** — wrong-account risk; halt with `Q-PW-OAUTH-MULTI-ACCOUNT` is mandatory when N ≥ 2.
-- **Consent loop without counter — clicking 'Continue' indefinitely** — 4-page cap (`consent_page_count > 4`) is mandatory; exceed it and halt with `Q-PW-OAUTH-CONSENT-LOOP`.
+- **Auto-clicking the first row in a multi-account environment** — wrong-account risk; halt with `Q-PW-OAUTH-MULTI-ACCOUNT` is mandatory when N ≥ 2.
+- **Clicking 'Continue' indefinitely without a counter** — 4-page cap (`consent_page_count > 4`) is mandatory; exceed it and halt with `Q-PW-OAUTH-CONSENT-LOOP`.
 - **Caching the account row index / order across sessions** — row order is unstable across renders and sessions; always re-snapshot and match by email/name text, never by row index.
 - **Hardcoded XPath / deep CSS selector chains for Google UI** (e.g. `div > div > div > button:nth-child(3)`) — Google's markup changes frequently; match by visible text / label / aria-label / **stable structural signals** (href anchor like `<a href="/auth/google">`, icon SVG identifier, `[aria-label*=Google i]`) only. Brittle positional/nth-child selectors that depend on rendering order = forbidden; the stable structural signals listed in §Pre-click target identification = OK.
 - **Clicking a 'Continue' / 'Allow' CTA without confirming the page host is `accounts.google.com`** — modal-heavy apps may have an in-app 'Continue' that looks identical. Snapshot URL/host before any consent click.
@@ -189,7 +189,7 @@ Mandatory after EVERY Playwright tool call AND every long-running tool with resp
 | Bash long-running / Agent dispatch / build / test | One-line progress hook (file count / commit / phase / latest output snippet) + next action |
 | Last tool of routine | Overall PASS/FAIL verdict + commit/halt/extra-fix decision |
 
-The user otherwise sees only "Cooked for Nm" otherwise — that reads as stuck and erodes autonomous trust. (Session 12 lesson — user explicitly flagged this twice.)
+The user otherwise sees only "Cooked for Nm" — that reads as stuck and erodes autonomous trust. (Session 12 lesson — user explicitly flagged this twice.)
 
 ## Storage
 
@@ -210,7 +210,7 @@ The user otherwise sees only "Cooked for Nm" otherwise — that reads as stuck a
 | `prose` markdown styling not applied | Tailwind v4 plugin import missing | Add `@plugin "@tailwindcss/typography";` to `src/styles/globals.css` |
 | Modal opens with `Function components cannot be given refs` warning | Pre-existing Radix Dialog SlotClone forwardRef issue | Pre-existing library warning. Not a blocker |
 | `vitest run --reporter=basic` fails in `loadCustomReporterModule` | vitest 4.1.x — basic reporter module not found | Drop the `--reporter=basic` flag, default reporter works |
-| 사용자가 본 페이지가 stale (어제 빌드 그대로) / 새 컴포넌트 안 보임 | dev server 죽었거나 dev build fail (e.g. Tailwind v4 @import order = dev fail / prod pass) | `ps aux \| grep -E "vite\|next\|nest"` + `tail -50 <dev log>` error 패턴 grep → root cause fix → dev 재시작 → log success 확인. 본문 §Dev/prod build divergence trap |
+| User sees stale page (yesterday's build) / new component missing | Dev server died or dev build failed (e.g. Tailwind v4 @import order = dev fail / prod pass) | `ps aux \| grep -E "vite\|next\|nest"` + `tail -50 <dev log>` error pattern grep → fix root cause → restart dev → confirm success log. See §Dev/prod build divergence trap |
 
 ## Self-recovery — Playwright MCP not connected / tools not surfaced (mandatory)
 
@@ -232,13 +232,13 @@ These 5 steps are main-context responsibility; do not delegate to a subagent (su
 - Reading the screenshot but stating "looks good" without an explicit visual claim. Build/test green ≠ visual PASS. Mandatory format: name elements + name tokens (e.g. "Card has shadow, padding looks correct, primary CTA blue is the brand token")
 - "I'll bypass via dev token" when MCP drops — see `harness-share.md` §19 MCP Reconnect Protocol
 - **Stopping at any login UI to "wait for user to log in"** — see §OAuth click-through protocol. The agent clicks; halt only when the protocol body explicitly calls for it — see §OAuth click-through protocol halt entry table (6 codes: NEW-ACCOUNT / MULTI-ACCOUNT / CONSENT-LOOP / STUCK / CHALLENGE / PROVIDER-ERROR).
-- **"production build PASS = verification OK"** — dev/prod 격차 무시. 사용자 환경 ≡ dev server output, production build PASS 만으로는 dev server stale / dev build fail (e.g. Tailwind v4 @import order) 케이스 못 잡음. 본문 §Dev/prod build divergence trap.
-- **"browser console 0 errors = verification OK"** — dev server 가 stale 빌드를 띄우면 module 자체가 reload 안 돼서 console 은 깨끗하게 보임. log tail + process alive check 동반 필수.
-- **Main self-declared "다 됐다" / "verification PASS" without fresh-agent verifier** — main 자기 결과 (build PASS + 단위 test PASS + 코드 wiring) 만으로 종료 보고 = `kzk-autonomous-boundary §Autonomous completion — fresh-agent verifier` 위반. fresh-agent dispatch 의무.
+- **"production build PASS = verification OK"** — ignores dev/prod divergence. User environment ≡ dev server output; production build PASS alone does not catch dev server stale / dev build failures (e.g. Tailwind v4 @import order). See §Dev/prod build divergence trap.
+- **"browser console 0 errors = verification OK"** — when the dev server serves a stale build, modules don't reload and the console looks clean. Log tail + process alive check are both required.
+- **Main self-declared "done" / "verification PASS" without fresh-agent verifier** — main's own results (build PASS + unit test PASS + code wiring) alone are not enough to end the run — this violates `kzk-autonomous-boundary §Autonomous completion — fresh-agent verifier`. Fresh-agent dispatch is mandatory.
 
 ## Interaction with other kzk-*
 
 - **kzk-pre-commit-gate**: This skill implements Gate 4 (browser smoke + screenshot).
 - **kzk-background-monitoring**: Reuses the narration table this skill defines for long-running browser actions.
 - **kzk-web-loop**: Cascade-recovery override — web loop's playwright resilience rule overrides this skill's hard-stop when MCP repeatedly fails.
-- **kzk-autonomous-boundary**: §Autonomous completion — fresh-agent verifier Step 1 (dev server health) detection procedure is delegated to this skill's §Dev/prod build divergence trap. Halt entries Q-PW-OAUTH-NEW-ACCOUNT / Q-PW-OAUTH-MULTI-ACCOUNT / Q-PW-OAUTH-CONSENT-LOOP / Q-PW-OAUTH-STUCK / Q-PW-OAUTH-CHALLENGE / Q-PW-OAUTH-PROVIDER-ERROR (6종) are defined here and registered in kzk-autonomous-boundary §Halt conditions table.
+- **kzk-autonomous-boundary**: §Autonomous completion — fresh-agent verifier Step 1 (dev server health) detection procedure is delegated to this skill's §Dev/prod build divergence trap. Halt entries Q-PW-OAUTH-NEW-ACCOUNT / Q-PW-OAUTH-MULTI-ACCOUNT / Q-PW-OAUTH-CONSENT-LOOP / Q-PW-OAUTH-STUCK / Q-PW-OAUTH-CHALLENGE / Q-PW-OAUTH-PROVIDER-ERROR (6 entries) are defined here and registered in kzk-autonomous-boundary §Halt conditions table.

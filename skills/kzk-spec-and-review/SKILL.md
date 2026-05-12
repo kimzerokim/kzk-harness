@@ -1,6 +1,6 @@
 ---
 name: kzk-spec-and-review
-version: 2.13.3
+version: 2.14.0
 description: "Spec/plan/major design authoring with mandatory cross-vendor codex review. Iterative loop until PASS: Draft → codex consult → synthesize 🔴 BLOCKER / 🟡 NIT / ⚪ push-back → Gate (PASS = BLOCKER 0 AND no structural change, CONTINUE = next cycle, HALT = cycle ≥ 5 + BLOCKER 잔존). Brainstorming default ON (Step -1 after Step 0 survey). Skip only when EITHER explicit `brainstorming 스킵` command standalone OR ALL-of (trivial + pre-specified + no-new-capability). Step 0 survey precondition + freshness check. Triggers: 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm', 'brainstorm default ON'. References harness-share.md §22 + §22.5 + §31."
 ---
 
@@ -12,7 +12,7 @@ description: "Spec/plan/major design authoring with mandatory cross-vendor codex
 
 > **Order**: Step 0 (survey) runs first, then Step -1 (brainstorming) runs, then the 3-pass Pattern loop. The name "Step -1" is preserved for backward-compat with cross-refs; execution order is Step 0 → Step -1 → Pattern.
 
-**Default**: ON. spec-and-review 진입 시 Step 0 survey 완료 후 `Skill("superpowers:brainstorming")` 1회 호출 의무. keyword-detector 가 `(brainstorm mode)` system-reminder marker 를 inject 하지 않아도 Step -1 은 실행된다 — marker 는 informational; 부재 = skip 아님.
+**Default**: ON. Upon entering spec-and-review, after Step 0 survey completes, `Skill("superpowers:brainstorming")` must be called once. Even if the keyword-detector does not inject a `(brainstorm mode)` system-reminder marker, Step -1 still executes — the marker is informational; its absence does not mean skip.
 
 **Skip conditions** — brainstorming skips when EITHER (A) or (B) holds:
 
@@ -31,23 +31,23 @@ If neither (A) nor (B) → brainstorming runs (default ON).
 
 **Mandatory invoke triggers** (any one of these forces Step -1 even when (B) above would otherwise allow skip):
 
-- 새 기능 / 새 entry / 새 module 추가 (new capability, not just extension of existing pattern)
-- 사용자 결정 필요 발견 (multiple design paths revealed during Step 0 survey, ambiguous spec, missing user input)
-- 명시적 brainstorm 키워드 ('brainstorm', '아이디어', '어떻게 해야 할까', '뭐가 좋을까')
+- New feature / new entry / new module addition (new capability, not just extension of existing pattern)
+- User decision required (multiple design paths revealed during Step 0 survey, ambiguous spec, missing user input)
+- Explicit brainstorm keyword ('brainstorm', '아이디어', '어떻게 해야 할까', '뭐가 좋을까')
 
-**동작**:
-1. `Skill("superpowers:brainstorming")` 호출
-2. brainstorming 완료 → design doc 경로 수집 (`docs/plans/YYYY-MM-DD-<topic>-design.md`). brainstorming 스킬 output 은 `docs/plans/` 에 직접 저장 (SoT: `harness-share.md §5`). 다른 경로로 출력된 경우 main 이 즉시 `docs/plans/` 으로 `git mv` 후 그 경로를 Step 1 에 전달. (SoT: `harness-share.md` §5 path consolidation 2026-05-12)
-3. design doc 경로를 Step 1 Draft 의 CONTEXT 에 `Required reading: <path>` 로 포함
-4. brainstorming 결정사항을 Step 2 codex consult 의 `LOCKED PRIOR DECISIONS` 에 포함
+**Behavior**:
+1. `Skill("superpowers:brainstorming")` called
+2. Brainstorming completes → collect design doc path (`docs/plans/YYYY-MM-DD-<topic>-design.md`). Brainstorming skill output is saved directly to `docs/plans/` (SoT: `harness-share.md §5`). If output lands elsewhere, main immediately runs `git mv` to `docs/plans/` and passes that path to Step 1. (SoT: `harness-share.md` §5 path consolidation 2026-05-12)
+3. Include the design doc path in Step 1 Draft's CONTEXT as `Required reading: <path>`
+4. Include brainstorming decisions in Step 2 codex consult's `LOCKED PRIOR DECISIONS`
 
-**CRG spec reference 검증**: brainstorming 완료 후, 생성된 design doc 에 대해 `crg-utils.extractDocRefs(designDocPath)` + `crg-utils.validateLineRefs(designDocPath)` 실행. stale reference 발견 시 WARN.
+**CRG spec reference validation**: After brainstorming completes, run `crg-utils.extractDocRefs(designDocPath)` + `crg-utils.validateLineRefs(designDocPath)` on the generated design doc. Warn on stale references.
 
 ## Step 0 — Codebase survey precondition (mandatory before drafting)
 
-> Freshness check: Step 0 진입 전 `kzk-freshness-guard` 자동 호출 (recursion guard 적용). Cross-ref: `kzk-freshness-guard` §자동 호출 지점.
+> Freshness check: before entering Step 0, `kzk-freshness-guard` is auto-called (recursion guard applies). Cross-ref: `kzk-freshness-guard` §Auto-call points.
 
-A spec / plan / design draft built without codebase context is the same root cause that `kzk-codebase-survey` exists to fix. Before the 3-pass loop runs, locate or generate a survey report for the topic.
+A spec / plan / design draft built without codebase context has the same root cause that `kzk-codebase-survey` exists to fix. Before the 3-pass loop runs, locate or generate a survey report for the topic.
 
 **Lookup order:**
 1. **In-session reference** — the current conversation already cites a survey report path (e.g. user pasted it, or this skill was triggered after `kzk-codebase-survey` ran in the same session). Use that path.
@@ -62,7 +62,7 @@ A spec / plan / design draft built without codebase context is the same root cau
 
 ## Pattern (Iterative review loop) — runs after Step 0
 
-Loop on the same spec/plan/design until **PASS** (defined in §Gate decision). One cycle = Draft (or Revise) → Codex consult → Synthesize → Gate decision. "1 spec = 1 codex round" 은 **only when cycle 1 자체가 PASS gate 를 만족할 때** — BLOCKER 잔존 또는 구조 변경 발생 시 추가 cycle 의무.
+Loop on the same spec/plan/design until **PASS** (defined in §Gate decision). One cycle = Draft (or Revise) → Codex consult → Synthesize → Gate decision. "1 spec = 1 codex round" applies **only when cycle 1 itself satisfies the PASS gate** — if BLOCKERs remain or a structural change occurs, additional cycles are mandatory.
 
 **Cycle N (N ≥ 1):**
 
@@ -72,14 +72,14 @@ Loop on the same spec/plan/design until **PASS** (defined in §Gate decision). O
      - Cycle (N−1) verdict file path (so executor can locate the BLOCKER list)
      - Categorized edit list applied since cycle (N−1): each item = section anchor + change + 🔴/🟡 tag
      - Original survey report path (unchanged from cycle 1)
-   - harness-share.md §32 Code Quality Discipline boilerplate inject 의무 (DRY/YAGNI/KISS + Deletion test + Depth + obsolete test). 위반 시 spec revision 요청.
+   - Mandatory inject: harness-share.md §32 Code Quality Discipline boilerplate (DRY/YAGNI/KISS + Deletion test + Depth + obsolete test). Violation → spec revision requested.
 
-2. **Codex consult** — run `codex exec` CLI directly (see kzk-codex-handoff §Codex CLI 호출 패턴). CLI not available (`command not found`) or stuck per kzk-codex-handoff §Codex CLI 호출 패턴 (60s no first token → retry; 5 min total → kill) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", prompt=<same review prompt>)` (model 생략 → 메인 opus 버전 상속). **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
+2. **Codex consult** — run `codex exec` CLI directly (see kzk-codex-handoff §Codex CLI 호출 패턴). CLI not available (`command not found`) or stuck per kzk-codex-handoff §Codex CLI 호출 패턴 (60s no first token → retry; 5 min total → kill) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", prompt=<same review prompt>)` (model omitted → inherits main opus version). **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
    - Cycle ≥ 2 codex prompt MUST include cycle (N−1) verdict file content (or path with explicit re-read instruction) in `LOCKED PRIOR DECISIONS` block — prevents codex re-flagging resolved BLOCKERs.
 
 3. **Synthesize** — main categorizes each codex point:
    - 🔴 **BLOCKER** — incorrect API contract, broken validator, missing required field, drift from upstream change, security/data-loss risk
-   - 🟡 **NIT / 디테일** — wording, ordering, optional clarifications — 반영하되 cycle 이어가는 trigger X
+   - 🟡 **NIT / detail** — wording, ordering, optional clarifications — incorporate but not a cycle-continuation trigger
    - ⚪ **PUSH-BACK** — cited rebuttal (scope creep, false positive, already-decided per LOCKED list)
 
    Then dispatch revision edits per §Spec/plan revision dispatch below. Main never directly Edit/Write the md file for 2+ edits.
@@ -87,15 +87,15 @@ Loop on the same spec/plan/design until **PASS** (defined in §Gate decision). O
 4. **Gate decision** (loop control):
    - **PASS** (loop exit, proceed to implementation / plan freeze):
      - 🔴 BLOCKER count = 0, AND
-     - 이번 cycle 적용된 변경이 NIT/wording-only 또는 push-back 정리만 (구조 변경 X)
-   - **CONTINUE** (cycle N+1 진입):
+     - Changes applied this cycle are NIT/wording-only or push-back cleanup (no structural change)
+   - **CONTINUE** (enter cycle N+1):
      - 🔴 BLOCKER ≥ 1, OR
-     - spec 에 구조 변경 (DTO field 추가/제거, API surface rename, validator factory 신설, contract field 변경) 가 가해진 경우 — 변경된 spec 은 아직 codex 검증 안 된 상태
-   - **HALT** (autonomous mode 도 의무):
-     - cycle N ≥ 5 AND BLOCKER 잔존
-     - `docs/harness/user-queue.md` entry 추가 + 사용자 결정 대기. ralph 자율 무한 retry 금지.
+     - A structural change was applied to the spec (DTO field added/removed, API surface renamed, validator factory added, contract field changed) — the changed spec has not yet been codex-verified
+   - **HALT** (mandatory even in autonomous mode):
+     - cycle N ≥ 5 AND BLOCKERs remain
+     - Add entry to `docs/harness/user-queue.md` + wait for user decision. Autonomous unlimited retry is forbidden.
 
-Drafts of ≤ 5 LoC bypass Step 1 executor dispatch (main direct Edit OK) but **still must pass through Steps 2–4** — single-line append 도 codex consult skip 금지.
+Drafts of ≤ 5 LoC bypass Step 1 executor dispatch (main direct Edit OK) but **still must pass through Steps 2–4** — even a single-line append cannot skip codex consult.
 
 ## Spec/plan revision dispatch (post-critic edits)
 
@@ -144,11 +144,11 @@ Path depends on the topic type. Cycle N (N = cycle counter from §Pattern):
   - N=2: `docs/research/codex-reviews/<topic>-critic-review-2.md`
   - N≥3: `docs/research/codex-reviews/<topic>-critic-review-N.md`
 
-- Cycle counter source-of-truth = file artifact count (glob `*-critic-review*.md` for the topic). Session crash 후에도 재현 가능. Cycle 진입 직전 main 은 글롭 결과 + 1 로 다음 cycle N 계산.
-- Cycle N (N≥2) verdict file 본문 헤더에 `Cycle: N` + `Previous: <path to cycle N-1 verdict>` + `BLOCKERs resolved since N-1: <count>` 명시 의무.
+- Cycle counter source-of-truth = file artifact count (glob `*-critic-review*.md` for the topic). Reproducible after session crash. Before entering cycle N, main computes the next cycle number as glob result + 1.
+- Cycle N (N≥2) verdict file body header must state `Cycle: N` + `Previous: <path to cycle N-1 verdict>` + `BLOCKERs resolved since N-1: <count>`.
 - Cycle N (N≥2) codex/critic prompt MUST reference cycle (N−1) verdict file content as `LOCKED PRIOR DECISIONS` (§Pattern Cycle N step 2).
-- CLI fail + fallback critic 같은 cycle 내 실행 → fallback verdict OVERWRITES CLI error stub in the same cycle N file.
-- CLI error stub 단독 보존은 fallback 도 disable 된 경우만 (사용자가 critic OFF).
+- CLI fail + fallback critic in same cycle → fallback verdict OVERWRITES CLI error stub in the same cycle N file.
+- CLI error stub preserved alone only when fallback is also disabled (user turned off critic).
 
 ## Codex prompt skeleton
 
@@ -179,17 +179,17 @@ YOUR JOB. Numbered list:
 Cite sections. Terse. No compliments. If category fine, say "none".
 ```
 
-## Codex consult — 호출 메커니즘
+## Codex consult — invocation mechanism
 
 > See kzk-codex-handoff §Codex CLI 호출 패턴.
 
 ## Cost / cadence
 
 - Per cycle: ~2-3 min wall, ~25-30k tokens
-- **Default cycle budget: 5.** Soft cap — cycle ≤ 5 까지 사용자 결정 없이 자율 진행. Cycle ≥ 5 + BLOCKER 잔존 → §Pattern Gate decision HALT path (user-queue).
-- "1 spec = 1 cycle" / "1 major plan = 1 cycle" 은 **cycle 1 이 PASS gate (BLOCKER 0 + 구조 변경 없음) 를 만족한 경우만**. BLOCKER 잔존 또는 cycle 1 synthesize 가 spec 구조를 변경한 경우 cycle 2 의무.
-- Cycle 2+ 는 비싼 게 아니라 검증 갭을 메우는 비용 — 변경된 spec 을 검증하지 않고 implementation 진입 시 implementation 단계 rework 가 더 비쌈 (cycle 평균 25k tokens vs implementation 단계 1 BLOCKER fix 평균 80–200k tokens).
-- **User explicit OFF only** ("이번엔 codex 빼고") skips the loop entirely. No silent skip. Partial skip ("cycle 2 만 빼고") 도 동일 — explicit user OFF 만 인정.
+- **Default cycle budget: 5.** Soft cap — up to cycle 5 proceeds autonomously without user decision. Cycle ≥ 5 + BLOCKERs remain → §Pattern Gate decision HALT path (user-queue).
+- "1 spec = 1 cycle" / "1 major plan = 1 cycle" applies **only when cycle 1 satisfies the PASS gate (BLOCKER 0 + no structural change)**. If BLOCKERs remain or cycle 1 synthesize changed the spec structure, cycle 2 is mandatory.
+- Cycle 2+ is not expensive — it fills a verification gap. Entering implementation with an unverified spec produces more rework than additional cycles (average cycle ~25k tokens vs average 1 BLOCKER fix at implementation stage ~80–200k tokens).
+- **User explicit OFF only** ("이번엔 codex 빼고") skips the loop entirely. No silent skip. Partial skip ("cycle 2 만 빼고") follows the same rule — explicit user OFF only.
 
 ## Prompt size guideline
 
@@ -201,18 +201,18 @@ Persist all codex/critic output to the verdict file (§Verdict file convention) 
 
 ## Anti-patterns
 
-- "Self-review로 충분" — different classes of bug; both are needed.
-- "Codex가 나보다 못하다" — the value is the angle change, not the absolute IQ. Push-back is a valid bucket.
+- "Self-review is enough" — different classes of bug; both are needed.
+- "Codex is worse than me" — the value is the angle change, not the absolute IQ. Push-back is a valid bucket.
 - Apply codex output verbatim — must pass through synthesize, with explicit category.
-- "이번 한 번만 스킵" — only on explicit user OFF. Inconsistency erodes the rule.
+- "Skip just this once" — only on explicit user OFF. Inconsistency erodes the rule.
 - Verdict only in chat history — must land in a file for cross-session reproducibility.
-- **"Cycle 1 verdict 받고 fix 한 다음 바로 implementation"** — cycle 1 에 🔴 BLOCKER 가 있었거나 fix 적용 과정에서 spec 구조 (DTO/API/validator/contract) 가 바뀌었으면 cycle 2 의무. 변경된 spec 은 codex 검증 안 된 상태. PASS gate (§Pattern §Gate decision) 미충족이면 implementation 진입 금지.
-- **"BLOCKER 1개 정도는 implementation 가면서 해결"** — 🔴 BLOCKER 0 이 PASS gate. 1개 있으면 무조건 cycle 추가. ralph / autonomous 모드도 예외 없음 — autonomous 의 "polite stop 금지" 가 "BLOCKER 무시" 를 의미하지 않음.
-- **"Cycle 무한 진행"** — cycle ≥ 5 + BLOCKER 잔존 시 HALT to `docs/harness/user-queue.md`. 자율 무한 retry 금지 (rate limit / context exhaustion 위험).
+- **"Got cycle 1 verdict, applied the fix, went straight to implementation"** — if cycle 1 had 🔴 BLOCKERs or the fix changed the spec structure (DTO/API/validator/contract), cycle 2 is mandatory. The changed spec has not been codex-verified. Do not enter implementation without clearing the PASS gate (§Pattern §Gate decision).
+- **"1 BLOCKER is fine to resolve during implementation"** — 🔴 BLOCKER 0 is the PASS gate. 1 remaining means another cycle, no exceptions. Even in ralph / autonomous mode — "no polite stops" does not mean "ignore BLOCKERs".
+- **"Keep cycling indefinitely"** — cycle ≥ 5 + BLOCKERs remaining → HALT to `docs/harness/user-queue.md`. Autonomous unlimited retry is forbidden (rate limit / context exhaustion risk).
 
 ## Interaction with other kzk-*
 
 - **kzk-large-task-delegation §"Pre-implementation plan-critic loop (opus + codex)"** is a *narrower* version of this skill, scoped to plans that feed the sonnet executor. This skill is broader — covers spec / architecture / design too. Cross-reference, do not duplicate.
 - **kzk-background-monitoring** governs the codex consult call itself (long-running CLI).
 - **harness-share.md §22.5**: End-to-End Ralph Pipeline (spec → plan → critic → implementation in one ralph loop). This skill covers the critic step; §22.5 covers the full pipeline integration including PRD drafting and user-intervention gates.
-- **kzk-freshness-guard**: Step 0 전 freshness check + Step -1 후 spec reference CRG 검증
+- **kzk-freshness-guard**: Freshness check before Step 0 + CRG spec reference validation after Step -1

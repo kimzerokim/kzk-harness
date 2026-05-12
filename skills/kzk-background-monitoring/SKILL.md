@@ -1,6 +1,6 @@
 ---
 name: kzk-background-monitoring
-version: 1.5.0
+version: 1.6.0
 description: "Background task ownership discipline. Spawning agent owns task until terminal state. Stuck thresholds: subagent ≥5min, Bash ≥3min, codex no-first-token 60s. Kill+diagnose+retry, subagent completion verification, session-resume restate-before-dispatch. Triggers: run_in_background, Monitor, long-running. References harness-share.md §23."
 ---
 
@@ -53,11 +53,11 @@ If result is empty or truncated → `Q-SUBAGENT-EMPTY-[name]` to `docs/harness/u
 
 ## Anti-patterns
 
-- ❌ Silence until user re-asks ("알림 받으면 처리할게요")
-- ❌ Output file 0 byte for 3+ min (Bash) / 5+ min (subagent) and no action
-- ❌ `Monitor` filter matching only the success path
-- ❌ Asking user "should I cancel?" instead of autonomous kill+retry
-- ❌ No narration between long-running tool calls
+- Silence until user re-asks ("알림 받으면 처리할게요")
+- Output file 0 bytes for 3+ min (Bash) / 5+ min (subagent) with no action taken
+- `Monitor` filter matching only the success path
+- Asking user "should I cancel?" instead of autonomous kill+retry
+- No narration between long-running tool calls
 
 ## Interaction with other kzk-*
 

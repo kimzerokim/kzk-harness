@@ -1,10 +1,10 @@
 <!doctype html>
-<html lang="en">
+<html lang="ko">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>kzk-harness — Skill &amp; Workflow Map</title>
-<!-- KZK_SKILL_FLOW_FINGERPRINT: d8ee8cd0c006985a -->
+<title>kzk-harness — 스킬 &amp; 워크플로우 지도</title>
+<!-- KZK_SKILL_FLOW_FINGERPRINT: PENDING -->
 <!--
   Single-page reference for the 18 kzk-* skills, their workflow entry points,
   and the hook infrastructure that enforces discipline at runtime.
@@ -145,20 +145,20 @@
 <nav class="toc" aria-label="Table of contents">
   <div class="brand">kzk-harness <span class="tag">18 skills</span></div>
   <ul>
-    <li><a href="#intro">1. Overview</a></li>
-    <li><a href="#mental-model">2. Mental model</a></li>
-    <li><a href="#external-loading">3. External skill loading</a></li>
-    <li><a href="#big-picture">4. Big picture</a></li>
-    <li><a href="#entry-points">5. Five entry points (diagrams)</a>
+    <li><a href="#intro">1. 개요</a></li>
+    <li><a href="#mental-model">2. 멘탈 모델</a></li>
+    <li><a href="#external-loading">3. 외부 스킬 로딩</a></li>
+    <li><a href="#big-picture">4. 전체 구조</a></li>
+    <li><a href="#entry-points">5. 5개 진입점 (다이어그램)</a>
       <ul>
         <li><a href="#flow-fix">5.1 fix-start</a></li>
         <li><a href="#flow-spec">5.2 spec / plan</a></li>
-        <li><a href="#flow-auto">5.3 autonomous</a></li>
-        <li><a href="#flow-web">5.4 web-loop</a></li>
-        <li><a href="#flow-commit">5.5 commit (Gate 0–5)</a></li>
+        <li><a href="#flow-auto">5.3 자율 실행</a></li>
+        <li><a href="#flow-web">5.4 웹 루프</a></li>
+        <li><a href="#flow-commit">5.5 커밋 (Gate 0–5)</a></li>
       </ul>
     </li>
-    <li><a href="#skills">6. 18 skill cards</a>
+    <li><a href="#skills">6. 18개 스킬 카드</a>
       <ul>
         <li><a href="#s-pre-commit-gate">kzk-pre-commit-gate</a></li>
         <li><a href="#s-large-task-delegation">kzk-large-task-delegation</a></li>
@@ -180,122 +180,120 @@
         <li><a href="#s-codex-handoff">kzk-codex-handoff</a></li>
       </ul>
     </li>
-    <li><a href="#self-trigger">7. Self-trigger matrix</a></li>
-    <li><a href="#harness-share">8. harness-share.md section map</a></li>
-    <li><a href="#hooks-infra">9. Hook 인프라</a></li>
+    <li><a href="#self-trigger">7. 자동 트리거 매트릭스</a></li>
+    <li><a href="#harness-share">8. harness-share.md 섹션 지도</a></li>
+    <li><a href="#hooks-infra">9. 훅 인프라</a></li>
   </ul>
 </nav>
 
 <main>
 
 <section id="intro" class="hero">
-  <h1>kzk-harness — Skill &amp; Workflow Map</h1>
-  <div class="sub">Single-page reference for the 18 kzk-* skills: how they call each other, where they are loaded, and which hook enforces each rule at runtime.</div>
+  <h1>kzk-harness — 스킬 &amp; 워크플로우 지도</h1>
+  <div class="sub">18개 kzk-* 스킬의 단일 페이지 레퍼런스: 스킬 간 호출 관계, 로딩 위치, 각 규칙을 런타임에 강제하는 훅을 한 곳에서 확인할 수 있습니다.</div>
   <div class="meta">
-    <span><span class="dot"></span> 18 skills active</span>
-    <span><span class="dot"></span> 8 hooks (project + global)</span>
+    <span><span class="dot"></span> 18개 스킬 활성</span>
+    <span><span class="dot"></span> 8개 훅 (프로젝트 + 글로벌)</span>
     <span><span class="dot amber"></span> harness-share.md §1–§33 SoT</span>
   </div>
+  <p>이 페이지의 영어판: <a href="skill-flow.html">skill-flow.html</a></p>
   <p>
-    Single-page reference for the 18 `kzk-*` skills that compose the kzk-harness workflow layer on top of Claude Code. Documents how skills are loaded, how trigger phrases route to them, what each skill does, and how they chain in the five canonical entry-point flows.
+    Claude Code 위에 얹는 kzk-harness 워크플로우 레이어의 18개 <code>kzk-*</code> 스킬을 한 페이지로 정리. 스킬이 어떻게 로드되는지, 어떤 트리거 문구가 어떤 스킬을 부르는지, 각 스킬이 무엇을 하는지, 5가지 진입점 플로우에서 서로 어떻게 연결되는지 보여줍니다.
   </p>
   <p>
-    The canonical source of truth for each skill's rules is its own <code>skills/kzk-*/SKILL.md</code>;
-    cross-cutting rules that span multiple skills live in <code>harness-share.md</code> (§1–§33).
-    This HTML is a <em>read-only index</em> derived from those two sources.
-    When either changes, the hook described in §9 blocks <code>git commit</code> until this file is updated.
+    각 스킬 규칙의 정식 소스는 해당 스킬의 <code>skills/kzk-*/SKILL.md</code>, 여러 스킬에 걸친 공통 규칙은 <code>harness-share.md</code> (§1–§33). 이 HTML 은 두 소스에서 파생된 <em>읽기 전용 인덱스</em> — §9 의 훅이 동기화를 강제합니다.
   </p>
 </section>
 
 <section id="mental-model">
-  <h2>2. Mental model</h2>
+  <h2>2. 멘탈 모델</h2>
   <p>
-    Claude Code operates with five building blocks: the main agent, Skills (markdown), Subagents (specialist agents), Hooks (scripts), and MCP servers (external tool servers).
-    kzk-harness layers <strong>18 Skills + 8 Hooks</strong> on top of those primitives.
-    It adds no new capabilities — it adds <em>discipline</em>: consistent, safe invocation patterns for the capabilities that already exist.
+    Claude Code는 5가지 구성 요소로 작동합니다: 메인 에이전트, 스킬(마크다운), 서브에이전트(전문 에이전트), 훅(스크립트), MCP 서버(외부 툴 서버).
+    kzk-harness는 이 기본 요소 위에 <strong>18개 스킬 + 8개 훅</strong>을 추가합니다.
+    새로운 기능을 추가하는 것이 아니라 <em>규율</em>을 추가합니다: 기존 기능의 일관되고 안전한 호출 패턴.
   </p>
   <div class="grid2">
     <div class="card">
       <div class="head"><span class="name">Skill</span><span class="badge">markdown</span></div>
-      <div class="blurb">When a trigger keyword appears in the prompt, the skill's body loads into the main context automatically. No code — the markdown text is the rulebook.</div>
-      <h4>All 18 kzk-* skills follow this pattern</h4>
+      <div class="blurb">프롬프트에 트리거 키워드가 나타나면 스킬 본문이 메인 컨텍스트에 자동으로 로드됩니다. 코드가 없습니다 — 마크다운 텍스트 자체가 규칙서입니다.</div>
+      <h4>18개 kzk-* 스킬 모두 이 패턴을 따름</h4>
       <ul>
-        <li>Location: <span class="path">~/.claude/skills/kzk-*/SKILL.md</span> (global) or <span class="path">.claude/skills/kzk-*/SKILL.md</span> (project-only)</li>
-        <li>Install: <code>install/install-global.sh</code> or the README PROJECT-ONLY procedure</li>
+        <li>위치: <span class="path">~/.claude/skills/kzk-*/SKILL.md</span> (글로벌) 또는 <span class="path">.claude/skills/kzk-*/SKILL.md</span> (프로젝트 전용)</li>
+        <li>설치: <code>install/install-global.sh</code> 또는 README PROJECT-ONLY 절차</li>
       </ul>
     </div>
     <div class="card">
       <div class="head"><span class="name">Subagent</span><span class="badge">runtime</span></div>
-      <div class="blurb">Main delegates work via <code>Agent({ subagent_type: '...', ... })</code>. Each subagent gets its own context window and model.</div>
-      <h4>Subagent types used by this repo</h4>
+      <div class="blurb">메인은 <code>Agent({ subagent_type: '...', ... })</code>를 통해 작업을 위임합니다. 각 서브에이전트는 독립적인 컨텍스트 창과 모델을 가집니다.</div>
+      <h4>이 레포에서 사용하는 서브에이전트 유형</h4>
       <ul>
-        <li><code>oh-my-claudecode:explore</code> — read-heavy exploration (sonnet)</li>
-        <li><code>oh-my-claudecode:executor</code> — code authoring (sonnet/opus)</li>
-        <li><code>oh-my-claudecode:critic</code> — review / validation (opus)</li>
-        <li><code>oh-my-claudecode:verifier</code> — completion verification (fresh agent)</li>
+        <li><code>oh-my-claudecode:explore</code> — 대량 읽기 탐색 (sonnet)</li>
+        <li><code>oh-my-claudecode:executor</code> — 코드 작성 (sonnet/opus)</li>
+        <li><code>oh-my-claudecode:critic</code> — 리뷰 / 검증 (opus)</li>
+        <li><code>oh-my-claudecode:verifier</code> — 완료 검증 (fresh agent)</li>
       </ul>
     </div>
     <div class="card">
       <div class="head"><span class="name">Hook</span><span class="badge hook">node mjs</span></div>
-      <div class="blurb">Scripts bound to PreToolUse / PostToolUse / UserPromptSubmit / Stop events. They receive JSON on stdin and respond with a decision JSON or a system-reminder injection.</div>
-      <h4>kzk-harness installs 8 hooks</h4>
+      <div class="blurb">PreToolUse / PostToolUse / UserPromptSubmit / Stop 이벤트에 바인딩된 스크립트입니다. stdin으로 JSON을 받아 결정 JSON 또는 system-reminder 주입으로 응답합니다.</div>
+      <h4>kzk-harness가 설치하는 8개 훅</h4>
       <ul>
-        <li><span class="path">install/hooks/keyword-detector.mjs</span> and others — on global install, copied to <span class="path">~/.claude/skills/.kzk-harness-shared/hooks/</span> and registered in <span class="path">~/.claude/settings.json</span></li>
-        <li>One repo-only hook: <span class="path">.claude/hooks/check-skill-flow-fresh.mjs</span></li>
+        <li><span class="path">install/hooks/keyword-detector.mjs</span> 등 — 글로벌 설치 시 <span class="path">~/.claude/skills/.kzk-harness-shared/hooks/</span>에 복사되고 <span class="path">~/.claude/settings.json</span>에 등록됨</li>
+        <li>레포 전용 훅: <span class="path">.claude/hooks/check-skill-flow-fresh.mjs</span></li>
       </ul>
     </div>
     <div class="card">
       <div class="head"><span class="name">MCP server</span><span class="badge">tool</span></div>
-      <div class="blurb">External tool servers callable by the main agent. Skills reference them by their tool names, e.g. <code>mcp__plugin_context7_context7__query-docs</code>.</div>
-      <h4>MCP servers recommended by this repo</h4>
+      <div class="blurb">메인 에이전트가 호출 가능한 외부 툴 서버입니다. 스킬은 툴 이름으로 참조합니다 (예: <code>mcp__plugin_context7_context7__query-docs</code>).</div>
+      <h4>이 레포에서 권장하는 MCP 서버</h4>
       <ul>
-        <li><strong>context7</strong> — external library API docs (used in kzk-codebase-survey Step 4)</li>
-        <li><strong>code-review-graph</strong> — Tree-sitter + SQLite code graph (kzk-codebase-survey Steps 0.5/1/2)</li>
-        <li><strong>playwright-mcp</strong> — browser automation (kzk-playwright-verification Gate 4, kzk-web-loop)</li>
+        <li><strong>context7</strong> — 외부 라이브러리 API 문서 (kzk-codebase-survey Step 4에서 사용)</li>
+        <li><strong>code-review-graph</strong> — Tree-sitter + SQLite 코드 그래프 (kzk-codebase-survey Steps 0.5/1/2)</li>
+        <li><strong>playwright-mcp</strong> — 브라우저 자동화 (kzk-playwright-verification Gate 4, kzk-web-loop)</li>
       </ul>
     </div>
   </div>
 </section>
 
 <section id="external-loading">
-  <h2>3. External skills &amp; tools — where and how they load</h2>
+  <h2>3. 외부 스킬 &amp; 도구 — 로딩 위치와 방법</h2>
   <p>
-    The kzk-* skills actively rely on other plugins, MCP servers, and CLI tools.
-    The table below maps each dependency to <strong>how it enters the main session</strong> and which skills consume it:
+    kzk-* 스킬은 다른 플러그인, MCP 서버, CLI 도구에 적극적으로 의존합니다.
+    아래 표는 각 의존성이 <strong>메인 세션에 진입하는 방식</strong>과 어떤 스킬이 사용하는지를 보여줍니다:
   </p>
   <table>
-    <thead><tr><th>Component</th><th>Role</th><th>Load location / method</th><th>Consumed by</th></tr></thead>
+    <thead><tr><th>컴포넌트</th><th>역할</th><th>로드 위치 / 방법</th><th>사용 스킬</th></tr></thead>
     <tbody>
       <tr>
         <td><code>kzk-* (18 skills)</code></td>
-        <td>This repo's core</td>
+        <td>이 레포의 핵심</td>
         <td>
           <strong>Global</strong>: <span class="path">~/.claude/skills/kzk-*/SKILL.md</span> (README install one-liner → <code>install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard</code>).<br/>
           <strong>Project-only</strong>: <span class="path">.claude/skills/kzk-*/SKILL.md</span> (README PROJECT-ONLY procedure).
         </td>
-        <td>All skills</td>
+        <td>모든 스킬</td>
       </tr>
       <tr>
         <td><code>harness-share.md</code></td>
-        <td>Cross-cutting SoT (§1–§33)</td>
+        <td>공통 SoT (§1–§33)</td>
         <td>
           Global install copies to <span class="path">~/.claude/skills/.kzk-harness-shared/harness-share.md</span> (dot-prefix — not an invocable skill).<br/>
           Project-only: copied to repo root as <span class="path">harness-share.md</span>.<br/>
           Dev mode (<code>--symlink-mode</code>): this file only is symlinked.
         </td>
-        <td>All skills — each SKILL.md's "Authoritative source" line references it</td>
+        <td>모든 스킬 — 각 SKILL.md의 "Authoritative source" 행이 참조</td>
       </tr>
       <tr>
         <td><code>~/.claude/CLAUDE.md</code> marker block</td>
-        <td>Global skill routing table</td>
+        <td>글로벌 스킬 라우팅 테이블</td>
         <td>
           <code>install-global.sh</code> idempotently replaces the <code>&lt;!-- kzk-harness:START --&gt;</code> marker block (everything outside the block is preserved byte-for-byte).
         </td>
-        <td>Keyword → skill mapping table</td>
+        <td>키워드 → 스킬 매핑 테이블</td>
       </tr>
       <tr>
         <td><code>oh-my-claudecode</code> (OMC) plugin</td>
-        <td>Subagent dispatch / deepinit / ToolSearch helpers</td>
+        <td>서브에이전트 디스패치 / deepinit / ToolSearch 헬퍼</td>
         <td>
           Installed inside a Claude Code session via <code>/plugin</code>. Detected by checking for the <code>oh-my-claudecode@*</code> key in <span class="path">~/.claude/plugins/installed_plugins.json</span>.<br/>
           If not installed, <code>install/dependencies.sh</code> prints guidance — never a hard fail.
@@ -304,7 +302,7 @@
       </tr>
       <tr>
         <td><code>playwright-mcp</code></td>
-        <td>Browser automation MCP</td>
+        <td>브라우저 자동화 MCP</td>
         <td>
           Inside the session via <code>/plugin</code> or <code>claude mcp add playwright -- npx -y @playwright/mcp@latest</code>.<br/>
           Detected via <span class="path">~/.claude.json</span> + <span class="path">&lt;project&gt;/.mcp.json</span> entries.
@@ -313,15 +311,15 @@
       </tr>
       <tr>
         <td><code>gstack</code> plugin</td>
-        <td><code>/learn</code> JSONL store</td>
+        <td><code>/learn</code> JSONL 저장소</td>
         <td>
           Session <code>/plugin</code> install. Detected by presence of <span class="path">~/.gstack/projects/</span>.
         </td>
-        <td>regression-memory (recall hook), web-loop (cycle retrospective)</td>
+        <td>regression-memory (recall hook), web-loop (사이클 회고)</td>
       </tr>
       <tr>
         <td><code>context7</code> MCP</td>
-        <td>External library doc fetch</td>
+        <td>외부 라이브러리 문서 조회</td>
         <td>
           Plugin or <code>.mcp.json</code> registration (often bundled with OMC). Tool names: <code>mcp__plugin_context7_context7__resolve-library-id</code>, <code>...__query-docs</code>.
         </td>
@@ -329,7 +327,7 @@
       </tr>
       <tr>
         <td><code>code-review-graph</code> (CRG)</td>
-        <td>Tree-sitter + SQLite code graph</td>
+        <td>Tree-sitter + SQLite 코드 그래프</td>
         <td>
           <code>install/dependencies.sh</code> auto-installs via <code>pip --user → pipx</code> fallback, then calls <code>code-review-graph install</code> to self-register as an MCP server in the project's <span class="path">.mcp.json</span>. Also usable as a CLI.<br/>
           Graph build is <strong>per-project</strong>: <code>code-review-graph build</code> or triggered on first survey.
@@ -338,7 +336,7 @@
       </tr>
       <tr>
         <td><code>codex</code> CLI (OpenAI)</td>
-        <td>Cross-vendor second opinion</td>
+        <td>크로스 벤더 2차 검토</td>
         <td>
           <code>install/dependencies.sh</code> tries <code>npm i -g @openai/codex</code> then <code>brew install codex</code>. Detected via PATH.<br/>
           Invocation rules live in <code>kzk-codex-handoff</code> SKILL.md (5 hard rules: stdin pipe, <code>--ephemeral</code>, etc.).
@@ -347,36 +345,36 @@
       </tr>
       <tr>
         <td><code>gh</code> CLI</td>
-        <td>GitHub PR / CI / comments</td>
+        <td>GitHub PR / CI / 댓글</td>
         <td>Detection only — install manually via <code>brew install gh</code>. Absent → PR workflow halts.</td>
-        <td>pre-merge-sync, autonomous-boundary (PR creation step)</td>
+        <td>pre-merge-sync, autonomous-boundary (PR 생성 단계)</td>
       </tr>
       <tr>
         <td><code>aws-vault</code></td>
-        <td>STS-backed AWS credential vault</td>
+        <td>STS 기반 AWS 자격 증명 저장소</td>
         <td>Detection only — install via <code>brew install aws-vault</code>. Absent → fall back to <code>aws sso login</code>; plaintext AKIA keys are always refused.</td>
-        <td>production-access (recommended, not required)</td>
+        <td>production-access (권장, 필수 아님)</td>
       </tr>
       <tr>
-        <td><code>superpowers:*</code> skills</td>
-        <td>writing-plans, brainstorming, subagent-driven-development, etc.</td>
+        <td><code>superpowers:*</code> 스킬</td>
+        <td>writing-plans, brainstorming, subagent-driven-development 등</td>
         <td>External superpowers plugin — Claude Code auto-discovers it. This repo does not install it (compatible dependency).</td>
         <td>spec-and-review (Step -1 brainstorming), web-loop (writing-plans + subagent-driven-development)</td>
       </tr>
     </tbody>
   </table>
   <div class="note">
-    <strong>Design intent</strong>: every external dependency supports <em>graceful degradation</em>. Missing tool → the skill drops to its fallback path.
-    E.g., no codex CLI → OMC <code>critic</code> opus (same vendor, same blind spots — noted); no CRG → grep fallback (lower transitive accuracy).
-    No install ever hard-fails.
+    <strong>설계 의도</strong>: 모든 외부 의존성은 <em>점진적 저하(graceful degradation)</em>를 지원합니다. 도구 미설치 시 스킬은 폴백 경로로 전환합니다.
+    예: codex CLI 없음 → OMC <code>critic</code> opus (동일 벤더, 동일 맹점 — 명시됨); CRG 없음 → grep 폴백 (전이 정확도 낮음).
+    어떤 설치도 하드 실패하지 않습니다.
   </div>
 </section>
 
 <section id="big-picture">
-  <h2>4. Big picture — one diagram</h2>
+  <h2>4. 전체 구조 — 한 눈에 보기</h2>
   <p>
-    When a user prompt arrives, <code>install/hooks/keyword-detector.mjs</code> (UserPromptSubmit hook) matches keywords and injects a system-reminder.
-    Which entry point the keyword maps to determines which skill chain fires.
+    사용자 프롬프트가 도착하면 <code>install/hooks/keyword-detector.mjs</code> (UserPromptSubmit 훅)가 키워드를 매칭하고 system-reminder를 주입합니다.
+    키워드가 어느 진입점에 매핑되는지에 따라 발동하는 스킬 체인이 결정됩니다.
   </p>
   <div class="mermaid-wrap">
 <pre class="mermaid">
@@ -410,17 +408,17 @@ flowchart TD
 </pre>
   </div>
   <p>
-    Each skill explicitly references its sister skills in its own body — the main agent doesn't need to memorize the chain; knowing the trigger keyword is enough.
-    <strong>Multi-entry skills</strong>: <code>kzk-codebase-survey</code> fires on fix-start (hook trigger) AND spec/plan drafts AND "상세하게 봐줘";
-    <code>kzk-large-task-delegation</code> fires on explicit "큰 작업" keywords OR on automatic 3+ file / 5+ read detection OR at Stage 3 verifier.
+    각 스킬은 본문에서 자매 스킬을 명시적으로 참조합니다 — 메인 에이전트는 체인을 외울 필요 없이 트리거 키워드만 알면 됩니다.
+    <strong>다중 진입 스킬</strong>: <code>kzk-codebase-survey</code>는 fix-start(훅 트리거), spec/plan 작성, "상세하게 봐줘"에서 발동;
+    <code>kzk-large-task-delegation</code>는 명시적 "큰 작업" 키워드, 자동 3+ 파일 / 5+ 읽기 감지, 또는 Stage 3 verifier에서 발동.
   </p>
 </section>
 
 <section id="entry-points">
-  <h2>5. Five entry points — diagrams</h2>
+  <h2>5. 5개 진입점 — 다이어그램</h2>
 
-  <h3 id="flow-fix">5.1 fix-start (bug fix / regression prevention)</h3>
-  <p>Triggers: <code class="chip k">fix 시작</code> <code class="chip k">버그 수정</code> <code class="chip k">callsite 전수</code> <code class="chip k">재발 방지</code>. Two UserPromptSubmit hooks fire in parallel — one pulls regression memory, one populates the callsite cache. Main then proceeds directly: survey → delegation → gates.</p>
+  <h3 id="flow-fix">5.1 fix-start (버그 수정 / 회귀 방지)</h3>
+  <p>트리거: <code class="chip k">fix 시작</code> <code class="chip k">버그 수정</code> <code class="chip k">callsite 전수</code> <code class="chip k">재발 방지</code>. UserPromptSubmit 훅 두 개가 병렬로 발동합니다 — 하나는 회귀 메모리를 가져오고, 하나는 callsite 캐시를 채웁니다. 메인은 이후 바로 진행: survey → delegation → gates.</p>
   <div class="mermaid-wrap">
 <pre class="mermaid">
 flowchart TD
@@ -444,8 +442,8 @@ flowchart TD
 </pre>
   </div>
 
-  <h3 id="flow-spec">5.2 spec / plan draft</h3>
-  <p>Triggers: <code class="chip k">spec 잡자</code> <code class="chip k">plan 만들어</code> <code class="chip k">plan draft</code>. Step 0 (mandatory codebase-survey) and Step -1 (brainstorming, default ON) are enforced before the draft loop begins. The loop then cycles: draft → codex review → synthesize findings → Gate decision.</p>
+  <h3 id="flow-spec">5.2 spec / plan 작성</h3>
+  <p>트리거: <code class="chip k">spec 잡자</code> <code class="chip k">plan 만들어</code> <code class="chip k">plan draft</code>. Step 0 (필수 codebase-survey)와 Step -1 (brainstorming, 기본 ON)이 초안 루프 시작 전에 강제됩니다. 루프는 순환합니다: 초안 → codex 리뷰 → 결과 합성 → Gate 판단.</p>
   <div class="mermaid-wrap">
 <pre class="mermaid">
 flowchart TD
@@ -468,8 +466,8 @@ flowchart TD
 </pre>
   </div>
 
-  <h3 id="flow-auto">5.3 autonomous execution</h3>
-  <p>Triggers: <code class="chip k">ralph로 돌려</code> <code class="chip k">끝까지 끝내줘</code> <code class="chip k">자율실행</code>. On entry, autonomous-boundary immediately presents the <strong>3-slot contract</strong> to the user (destination / branch name / PR mode) and waits for explicit answers. Once answered, dispatch happens in the same turn. The loop then handles rate limits, context budget, and multi-plan continuation automatically.</p>
+  <h3 id="flow-auto">5.3 자율 실행</h3>
+  <p>트리거: <code class="chip k">ralph로 돌려</code> <code class="chip k">끝까지 끝내줘</code> <code class="chip k">자율실행</code>. 진입 시 autonomous-boundary가 즉시 사용자에게 <strong>3-슬롯 계약</strong>(목적지 / 브랜치명 / PR 모드)을 제시하고 명시적 답변을 기다립니다. 답변 후 같은 턴에서 디스패치가 발생합니다. 이후 루프는 rate limit, 컨텍스트 예산, 멀티 플랜 연속을 자동으로 처리합니다.</p>
   <div class="mermaid-wrap">
 <pre class="mermaid">
 flowchart TD
@@ -497,11 +495,11 @@ flowchart TD
 </pre>
   </div>
   <div class="note bad">
-    <strong>Forbidden</strong>: main self-declaring completion without a fresh-agent verifier. Triggers Q-COMPLETION-SELF-VERIFY halt.
+    <strong>금지</strong>: fresh-agent verifier 없이 메인이 스스로 완료를 선언하는 것. Q-COMPLETION-SELF-VERIFY 중단을 트리거합니다.
   </div>
 
-  <h3 id="flow-web">5.4 web-loop (autonomous web improvement)</h3>
-  <p>Triggers: <code class="chip k">웹 루프</code> <code class="chip k">자율 개선</code> <code class="chip k">계속 돌려</code>. P0 issues take a fast-path directly to executor; P1/P2 issues go through the plan gate first. Each cycle ends with a <code>/learn</code> retrospective call.</p>
+  <h3 id="flow-web">5.4 web-loop (자율 웹 개선)</h3>
+  <p>트리거: <code class="chip k">웹 루프</code> <code class="chip k">자율 개선</code> <code class="chip k">계속 돌려</code>. P0 이슈는 executor로 바로 가는 빠른 경로를 사용하고, P1/P2 이슈는 먼저 plan gate를 거칩니다. 각 사이클은 <code>/learn</code> 회고 호출로 끝납니다.</p>
   <div class="mermaid-wrap">
 <pre class="mermaid">
 flowchart TD
@@ -526,8 +524,8 @@ flowchart TD
 </pre>
   </div>
 
-  <h3 id="flow-commit">5.5 commit — Gate 0–5 sequence</h3>
-  <p>Trigger: <code class="chip k">commit</code>. Six gate levels run in sequence. Any single FAIL blocks the commit. Doc-only changes bypass some gates.</p>
+  <h3 id="flow-commit">5.5 커밋 — Gate 0–5 순서</h3>
+  <p>트리거: <code class="chip k">commit</code>. 6개 gate 레벨이 순서대로 실행됩니다. 하나라도 FAIL이면 커밋이 차단됩니다. 문서 전용 변경은 일부 gate를 우회합니다.</p>
   <div class="mermaid-wrap">
 <pre class="mermaid">
 flowchart TD
@@ -550,40 +548,40 @@ flowchart TD
 </section>
 
 <section id="skills">
-  <h2>6. 18 skill cards</h2>
-  <p>Each card summarizes the skill's <strong>name + version</strong>, <strong>trigger keywords</strong>, <strong>core mechanism</strong>, <strong>outputs</strong>, <strong>linked sister skills</strong>, and <strong>harness-share §N</strong> reference. Badge meanings:</p>
+  <h2>6. 18개 스킬 카드</h2>
+  <p>각 카드는 스킬의 <strong>이름 + 버전</strong>, <strong>트리거 키워드</strong>, <strong>핵심 메커니즘</strong>, <strong>산출물</strong>, <strong>이어지는 자매 스킬</strong>, <strong>harness-share §N</strong> 참조를 요약합니다. 뱃지 의미:</p>
   <div class="keys">
-    <span class="chip"><span class="badge entry">entry</span> User prompt keyword is the primary entry point</span>
-    <span class="chip"><span class="badge auto">auto</span> Auto-invoked (by a hook or chained from another skill)</span>
-    <span class="chip"><span class="badge gate">gate</span> commit / merge gate</span>
-    <span class="chip"><span class="badge hook">hook</span> Part of the enforcement is implemented as a hook</span>
+    <span class="chip"><span class="badge entry">entry</span> 사용자 프롬프트 키워드가 주 진입점</span>
+    <span class="chip"><span class="badge auto">auto</span> 자동 호출 (훅 또는 다른 스킬에서 체인)</span>
+    <span class="chip"><span class="badge gate">gate</span> 커밋 / 머지 게이트</span>
+    <span class="chip"><span class="badge hook">hook</span> 강제 실행의 일부가 훅으로 구현됨</span>
   </div>
 
   <!-- ============== kzk-pre-commit-gate ============== -->
   <div class="card" id="s-pre-commit-gate">
     <div class="head"><span class="name">kzk-pre-commit-gate</span><span class="ver">v1.12.0</span><span class="badge gate">gate</span></div>
-    <div class="blurb">The gate for every commit. Ten gate levels (0 / 0.5 / 1 / 1.5 / 1.6 / 2 / 3 / 4 / 4.5 / 5) run in strict sequence. Any single FAIL blocks the commit. Doc-only changes bypass some levels.</div>
-    <h4>Triggers</h4>
+    <div class="blurb">모든 커밋의 게이트. 10개 gate 레벨 (0 / 0.5 / 1 / 1.5 / 1.6 / 2 / 3 / 4 / 4.5 / 5)이 엄격한 순서로 실행됩니다. 하나라도 FAIL이면 커밋이 차단됩니다. 문서 전용 변경은 일부 레벨을 우회합니다.</div>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">commit</span><span class="chip k">pre-commit</span><span class="chip k">Gate 0/1/1.5/2/3/4</span><span class="chip k">AGENTS.md sync</span><span class="chip k">secrets scan</span><span class="chip k">doc-only</span></div>
-    <h4>Core mechanism</h4>
+    <h4>핵심 메커니즘</h4>
     <ul>
-      <li>Gate 0: AGENTS.md sync + <code>deepinit_manifest</code> baseline snapshot</li>
-      <li>Gate 0.5: delegates to <code>kzk-freshness-guard</code> (CRG reverseRefs detects stale meta docs automatically)</li>
+      <li>Gate 0: AGENTS.md 동기화 + <code>deepinit_manifest</code> 기준 스냅샷</li>
+      <li>Gate 0.5: <code>kzk-freshness-guard</code>에 위임 (CRG reverseRefs로 stale 메타 문서 자동 감지)</li>
       <li>Gate 1: <code>oh-my-claudecode:ai-slop-cleaner</code></li>
-      <li>Gate 1.5: secrets grep (<code>AKIA</code>, <code>ASIA</code>)</li>
-      <li>Gate 1.6: production-access code-first check (shell command detection)</li>
-      <li>Gate 2/3: <code>npm run build</code> / <code>npm test</code> (scoped)</li>
-      <li>Gate 4: <code>kzk-playwright-verification</code> (UI changes only)</li>
-      <li>Gate 4.5: <code>kzk-fix-scope-expansion</code> (callsite cache validation)</li>
-      <li>Gate 5: fresh-agent verifier (cache key = staged_diff_hash + acceptance_hash + verifier_model)</li>
+      <li>Gate 1.5: 시크릿 grep (<code>AKIA</code>, <code>ASIA</code>)</li>
+      <li>Gate 1.6: production-access 코드 우선 체크 (쉘 명령 감지)</li>
+      <li>Gate 2/3: <code>npm run build</code> / <code>npm test</code> (범위 지정)</li>
+      <li>Gate 4: <code>kzk-playwright-verification</code> (UI 변경 시에만)</li>
+      <li>Gate 4.5: <code>kzk-fix-scope-expansion</code> (callsite 캐시 검증)</li>
+      <li>Gate 5: fresh-agent verifier (캐시 키 = staged_diff_hash + acceptance_hash + verifier_model)</li>
     </ul>
-    <h4>Outputs</h4>
+    <h4>산출물</h4>
     <ul>
-      <li>Gate PASS/FAIL verdict + commit BLOCK</li>
-      <li>Commit message footer: <code>gate-PASS: 0✓ 0.5✓ 1✓ 1.5✓ 2✓ 3✓ 4✓ 4.5✓ 5✓</code></li>
-      <li><code>deepinit_manifest</code> baseline (Gate 0)</li>
+      <li>Gate PASS/FAIL 판정 + 커밋 BLOCK</li>
+      <li>커밋 메시지 푸터: <code>gate-PASS: 0✓ 0.5✓ 1✓ 1.5✓ 2✓ 3✓ 4✓ 4.5✓ 5✓</code></li>
+      <li><code>deepinit_manifest</code> 기준선 (Gate 0)</li>
     </ul>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-freshness-guard"><span class="chip">kzk-freshness-guard</span></a>
       <a href="#s-fix-scope-expansion"><span class="chip">kzk-fix-scope-expansion</span></a>
@@ -591,32 +589,32 @@ flowchart TD
       <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span> (Gate 5 verifier)</a>
       <a href="#s-production-access"><span class="chip">kzk-production-access</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §3</code></p>
   </div>
 
   <!-- ============== kzk-large-task-delegation ============== -->
   <div class="card" id="s-large-task-delegation">
     <div class="head"><span class="name">kzk-large-task-delegation</span><span class="ver">v1.20.0</span><span class="badge entry">entry</span><span class="badge auto">auto</span></div>
-    <div class="blurb">Main does dispatch + review only — actual work goes to subagents. Triggers automatically on 3+ files / 200+ LoC / 5+ reads detected. Model routing: opus for plan/critic/verify, sonnet for implementation/research, haiku for mechanical tasks. Three-stage review cycle. In autonomous mode with multi-file scope, requires a prior kzk-codebase-survey report or appends Q-SURVEY-MISSING and halts.</div>
-    <h4>Triggers</h4>
+    <div class="blurb">메인은 디스패치 + 리뷰만 담당 — 실제 작업은 서브에이전트에게. 3+ 파일 / 200+ LoC / 5+ 읽기 감지 시 자동 트리거. 모델 라우팅: plan/critic/verify는 opus, 구현/연구는 sonnet, 기계적 작업은 haiku. 3단계 리뷰 사이클. 자율 모드에서 멀티 파일 범위일 때 사전 kzk-codebase-survey 보고서가 없으면 Q-SURVEY-MISSING을 추가하고 중단합니다.</div>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">큰 작업</span><span class="chip k">버그 전수조사</span><span class="chip k">마무리 해줘</span><span class="chip k">사이클 자율</span><span class="chip k">plan 쪼개</span><span class="chip k">Stage 3</span><span class="chip k">ralph로 돌려</span><span class="chip k">끝까지 끝내줘</span></div>
-    <h4>Core mechanism</h4>
+    <h4>핵심 메커니즘</h4>
     <ul>
-      <li>Scope estimation: <code>git status</code> + <code>find</code> + CRG query → LoC projection</li>
-      <li>Read-heavy audit dispatch shape — main never reads 5+ files directly; delegates to EXPLORER (sonnet)</li>
-      <li>Model routing table — opus thinking-level xhigh by default; high for mechanical tasks</li>
-      <li>Three stages: plan draft (Stage 1) → code-level verify (Stage 2) → run-level verifier (Stage 3, fresh agent)</li>
-      <li>TDD boilerplate auto-injected in autonomous mode when code changes are in scope</li>
-      <li>Production code-first injection (Plan E)</li>
-      <li>Pre-dispatch survey requirement: if autonomous + multi-file scope and no survey report in context → append <span class="chip q">Q-SURVEY-MISSING</span> to user-queue.md and halt</li>
+      <li>범위 추정: <code>git status</code> + <code>find</code> + CRG 쿼리 → LoC 예측</li>
+      <li>대량 읽기 감사 디스패치 형태 — 메인은 5+ 파일을 직접 읽지 않음; EXPLORER (sonnet)에 위임</li>
+      <li>모델 라우팅 테이블 — opus 기본 thinking-level xhigh; 기계적 작업은 high</li>
+      <li>3단계: plan 초안 (Stage 1) → 코드 레벨 검증 (Stage 2) → 실행 레벨 verifier (Stage 3, fresh agent)</li>
+      <li>자율 모드에서 코드 변경이 범위에 포함될 때 TDD 보일러플레이트 자동 주입</li>
+      <li>프로덕션 코드 우선 주입 (Plan E)</li>
+      <li>디스패치 전 survey 요건: 자율 + 멀티 파일 범위이고 컨텍스트에 survey 보고서가 없으면 → user-queue.md에 <span class="chip q">Q-SURVEY-MISSING</span> 추가 후 중단</li>
     </ul>
-    <h4>Outputs</h4>
+    <h4>산출물</h4>
     <ul>
-      <li>executor / critic / verifier dispatch log</li>
-      <li>Stage 3 verdict (cache key reusable)</li>
+      <li>executor / critic / verifier 디스패치 로그</li>
+      <li>Stage 3 판정 (캐시 키 재사용 가능)</li>
     </ul>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a>
       <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a>
@@ -625,46 +623,46 @@ flowchart TD
       <a href="#s-codex-handoff"><span class="chip">kzk-codex-handoff</span></a>
       <a href="#s-production-access"><span class="chip">kzk-production-access</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §4</code></p>
   </div>
 
   <!-- ============== kzk-playwright-verification ============== -->
   <div class="card" id="s-playwright-verification">
     <div class="head"><span class="name">kzk-playwright-verification</span><span class="ver">v1.8.0</span><span class="badge gate">gate</span></div>
-    <div class="blurb">The Gate 4 implementation. Requires navigation to 3+ pages, full-page screenshots, and zero console errors. Dev server health pre-check blocks the dev/prod divergence trap (e.g. Tailwind v4 @import order). OAuth click-through is agent-driven — no user waiting.</div>
-    <h4>Triggers</h4>
+    <div class="blurb">Gate 4 구현체. 3+ 페이지 탐색, 전체 페이지 스크린샷, 콘솔 오류 제로가 필요합니다. 개발 서버 상태 사전 체크로 dev/prod 분기 함정을 차단합니다 (예: Tailwind v4 @import 순서). OAuth 클릭스루는 에이전트가 진행 — 사용자 대기 없음.</div>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">Playwright</span><span class="chip k">Gate 4</span><span class="chip k">browser_navigate</span><span class="chip k">screenshot</span><span class="chip k">MCP drop</span><span class="chip k">OAuth multi-account</span></div>
-    <h4>Core mechanism</h4>
+    <h4>핵심 메커니즘</h4>
     <ul>
-      <li>Dev server health pre-check: process alive + log tail error grep</li>
-      <li>OAuth branch: popup detection, account picker (N=0/1/≥2), consent loop cap (&gt;4 pages → halt), stuck (30 s no change), security challenge (reCAPTCHA / OTP / passkey)</li>
-      <li>MCP drop → 5-step self-recovery (reconnect → snapshot → screenshot retry)</li>
-      <li>Six halt entries: <span class="chip q">Q-PW-OAUTH-NEW-ACCOUNT</span> <span class="chip q">MULTI-ACCOUNT</span> <span class="chip q">CONSENT-LOOP</span> <span class="chip q">STUCK</span> <span class="chip q">CHALLENGE</span> <span class="chip q">PROVIDER-ERROR</span></li>
+      <li>개발 서버 상태 사전 체크: 프로세스 생존 + 로그 tail 오류 grep</li>
+      <li>OAuth 브랜치: 팝업 감지, 계정 선택기 (N=0/1/≥2), 동의 루프 캡 (&gt;4 페이지 → 중단), stuck (30초 변화 없음), 보안 챌린지 (reCAPTCHA / OTP / passkey)</li>
+      <li>MCP 드롭 → 5단계 자가 복구 (재연결 → 스냅샷 → 스크린샷 재시도)</li>
+      <li>6개 중단 항목: <span class="chip q">Q-PW-OAUTH-NEW-ACCOUNT</span> <span class="chip q">MULTI-ACCOUNT</span> <span class="chip q">CONSENT-LOOP</span> <span class="chip q">STUCK</span> <span class="chip q">CHALLENGE</span> <span class="chip q">PROVIDER-ERROR</span></li>
     </ul>
-    <h4>Outputs</h4>
+    <h4>산출물</h4>
     <ul>
       <li><span class="path">docs/screenshots/&lt;session&gt;/&lt;topic&gt;-NN.png</span></li>
-      <li>Console error log, snapshot accessibility tree</li>
+      <li>콘솔 오류 로그, 스냅샷 접근성 트리</li>
     </ul>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a>
       <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a>
       <a href="#s-background-monitoring"><span class="chip">kzk-background-monitoring</span></a>
       <a href="#s-web-loop"><span class="chip">kzk-web-loop</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §3 Gate 4</code></p>
   </div>
 
   <!-- ============== kzk-autonomous-boundary ============== -->
   <div class="card" id="s-autonomous-boundary">
     <div class="head"><span class="name">kzk-autonomous-boundary</span><span class="ver">v1.13.0</span><span class="badge entry">entry</span></div>
-    <div class="blurb">On entry into autonomous mode, immediately presents the 3-slot contract (destination / branch name / PR mode) via ASK FIRST. Governs 19 halt entries (Q-* prefix) including Q-SURVEY-MISSING (new in v1.12.0). Autonomous completion verifier is mandatory — main self-declaration is forbidden. Every kzk-large-task-delegation dispatch in autonomous mode must be preceded by kzk-codebase-survey unless a survey report is already in the same-turn context.</div>
-    <h4>Triggers</h4>
+    <div class="blurb">자율 모드 진입 시 ASK FIRST를 통해 3-슬롯 계약(목적지 / 브랜치명 / PR 모드)을 즉시 제시합니다. Q-SURVEY-MISSING (v1.12.0 신규)을 포함한 19개 중단 항목(Q-* 접두사)을 관할합니다. 자율 완료 verifier는 필수 — 메인의 자가 선언은 금지. 자율 모드에서 모든 kzk-large-task-delegation 디스패치는 같은 턴 컨텍스트에 survey 보고서가 없으면 kzk-codebase-survey를 먼저 실행해야 합니다.</div>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">ralph로 돌려</span><span class="chip k">끝까지 끝내줘</span><span class="chip k">자율실행</span><span class="chip k">ralph로 체크</span><span class="chip k">ralph로 확인</span><span class="chip k">autonomous TDD enforce</span></div>
-    <h4>Halt entries (Q-*)</h4>
+    <h4>중단 항목 (Q-*)</h4>
     <div class="triggers">
       <span class="chip q">Q-TDD-MAIN</span><span class="chip q">Q-TDD-AUTO-MISSING</span>
       <span class="chip q">Q-MAIN-DIRECT-EDIT</span><span class="chip q">Q-VERIFIER-FAIL</span>
@@ -673,13 +671,13 @@ flowchart TD
       <span class="chip q">Q-PW-OAUTH-CONSENT-LOOP</span><span class="chip q">Q-PW-OAUTH-STUCK</span>
       <span class="chip q">Q-PW-OAUTH-CHALLENGE</span><span class="chip q">Q-PW-OAUTH-PROVIDER-ERROR</span>
     </div>
-    <h4>Outputs</h4>
+    <h4>산출물</h4>
     <ul>
-      <li>Branch contract decision (within the same turn)</li>
-      <li>user-queue.md Q-* entries (on halt)</li>
-      <li>Fresh-agent verifier dispatch</li>
+      <li>브랜치 계약 결정 (같은 턴 내)</li>
+      <li>user-queue.md Q-* 항목 (중단 시)</li>
+      <li>Fresh-agent verifier 디스패치</li>
     </ul>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-autonomous-loop"><span class="chip">kzk-autonomous-loop</span></a>
       <a href="#s-test-coverage"><span class="chip">kzk-test-coverage</span></a>
@@ -688,59 +686,59 @@ flowchart TD
       <a href="#s-tool-retry"><span class="chip">kzk-tool-retry</span></a>
       <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span> (pre-dispatch requirement)</a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §2 + §33</code></p>
   </div>
 
   <!-- ============== kzk-autonomous-loop ============== -->
   <div class="card" id="s-autonomous-loop">
     <div class="head"><span class="name">kzk-autonomous-loop</span><span class="ver">v1.10.0</span><span class="badge auto">auto</span></div>
-    <div class="blurb">Once inside autonomous mode, polite stops are forbidden. Handles rate-limit polling (ScheduleWakeup 600 s), automatic /compact at 80% context, and Plan A→N auto-continuation. The skill body lists 9 canonical polite-stop violation examples so they can be recognized and rejected.</div>
-    <h4>Triggers</h4>
+    <div class="blurb">자율 모드 내부에서는 정중한 중단이 금지됩니다. rate-limit 폴링 (ScheduleWakeup 600초), 80% 컨텍스트에서 자동 /compact, Plan A→N 자동 연속을 처리합니다. 스킬 본문에 9가지 정중한 중단 위반 사례가 나열되어 있어 인식하고 거부할 수 있습니다.</div>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">rate limit</span><span class="chip k">context 80%</span><span class="chip k">multi-plan continuation</span></div>
-    <h4>Core mechanism</h4>
+    <h4>핵심 메커니즘</h4>
     <ul>
-      <li>Rate limit: <code>ScheduleWakeup({ delaySeconds: 600, ... })</code> — polls until the 5-hour window closes</li>
-      <li>At 80% context: auto <code>/compact</code> + restate-before-dispatch on resume</li>
-      <li>When Plan A completes: auto-start Plan B (open-PR conflict guard checked first)</li>
-      <li>9 polite-stop violations: "X done so far, what next?", "waiting for user confirmation before proceeding", etc.</li>
+      <li>Rate limit: <code>ScheduleWakeup({ delaySeconds: 600, ... })</code> — 5시간 창이 닫힐 때까지 폴링</li>
+      <li>80% 컨텍스트 시: 자동 <code>/compact</code> + 재개 시 재진술-before-dispatch</li>
+      <li>Plan A 완료 시: Plan B 자동 시작 (open-PR 충돌 가드 먼저 확인)</li>
+      <li>9가지 정중한 중단 위반: "X 완료, 다음은?", "진행 전 사용자 확인 대기" 등</li>
     </ul>
-    <h4>Outputs</h4>
+    <h4>산출물</h4>
     <ul>
-      <li>ScheduleWakeup event log</li>
-      <li>/compact invocation log</li>
+      <li>ScheduleWakeup 이벤트 로그</li>
+      <li>/compact 호출 로그</li>
       <li><span class="path">harness-flow-progress.md</span> cycle progress entry</li>
     </ul>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a>
       <a href="#s-background-monitoring"><span class="chip">kzk-background-monitoring</span></a>
       <a href="#s-web-loop"><span class="chip">kzk-web-loop</span> (reviewer-FAIL skip override)</a>
       <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span> (CRG refresh on plan-end)</a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §12 / §13 / §14</code></p>
   </div>
 
   <!-- ============== kzk-background-monitoring ============== -->
   <div class="card" id="s-background-monitoring">
     <div class="head"><span class="name">kzk-background-monitoring</span><span class="ver">v1.6.0</span><span class="badge auto">auto</span></div>
-    <div class="blurb">Background task ownership discipline. The spawning agent owns a task until it reaches a terminal state. Stuck thresholds: Bash ≥ 3 min, subagent ≥ 5 min, codex 60 s with no first token. Tool results taking ≥ 2 s require narration.</div>
-    <h4>Triggers</h4>
+    <div class="blurb">백그라운드 작업 소유권 규율. 생성 에이전트는 작업이 종료 상태에 도달할 때까지 소유합니다. Stuck 임계값: Bash ≥ 3분, subagent ≥ 5분, codex 첫 토큰 없이 60초. ≥ 2초 걸리는 툴 결과는 설명이 필요합니다.</div>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">run_in_background</span><span class="chip k">Monitor</span><span class="chip k">long-running</span><span class="chip k">build</span><span class="chip k">install</span></div>
-    <h4>Core mechanism</h4>
+    <h4>핵심 메커니즘</h4>
     <ul>
-      <li>Stuck thresholds + kill / diagnose / retry sequence</li>
-      <li>Result narration shape table (per-tool)</li>
-      <li>Single-call vs lifecycle distinction (separate from kzk-tool-retry)</li>
+      <li>Stuck 임계값 + kill / 진단 / 재시도 순서</li>
+      <li>결과 설명 형태 표 (툴별)</li>
+      <li>단일 호출 vs 라이프사이클 구분 (kzk-tool-retry와 별개)</li>
     </ul>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-tool-retry"><span class="chip">kzk-tool-retry</span></a>
       <a href="#s-autonomous-loop"><span class="chip">kzk-autonomous-loop</span></a>
       <a href="#s-playwright-verification"><span class="chip">kzk-playwright-verification</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §23</code></p>
   </div>
 
@@ -748,22 +746,22 @@ flowchart TD
   <div class="card" id="s-spec-and-review">
     <div class="head"><span class="name">kzk-spec-and-review</span><span class="ver">v2.14.0</span><span class="badge entry">entry</span></div>
     <div class="blurb">Mandates cross-vendor codex review for all spec / plan / major design authoring. Step -1 brainstorming is ON by default; Step 0 codebase-survey is a prerequisite. The draft loop repeats — draft → codex consult → synthesize findings → Gate (PASS / CONTINUE / HALT) — until PASS or HALT.</div>
-    <h4>Triggers</h4>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">spec 잡자</span><span class="chip k">spec 작성</span><span class="chip k">plan 작성</span><span class="chip k">plan 만들어</span><span class="chip k">codex review</span><span class="chip k">brainstorm</span><span class="chip k">major design</span><span class="chip k">architecture review</span></div>
-    <h4>Gate decision rules</h4>
+    <h4>Gate 판단 규칙</h4>
     <ul>
       <li><strong>PASS</strong>: zero BLOCKER items AND no structural changes</li>
       <li><strong>CONTINUE</strong>: 1+ BLOCKER items OR structural changes → next cycle</li>
       <li><strong>HALT</strong>: cycle ≥ 5 with remaining BLOCKERs → route to user-queue</li>
       <li>Brainstorming skip conditions: explicit <code>brainstorming 스킵</code> standalone command, OR all three of (trivial + pre-specified + no-new-capability)</li>
     </ul>
-    <h4>Outputs</h4>
+    <h4>산출물</h4>
     <ul>
       <li><span class="path">docs/plans/YYYY-MM-DD-*-design.md</span> — brainstorming / spec drafts (path consolidation 2026-05-12, <code>harness-share.md §5</code>; historical drafts at <code>docs/superpowers/specs/</code> remain readable)</li>
       <li><span class="path">docs/plans/YYYY-MM-DD-*-plan.md</span> or <span class="path">docs/plans/YYYY-MM-DD-*.md</span> — implementation plans</li>
       <li><span class="path">docs/plans/*-critic-review*.md</span> or <span class="path">docs/research/codex-reviews/*-critic-review*.md</span></li>
     </ul>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span> (Step 0 prerequisite)</a>
       <a href="#s-freshness-guard"><span class="chip">kzk-freshness-guard</span></a>
@@ -771,7 +769,7 @@ flowchart TD
       <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a>
       <a href="#s-test-coverage"><span class="chip">kzk-test-coverage</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §22 + §22.5 + §31</code></p>
   </div>
 
@@ -779,16 +777,16 @@ flowchart TD
   <div class="card" id="s-pre-merge-sync">
     <div class="head"><span class="name">kzk-pre-merge-sync</span><span class="ver">v1.8.0</span></div>
     <div class="blurb">Four-step checklist that runs immediately before PR creation (or a direct-main milestone commit). Ensures CLAUDE.md is synced, deepinit is run, hooks are enabled, and a full freshness sweep is complete.</div>
-    <h4>Triggers</h4>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">merge</span><span class="chip k">feature branch</span><span class="chip k">CLAUDE.md sync</span><span class="chip k">deepinit</span><span class="chip k">pre-merge</span><span class="chip k">milestone</span></div>
-    <h4>Four steps</h4>
+    <h4>4단계</h4>
     <ol>
       <li>CLAUDE.md sync (six sections: Tech Stack / Project Structure / API Endpoints / DB / Key Rules / Env Vars)</li>
       <li><code>/oh-my-claudecode:deepinit</code> mandatory run</li>
       <li>Hook auto-enable: <code>regression-recall</code> + <code>fix-scope-trigger</code> (jq verification, user explicit confirm)</li>
       <li>Branch-wide freshness sweep (<code>kzk-freshness-guard</code>)</li>
     </ol>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a>
       <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a>
@@ -797,7 +795,7 @@ flowchart TD
       <a href="#s-fix-scope-expansion"><span class="chip">kzk-fix-scope-expansion</span></a>
       <a href="#s-freshness-guard"><span class="chip">kzk-freshness-guard</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §14.5 + §15</code></p>
   </div>
 
@@ -805,23 +803,23 @@ flowchart TD
   <div class="card" id="s-production-access">
     <div class="head"><span class="name">kzk-production-access</span><span class="ver">v1.7.0</span></div>
     <div class="blurb">Defines the production / external infrastructure access boundary. Read-only access still requires an explicit user request. State mutation: AI authors the script only; user or CI executes it. Idempotency is mandatory. Permanent AKIA keys are always refused.</div>
-    <h4>Triggers</h4>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">AWS</span><span class="chip k">SSM</span><span class="chip k">production</span><span class="chip k">credential</span><span class="chip k">destructive</span><span class="chip k">AKIA</span><span class="chip k">ASIA</span><span class="chip k">aws-vault</span></div>
-    <h4>Core rules</h4>
+    <h4>핵심 규칙</h4>
     <ul>
       <li>Read-only: allowed only on explicit user request</li>
       <li>State mutation: AI writes script → user OK → user/CI executes (AI never executes directly)</li>
       <li>Idempotency: <code>IF NOT EXISTS</code> / <code>ON CONFLICT DO NOTHING</code> required</li>
       <li>STS (ASIA) tokens are single-use and expire; permanent (AKIA) keys are refused and must be revoked</li>
     </ul>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a>
       <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span> Gate 1.6</a>
       <a href="#s-user-queue"><span class="chip">kzk-user-queue</span></a>
       <a href="#s-tool-retry"><span class="chip">kzk-tool-retry</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §2</code></p>
   </div>
 
@@ -829,22 +827,22 @@ flowchart TD
   <div class="card" id="s-test-coverage">
     <div class="head"><span class="name">kzk-test-coverage</span><span class="ver">v1.9.0</span><span class="badge auto">auto</span></div>
     <div class="blurb">TDD strict mode (Red → Green → Refactor → Commit) with 100% line + branch coverage on all touched files. Autonomous mode + any code change = TDD auto-applied, no explicit keyword needed. Main is forbidden from entering the red phase directly — a fresh sonnet dispatch is required.</div>
-    <h4>Triggers</h4>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">tdd</span><span class="chip k">test first</span><span class="chip k">테스트 먼저</span><span class="chip k">red-green</span><span class="chip x">+ autonomous + code change = auto-applied</span></div>
-    <h4>Core mechanism</h4>
+    <h4>핵심 메커니즘</h4>
     <ul>
       <li>Three TDD evidence requirements: test file, code-file scope overlap, test run exits 0</li>
       <li>Halt entries: <span class="chip q">Q-TDD-MAIN</span> <span class="chip q">Q-TDD-AUTO-MISSING</span> <span class="chip q">Q-COV-SETUP</span></li>
       <li>Exceptions: boot files, type-only files, ORM decorators</li>
     </ul>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a>
       <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a>
       <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a>
       <a href="#s-user-queue"><span class="chip">kzk-user-queue</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §11</code></p>
   </div>
 
@@ -852,21 +850,21 @@ flowchart TD
   <div class="card" id="s-tool-retry">
     <div class="head"><span class="name">kzk-tool-retry</span><span class="ver">v1.7.0</span><span class="badge auto">auto</span><span class="badge hook">hook</span></div>
     <div class="blurb">On Edit / Write / Bash failure, one automatic retry fires within the same turn (no user prompt between). Seven read-tracker invalidator events require a pre-emptive Read before the next write. Double failure → Q-TOOL queue entry.</div>
-    <h4>Triggers</h4>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">Edit fail</span><span class="chip k">Write fail</span><span class="chip k">File has not been read yet</span><span class="chip k">String to replace not found</span><span class="chip k">File has been modified since read</span></div>
-    <h4>Related hooks</h4>
+    <h4>관련 훅</h4>
     <ul>
       <li><span class="path">install/hooks/edit-read-guard.mjs</span> — PreToolUse; provides a 100% success guarantee by blocking writes before they fail</li>
       <li><span class="path">install/hooks/edit-failure-retry.mjs</span> — PostToolUse; forces same-turn retry</li>
     </ul>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-user-queue"><span class="chip">kzk-user-queue</span></a>
       <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a>
       <a href="#s-background-monitoring"><span class="chip">kzk-background-monitoring</span></a>
       <a href="#s-freshness-guard"><span class="chip">kzk-freshness-guard</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §27</code></p>
   </div>
 
@@ -874,14 +872,14 @@ flowchart TD
   <div class="card" id="s-user-queue">
     <div class="head"><span class="name">kzk-user-queue</span><span class="ver">v1.4.0</span></div>
     <div class="blurb">Ambiguous-decision registry for autonomous mode. On any ambiguous decision, append a Pending entry with a tentative default and continue — never halt. When the user returns, a three-stage interactive review resolves entries: classify → resolve Group A items → repeat up to 3 rounds.</div>
-    <h4>Triggers</h4>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">ambiguous decision</span><span class="chip k">user returns</span><span class="chip k">queue review</span><span class="chip k">DECISION line append</span></div>
-    <h4>Outputs</h4>
+    <h4>산출물</h4>
     <ul>
       <li><span class="path">docs/harness/user-queue.md</span> — Pending / Resolved / Escalated sections</li>
       <li>Every producer skill appends in Q-* format</li>
     </ul>
-    <h4>Producer skills (11)</h4>
+    <h4>큐 생성 스킬 (11개)</h4>
     <div class="triggers">
       <a href="#s-tool-retry"><span class="chip">kzk-tool-retry</span></a>
       <a href="#s-test-coverage"><span class="chip">kzk-test-coverage</span></a>
@@ -895,7 +893,7 @@ flowchart TD
       <a href="#s-fix-scope-expansion"><span class="chip">kzk-fix-scope-expansion</span></a>
       <a href="#s-freshness-guard"><span class="chip">kzk-freshness-guard</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §6</code></p>
   </div>
 
@@ -903,16 +901,16 @@ flowchart TD
   <div class="card" id="s-web-loop">
     <div class="head"><span class="name">kzk-web-loop</span><span class="ver">v1.10.0</span><span class="badge entry">entry</span></div>
     <div class="blurb">Autonomous web-page improvement loop. P0 issues take a fast-path directly to executor; P1/P2 go through survey + writing-plans + subagent-driven-dev. Reviewer-FAIL skip override differs from the autonomous-loop default. Each cycle ends with a /learn retrospective.</div>
-    <h4>Triggers</h4>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">web loop</span><span class="chip k">웹 루프</span><span class="chip k">자율 개선</span><span class="chip k">loop forever</span><span class="chip k">무한 개선</span><span class="chip k">무한 루프</span><span class="chip k">계속 돌려</span></div>
-    <h4>Outputs</h4>
+    <h4>산출물</h4>
     <ul>
       <li><span class="path">.web-loop/cycle-N-report.md</span></li>
       <li><span class="path">.web-loop/surveys/cycle-N-survey.md</span></li>
       <li><span class="path">.web-loop/plans/cycle-N-plan.md</span></li>
       <li><span class="path">harness-flow-progress.md</span> cycle entry</li>
     </ul>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a>
       <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a>
@@ -922,7 +920,7 @@ flowchart TD
       <a href="#s-playwright-verification"><span class="chip">kzk-playwright-verification</span></a>
       <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §25</code></p>
   </div>
 
@@ -930,9 +928,9 @@ flowchart TD
   <div class="card" id="s-codebase-survey">
     <div class="head"><span class="name">kzk-codebase-survey</span><span class="ver">v1.17.0</span><span class="badge entry">entry</span><span class="badge auto">auto</span></div>
     <div class="blurb">Hub for all pre-planning deep exploration. Delegates to an EXPLORER subagent (oh-my-claudecode:explore, sonnet) via an 8-step process. Main is forbidden from reading 5+ files directly — always delegates. Required prerequisite before any autonomous kzk-large-task-delegation dispatch with multi-file scope.</div>
-    <h4>Triggers</h4>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">codebase survey</span><span class="chip k">코드베이스 탐색</span><span class="chip k">survey first</span><span class="chip k">상세하게 봐줘</span><span class="chip k">상세히 봐줘</span><span class="chip k">spec 체크</span><span class="chip k">하나하나 확인</span><span class="chip k">버그 전수조사</span><span class="chip k">fix 시작</span></div>
-    <h4>8-step process</h4>
+    <h4>8단계 프로세스</h4>
     <ol>
       <li><strong>Step 0.5</strong> — CRG status check (binary present + index non-empty). Rebuild if empty, update if drifted.</li>
       <li><strong>Step 1</strong> — Scope expansion: CRG MCP (semantic_search_nodes, query_graph, get_impact_radius) → grep fallback</li>
@@ -944,7 +942,7 @@ flowchart TD
       <li><strong>Step 7</strong> — Env vars / config scan</li>
       <li><strong>Step 8</strong> — Report saved to <span class="path">docs/harness/surveys/YYYY-MM-DD-*-survey.md</span></li>
     </ol>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a>
       <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span> Step 0</a>
@@ -952,7 +950,7 @@ flowchart TD
       <a href="#s-freshness-guard"><span class="chip">kzk-freshness-guard</span></a>
       <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §26</code></p>
   </div>
 
@@ -960,15 +958,15 @@ flowchart TD
   <div class="card" id="s-regression-memory">
     <div class="head"><span class="name">kzk-regression-memory</span><span class="ver">v1.6.0</span><span class="badge auto">auto</span><span class="badge hook">hook</span></div>
     <div class="blurb">On fix-start keyword detection, automatically retrieves regression history from the gstack /learn JSONL primary store plus a sidecar (dismiss_count, stale, archived flags). Confidence decays by × 0.85 per dismiss. Enabled by pre-merge-sync step 3.</div>
-    <h4>Triggers</h4>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">regression memory</span><span class="chip k">재발 방지</span><span class="chip k">fix recall</span><span class="chip k">fix 시작</span><span class="chip k">과거 fix 조회</span><span class="chip k">dismiss recall</span></div>
-    <h4>Related hooks</h4>
+    <h4>관련 훅</h4>
     <ul>
       <li><span class="path">install/hooks/regression-recall.mjs</span> — UserPromptSubmit; on fix-start, retrieves results and injects them as a system-reminder</li>
       <li>Sidecar location: <span class="path">.kzk-harness/regression-meta.jsonl</span></li>
       <li>CLI: <span class="path">install/bin/kzk-regression-memory.mjs dismiss &lt;key&gt;</span></li>
     </ul>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §29</code></p>
   </div>
 
@@ -976,14 +974,14 @@ flowchart TD
   <div class="card" id="s-fix-scope-expansion">
     <div class="head"><span class="name">kzk-fix-scope-expansion</span><span class="ver">v1.6.0</span><span class="badge gate">gate</span><span class="badge hook">hook</span></div>
     <div class="blurb">On fix-start, enumerates all callsites and saves them to a cache. Gate 4.5 compares the staged diff against the cache; a mismatch blocks the commit. On the same layer failing twice, triggers a fix-layer pivot (L0 → L3).</div>
-    <h4>Triggers</h4>
+    <h4>트리거</h4>
     <div class="triggers"><span class="chip k">callsite 전수</span><span class="chip k">Gate 4.5</span><span class="chip k">fix-scope-cache</span><span class="chip k">callsite mismatch</span><span class="chip k">KZK_GATE45_SKIP</span></div>
-    <h4>Related hooks</h4>
+    <h4>관련 훅</h4>
     <ul>
       <li><span class="path">install/hooks/fix-scope-trigger.mjs</span> — UserPromptSubmit; CRG detect-changes / grep fallback</li>
       <li>Cache location: <span class="path">.kzk-harness/fix-scope-cache.jsonl</span></li>
     </ul>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §3.5</code></p>
   </div>
 
@@ -991,7 +989,7 @@ flowchart TD
   <div class="card" id="s-freshness-guard">
     <div class="head"><span class="name">kzk-freshness-guard</span><span class="ver">v1.4.0</span><span class="badge gate">gate</span><span class="badge auto">auto</span><span class="badge hook">hook</span></div>
     <div class="blurb">Uses CRG symbol reverseRefs to detect which meta-documents a staged code change makes stale, then auto-fixes them by document type (AGENTS row, CLAUDE section, spec line-ref).</div>
-    <h4>Triggers / six activation points</h4>
+    <h4>트리거 / 6개 활성화 지점</h4>
     <ul>
       <li>Gate 0.5 (pre-commit)</li>
       <li>kzk-spec-and-review Step 0</li>
@@ -1000,11 +998,11 @@ flowchart TD
       <li>Before kzk-codebase-survey starts</li>
       <li>Impact-radius metadata detection (linked with fix-scope)</li>
     </ul>
-    <h4>Related hooks</h4>
+    <h4>관련 훅</h4>
     <ul>
       <li><span class="path">install/hooks/freshness-guard.mjs</span> — PostToolUse on Edit/Write; includes a recursion guard</li>
     </ul>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §30</code></p>
   </div>
 
@@ -1012,7 +1010,7 @@ flowchart TD
   <div class="card" id="s-codex-handoff">
     <div class="head"><span class="name">kzk-codex-handoff</span><span class="ver">v1.6.0</span><span class="badge auto">auto</span></div>
     <div class="blurb">Canonical SoT for stable Codex CLI invocation. Defines 5 hard rules, an E0 Preflight check, and an E1–E4 fallback ladder that ultimately falls through to critic opus.</div>
-    <h4>5 hard rules</h4>
+    <h4>5가지 필수 규칙</h4>
     <ol>
       <li>stdin pipe is required</li>
       <li><code>--json</code> output → write to file → read with jq (never pipe directly)</li>
@@ -1020,26 +1018,26 @@ flowchart TD
       <li>Short prompts go as a CLI argument</li>
       <li>Prefer plain text mode</li>
     </ol>
-    <h4>Fallback ladder</h4>
+    <h4>폴백 사다리</h4>
     <ul>
       <li>E0 Preflight (which / version / sandbox check)</li>
       <li>E1 timeout → E2 race/no-stderr → E3 empty output → E4 general failure</li>
       <li>Final fallback: <code>oh-my-claudecode:critic</code> opus</li>
     </ul>
-    <h4>Linked skills</h4>
+    <h4>이어지는 스킬</h4>
     <div class="triggers">
       <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a>
       <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a>
       <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a>
     </div>
-    <h4>Source of truth</h4>
+    <h4>SoT</h4>
     <p><code>harness-share.md §32</code></p>
   </div>
 
 </section>
 
 <section id="self-trigger">
-  <h2>7. Self-trigger matrix</h2>
+  <h2>7. 자동 트리거 매트릭스</h2>
   <p>Combinations of skills that fire automatically for the same situation. The main agent doesn't need to memorize this — but it's useful when a flow feels broken.</p>
   <table>
     <thead><tr><th>Situation</th><th>Skill chain</th></tr></thead>
@@ -1059,7 +1057,7 @@ flowchart TD
 </section>
 
 <section id="harness-share">
-  <h2>8. harness-share.md section map (§1–§33)</h2>
+  <h2>8. harness-share.md 섹션 지도 (§1–§33)</h2>
   <p>The SoT that every skill's "Authoritative source" line points to. On any conflict, harness-share.md wins over SKILL.md.</p>
   <table>
     <thead><tr><th>§</th><th>Title</th><th>One-liner</th></tr></thead>
@@ -1105,14 +1103,14 @@ flowchart TD
 </section>
 
 <section id="hooks-infra">
-  <h2>9. Hook 인프라 — 8 global + 1 project-only</h2>
+  <h2>9. 훅 인프라 — 글로벌 8개 + 프로젝트 전용 1개</h2>
   <p>Skill bodies are markdown and cannot enforce behavior by themselves. Hooks provide real enforcement at runtime:</p>
 
   <div class="card">
     <div class="head"><span class="name">keyword-detector.mjs</span><span class="badge hook">hook</span></div>
     <div class="blurb">Detects kzk-* trigger keywords in every incoming user prompt and injects a system-reminder that loads the relevant skill. Also writes the <code>autonomous-active</code> marker file when autonomous-mode keywords fire.</div>
-    <h4>Event</h4><p>UserPromptSubmit</p>
-    <h4>Key details</h4>
+    <h4>이벤트</h4><p>UserPromptSubmit</p>
+    <h4>주요 세부사항</h4>
     <ul>
       <li>Matches all 18 skill trigger keyword sets</li>
       <li>Autonomous marker written to <span class="path">~/.cache/kzk-harness/autonomous-active</span></li>
@@ -1123,8 +1121,8 @@ flowchart TD
   <div class="card">
     <div class="head"><span class="name">autonomous-stop-guard.mjs</span><span class="badge hook">hook</span></div>
     <div class="blurb">Blocks the Stop event when the autonomous marker is active and either a TodoWrite item or a user-queue entry is still pending. Includes a 3-attempt escape hatch with a TTL so a genuinely complete session can exit cleanly.</div>
-    <h4>Event</h4><p>Stop</p>
-    <h4>Key details</h4>
+    <h4>이벤트</h4><p>Stop</p>
+    <h4>주요 세부사항</h4>
     <ul>
       <li>Reads <span class="path">~/.cache/kzk-harness/autonomous-active</span> and <span class="path">docs/harness/user-queue.md</span></li>
       <li>3-attempt escape hatch + TTL prevents infinite block</li>
@@ -1135,8 +1133,8 @@ flowchart TD
   <div class="card">
     <div class="head"><span class="name">edit-read-guard.mjs</span><span class="badge hook">hook</span></div>
     <div class="blurb">Blocks any Edit or Write call if the target file has not been Read in the current session's read-log. Eliminates the entire class of "String to replace not found" and "File has not been read yet" failures before they happen. Supports a bypass token for edge cases.</div>
-    <h4>Event</h4><p>PreToolUse (Edit / Write)</p>
-    <h4>Key details</h4>
+    <h4>이벤트</h4><p>PreToolUse (Edit / Write)</p>
+    <h4>주요 세부사항</h4>
     <ul>
       <li>Read-log is session-scoped in memory</li>
       <li>Bypass token: <code>KZK_EDIT_BYPASS=1</code></li>
@@ -1147,8 +1145,8 @@ flowchart TD
   <div class="card">
     <div class="head"><span class="name">edit-failure-retry.mjs</span><span class="badge hook">hook</span></div>
     <div class="blurb">When an Edit or Write fails, forces a same-turn retry after a forced Re-Read of the file. Implements the kzk-tool-retry single-retry contract at the hook level.</div>
-    <h4>Event</h4><p>PostToolUse (Edit / Write)</p>
-    <h4>Key details</h4>
+    <h4>이벤트</h4><p>PostToolUse (Edit / Write)</p>
+    <h4>주요 세부사항</h4>
     <ul>
       <li>Injects a Re-Read + retry instruction as a system-reminder</li>
       <li>Double failure → Q-TOOL appended to user-queue.md</li>
@@ -1159,8 +1157,8 @@ flowchart TD
   <div class="card">
     <div class="head"><span class="name">fix-scope-trigger.mjs</span><span class="badge hook">hook</span></div>
     <div class="blurb">On fix-intent keywords, enumerates callsites via CRG detect-changes (grep fallback) and appends results to the fix-scope cache. Disabled by default — enabled by pre-merge-sync step 3.</div>
-    <h4>Event</h4><p>UserPromptSubmit</p>
-    <h4>Key details</h4>
+    <h4>이벤트</h4><p>UserPromptSubmit</p>
+    <h4>주요 세부사항</h4>
     <ul>
       <li>Cache: <span class="path">.kzk-harness/fix-scope-cache.jsonl</span></li>
       <li><strong>Default OFF</strong> — enabled via <code>--fix-scope-trigger</code> flag</li>
@@ -1171,8 +1169,8 @@ flowchart TD
   <div class="card">
     <div class="head"><span class="name">freshness-guard.mjs</span><span class="badge hook">hook</span></div>
     <div class="blurb">After every Edit or Write, queries CRG symbol reverseRefs to find meta-documents made stale by the change and dispatches auto-fix for each. A recursion guard prevents the auto-fix from triggering itself.</div>
-    <h4>Event</h4><p>PostToolUse (Edit / Write)</p>
-    <h4>Key details</h4>
+    <h4>이벤트</h4><p>PostToolUse (Edit / Write)</p>
+    <h4>주요 세부사항</h4>
     <ul>
       <li>Per-document-type fix strategies: AGENTS row, CLAUDE section, spec line-ref</li>
       <li>Recursion guard via in-memory flag</li>
@@ -1183,8 +1181,8 @@ flowchart TD
   <div class="card">
     <div class="head"><span class="name">regression-recall.mjs</span><span class="badge hook">hook</span></div>
     <div class="blurb">On fix-start keywords, retrieves regression history from the gstack /learn JSONL store and the sidecar, then injects the results as a system-reminder. Disabled by default — enabled by pre-merge-sync step 3.</div>
-    <h4>Event</h4><p>UserPromptSubmit</p>
-    <h4>Key details</h4>
+    <h4>이벤트</h4><p>UserPromptSubmit</p>
+    <h4>주요 세부사항</h4>
     <ul>
       <li>Sidecar: <span class="path">.kzk-harness/regression-meta.jsonl</span></li>
       <li>Confidence decay: × 0.85 per dismiss</li>
@@ -1196,8 +1194,8 @@ flowchart TD
   <div class="card">
     <div class="head"><span class="name">dispatcher.mjs</span><span class="badge">library</span></div>
     <div class="blurb">Shared dispatch utility imported by the other hooks. Not a hook itself — provides consistent subagent dispatch patterns so each hook doesn't re-implement them.</div>
-    <h4>Event</h4><p>n/a (library)</p>
-    <h4>Key details</h4>
+    <h4>이벤트</h4><p>n/a (library)</p>
+    <h4>주요 세부사항</h4>
     <ul>
       <li>Location: <span class="path">install/hooks/dispatcher.mjs</span></li>
       <li>Scope: global (imported by other hooks)</li>
@@ -1207,8 +1205,8 @@ flowchart TD
   <div class="card">
     <div class="head"><span class="name">check-skill-flow-fresh.mjs</span><span class="badge hook">hook</span><span class="badge gate">project-only</span></div>
     <div class="blurb">Verifies that this HTML file is up to date with the SoT before every git commit in this repo. Computes a SHA-256 fingerprint over all SKILL.md files + harness-share.md + CLAUDE.md, and compares it against the fingerprint embedded in the HTML head comment. Mismatch blocks the commit.</div>
-    <h4>Event</h4><p>PreToolUse (Bash — intercepts git commit commands)</p>
-    <h4>Key details</h4>
+    <h4>이벤트</h4><p>PreToolUse (Bash — intercepts git commit commands)</p>
+    <h4>주요 세부사항</h4>
     <ul>
       <li>Location: <span class="path">.claude/hooks/check-skill-flow-fresh.mjs</span></li>
       <li>Never copied by global install — fires only in this repo's directory</li>
