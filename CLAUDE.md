@@ -101,20 +101,22 @@ Re-run after install: `bash /path/to/kzk-harness/install/dependencies.sh "$(pwd)
 
 ## Skill-flow HTML & Project-local Staleness Hook
 
-`docs/skill-flow.html` is the single-page visual index of all 18 kzk-* skills, external loading paths, workflow diagrams (mermaid), and hook infrastructure. For both newcomers and the maintainer.
+`docs/site/skill-flow.html` (English) and `docs/site/skill-flow.ko.html` (Korean) are the single-page visual indices of all 18 kzk-* skills, external loading paths, workflow diagrams (mermaid), and hook infrastructure. `docs/site/index.html` is a small landing page linking to both. The whole `docs/site/` directory is the only thing GitHub Pages serves — see `.github/workflows/pages.yml`.
 
-A project-local PreToolUse hook at `.claude/hooks/check-skill-flow-fresh.mjs` (registered by `.claude/settings.json`) blocks `git commit` whenever the SoT (`skills/*/SKILL.md` + `harness-share.md` + this `CLAUDE.md`) drifts from the fingerprint embedded in `docs/skill-flow.html`.
+A project-local PreToolUse hook at `.claude/hooks/check-skill-flow-fresh.mjs` (registered by `.claude/settings.json`) blocks `git commit` whenever the SoT (`skills/*/SKILL.md` + `harness-share.md` + this `CLAUDE.md`) drifts from the fingerprint embedded in `docs/site/skill-flow.html`.
 
 **Scope guarantee**: this hook lives in `.claude/`, which `install/install-global.sh` never reads. Other users who install kzk-harness globally never inherit this gate — it is exclusively for maintenance of *this* repo.
 
 Workflow when you change a skill / harness-share / CLAUDE.md:
-1. Update `docs/skill-flow.html` so its cards / tables / diagrams reflect the change.
-2. `node .claude/hooks/check-skill-flow-fresh.mjs --regen` (rewrites the embedded fingerprint in the HTML).
+1. Update `docs/site/skill-flow.html` (and `docs/site/skill-flow.ko.html` if you're updating the Korean version) so cards / tables / diagrams reflect the change.
+2. `node .claude/hooks/check-skill-flow-fresh.mjs --regen` rewrites the embedded fingerprint in the English HTML (the hook only checks the English version).
 3. Stage everything together and commit.
 
 Emergency bypass (autonomous-only): `KZK_SKILL_FLOW_SKIP=1 git commit ...` — leaves a `Q-SKILL-FLOW-STALE` entry in `docs/harness/user-queue.md` for post-hoc cleanup.
 
 Status check: `node .claude/hooks/check-skill-flow-fresh.mjs --status`.
+
+**Public deploy**: pushes that touch `docs/site/**` trigger `.github/workflows/pages.yml` which deploys only that directory to GitHub Pages. Repo `docs/` (frozen specs, plans, surveys, research) is NOT exposed publicly. Site URL: `https://kimzerokim.github.io/kzk-harness/` (index → links to both HTML versions).
 
 ## Skill Development Rules
 

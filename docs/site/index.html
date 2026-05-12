@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>kzk-harness — skill &amp; workflow map</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --bg-alt: #f5f5f7;
+    --fg: #1d1d1f;
+    --fg-2: #515154;
+    --fg-3: #86868b;
+    --accent: #0066cc;
+    --border: #e3e3e8;
+    --mono: ui-monospace, "SF Mono", Menlo, "JetBrains Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+  main { max-width: 720px; margin: 0 auto; padding: 80px 28px 60px; }
+  h1 { font-size: 32px; letter-spacing: -0.02em; margin: 0 0 6px; font-weight: 700; }
+  .sub { color: var(--fg-3); font-size: 15px; margin-bottom: 36px; }
+  .sub a { color: var(--accent); text-decoration: none; }
+  .sub a:hover { text-decoration: underline; }
+  .meta { display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 14px 0 36px; font-size: 12.5px; color: var(--fg-2); }
+  .meta .chip { padding: 3px 10px; background: var(--bg-alt); border-radius: 999px; font-family: var(--mono); font-size: 12px; }
+  .card { display: block; padding: 22px 24px; border: 1px solid var(--border); border-radius: 14px; margin: 12px 0; text-decoration: none; color: var(--fg); transition: background 0.12s, border-color 0.12s, transform 0.12s; }
+  .card:hover { background: var(--bg-alt); border-color: #d2d2d7; transform: translateY(-1px); }
+  .card .title { display: flex; align-items: baseline; gap: 10px; margin-bottom: 6px; }
+  .card .title strong { font-size: 19px; font-weight: 600; letter-spacing: -0.005em; }
+  .card .title .tag { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: #e3ecfa; color: var(--accent); letter-spacing: 0.02em; }
+  .card .desc { color: var(--fg-2); font-size: 14px; line-height: 1.55; }
+  footer { color: var(--fg-3); font-size: 12px; margin-top: 60px; padding-top: 18px; border-top: 1px solid var(--border); }
+  footer a { color: var(--accent); text-decoration: none; }
+  code { font-family: var(--mono); font-size: 0.9em; background: var(--bg-alt); padding: 1px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>kzk-harness — skill &amp; workflow map</h1>
+  <p class="sub">
+    Single-page reference for the 18 <code>kzk-*</code> skills in the kzk-harness workflow layer for
+    <a href="https://github.com/anthropics/claude-code">Claude Code</a>.
+    How skills load, what trigger phrases route to what, what each skill does, and how they chain together.
+  </p>
+  <div class="meta">
+    <span class="chip">18 skills</span>
+    <span class="chip">8 hooks</span>
+    <span class="chip">harness-share §1–§33</span>
+  </div>
+
+  <a class="card" href="skill-flow.html">
+    <div class="title"><strong>skill-flow.html</strong><span class="tag">English</span></div>
+    <div class="desc">Externally-facing reference. English prose with Korean trigger phrases preserved verbatim. Mermaid TD diagrams, per-skill cards, per-hook cards.</div>
+  </a>
+
+  <a class="card" href="skill-flow.ko.html">
+    <div class="title"><strong>skill-flow.ko.html</strong><span class="tag">한국어</span></div>
+    <div class="desc">유지보수자 참조. 같은 구조의 한국어 본문 · 동일한 다이어그램 · 카드 · 훅 인프라 · 외부 스킬 로딩 매트릭스.</div>
+  </a>
+
+  <footer>
+    Source: <a href="https://github.com/kimzerokim/kzk-harness">github.com/kimzerokim/kzk-harness</a>
+  </footer>
+</main>
+</body>
+</html>

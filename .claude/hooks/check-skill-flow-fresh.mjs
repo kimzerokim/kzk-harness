@@ -32,7 +32,7 @@ import { fileURLToPath } from "node:url";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, "..", "..");
-const HTML_PATH = path.join(REPO_ROOT, "docs", "skill-flow.html");
+const HTML_PATH = path.join(REPO_ROOT, "docs", "site", "skill-flow.html");
 const FINGERPRINT_TAG = "KZK_SKILL_FLOW_FINGERPRINT";
 const FINGERPRINT_RE = new RegExp(`<!--\\s*${FINGERPRINT_TAG}:\\s*([A-Za-z0-9]+)\\s*-->`);
 
