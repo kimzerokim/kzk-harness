@@ -1,6 +1,6 @@
 ---
 name: kzk-spec-and-review
-version: 2.13.2
+version: 2.13.3
 description: "Spec/plan/major design authoring with mandatory cross-vendor codex review. Iterative loop until PASS: Draft → codex consult → synthesize 🔴 BLOCKER / 🟡 NIT / ⚪ push-back → Gate (PASS = BLOCKER 0 AND no structural change, CONTINUE = next cycle, HALT = cycle ≥ 5 + BLOCKER 잔존). Brainstorming default ON (Step -1 after Step 0 survey). Skip only when EITHER explicit `brainstorming 스킵` command standalone OR ALL-of (trivial + pre-specified + no-new-capability). Step 0 survey precondition + freshness check. Triggers: 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm', 'brainstorm default ON'. References harness-share.md §22 + §22.5 + §31."
 ---
 
@@ -37,7 +37,7 @@ If neither (A) nor (B) → brainstorming runs (default ON).
 
 **동작**:
 1. `Skill("superpowers:brainstorming")` 호출
-2. brainstorming 완료 → design doc 경로 수집 (`docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md`)
+2. brainstorming 완료 → design doc 경로 수집 (`docs/plans/YYYY-MM-DD-<topic>-design.md`). brainstorming 스킬이 default 로 `docs/superpowers/specs/` 에 쓰면 main 이 즉시 `docs/plans/` 으로 `git mv` 후 그 경로를 Step 1 에 전달. (SoT: `harness-share.md` §5 path consolidation 2026-05-12)
 3. design doc 경로를 Step 1 Draft 의 CONTEXT 에 `Required reading: <path>` 로 포함
 4. brainstorming 결정사항을 Step 2 codex consult 의 `LOCKED PRIOR DECISIONS` 에 포함
 

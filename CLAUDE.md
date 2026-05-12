@@ -48,7 +48,7 @@ Trigger: "harness 개선 루프", "스킬 개선해줘", "harness loop", "자가
 ### Loop structure
 
 Each cycle:
-1. **EVALUATOR** (fresh `oh-my-claudecode:critic`, opus) — audits all `skills/*/SKILL.md` files against `harness-share.md` and the spec in `docs/superpowers/specs/` for:
+1. **EVALUATOR** (fresh `oh-my-claudecode:critic`, opus) — audits all `skills/*/SKILL.md` files against `harness-share.md` and any design / spec drafts in `docs/plans/*-design.md` (canonical path per `harness-share.md` §5; historical drafts at `docs/superpowers/specs/` remain valid pointers but no new files land there) for:
    - **P0**: broken trigger keywords, missing frontmatter, contradictions with harness-share.md
    - **P1**: incomplete failure handling, missing cross-references to sister skills, ambiguous instructions
    - **P2**: outdated version numbers, missing anti-patterns, wording drift across sister skills

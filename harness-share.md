@@ -357,18 +357,21 @@ agent summary 만 신뢰 X — implementation 차원 검증 의무.
 
 ## 5. Documentation Storage Rules
 
-모든 AI tool 이 생성하는 design 문서는 다음 경로에 통일 저장. 각 도구의 default 경로 (`~/.gstack/projects/...`, `.omc/plans/`, `docs/superpowers/specs/`, etc.) 는 본 가이드로 override.
+모든 AI tool 이 생성하는 design 문서는 다음 경로에 통일 저장. 각 도구의 default 경로 (`~/.gstack/projects/...`, `.omc/plans/`, `docs/superpowers/specs/`, `docs/superpowers/plans/`, etc.) 는 본 가이드로 override.
 
 | 종류 | 위치 | 형식 |
 |---|---|---|
-| PRD / Design docs | `docs/prd/` | `YYYY-MM-DD-<topic>.md` |
-| Implementation plans | `docs/plans/` | `YYYY-MM-DD-<topic>.md` |
+| PRD | `docs/prd/` | `YYYY-MM-DD-<topic>.md` |
+| Design docs / spec drafts (brainstorming 산출물) | `docs/plans/` | `YYYY-MM-DD-<topic>-design.md` |
+| Implementation plans | `docs/plans/` | `YYYY-MM-DD-<topic>-plan.md` (또는 `YYYY-MM-DD-<topic>.md`) |
 | Harness experiment metadata | `docs/harness/` | `<topic>.md` |
 | Research notes | `docs/research/` | `<topic>.md` |
 | Retrospectives | `docs/retro/` | `<topic>.md` |
 | Screenshots (PR 첨부용) | `docs/screenshots/<session>/` | `<topic>-NN.png` |
 
 이 규칙은 도구 간 문서 난립 방지 + git 버전 관리 + 팀 공유 보장 목적.
+
+**Path consolidation note** (2026-05-12): superpowers brainstorming 의 design doc 출력은 historically `docs/superpowers/specs/` 였지만, 이제 `docs/plans/` 하나로 합친다. `-design.md` 접미사로 design / `-plan.md` (또는 접미사 없음) 으로 implementation plan 을 구분한다. 기존 `docs/superpowers/specs/*.md` 와 `docs/superpowers/plans/*.md` 의 frozen 파일들은 archival 상태로 유지 (install scripts / harness-flow-progress / frozen plans 가 해당 경로를 인용 중 — 깨지 않음). 새로운 brainstorming / spec / plan 출력만 새 경로 적용.
 
 ---
 
