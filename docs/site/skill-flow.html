@@ -634,7 +634,7 @@ flowchart TD
     <div class="head"><span class="name">kzk-playwright-verification</span><span class="ver">v1.8.0</span><span class="badge gate">gate</span></div>
     <div class="blurb">The Gate 4 implementation. Requires navigation to 3+ pages, full-page screenshots, and zero console errors. Dev server health pre-check blocks the dev/prod divergence trap (e.g. Tailwind v4 @import order). OAuth click-through is agent-driven — no user waiting.</div>
     <h4>Triggers</h4>
-    <div class="triggers"><span class="chip k">Playwright</span><span class="chip k">Gate 4</span><span class="chip k">browser_navigate</span><span class="chip k">screenshot</span><span class="chip k">MCP drop</span><span class="chip k">OAuth multi-account</span></div>
+    <div class="triggers"><span class="chip k">Playwright</span><span class="chip k">Gate 4</span><span class="chip k">browser_navigate</span><span class="chip k">screenshot</span><span class="chip k">MCP drop</span><span class="chip k">OAuth multi-account</span><span class="chip k">dev/prod build trap</span><span class="chip k">dev server health</span><span class="chip k">Q-PW-OAUTH-*</span></div>
     <h4>Core mechanism</h4>
     <ul>
       <li>Dev server health pre-check: process alive + log tail error grep</li>
@@ -749,7 +749,7 @@ flowchart TD
     <div class="head"><span class="name">kzk-spec-and-review</span><span class="ver">v2.14.0</span><span class="badge entry">entry</span></div>
     <div class="blurb">Mandates cross-vendor codex review for all spec / plan / major design authoring. Step -1 brainstorming is ON by default; Step 0 codebase-survey is a prerequisite. The draft loop repeats — draft → codex consult → synthesize findings → Gate (PASS / CONTINUE / HALT) — until PASS or HALT.</div>
     <h4>Triggers</h4>
-    <div class="triggers"><span class="chip k">spec 잡자</span><span class="chip k">spec 작성</span><span class="chip k">plan 작성</span><span class="chip k">plan 만들어</span><span class="chip k">codex review</span><span class="chip k">brainstorm</span><span class="chip k">major design</span><span class="chip k">architecture review</span></div>
+    <div class="triggers"><span class="chip k">spec 잡자</span><span class="chip k">spec 작성</span><span class="chip k">plan 작성</span><span class="chip k">plan 만들어</span><span class="chip k">codex review</span><span class="chip k">brainstorm</span><span class="chip k">brainstorm default ON</span><span class="chip k">major design</span><span class="chip k">architecture review</span><span class="chip k">PASS/CONTINUE/HALT gate</span><span class="chip k">iterative loop</span></div>
     <h4>Gate decision rules</h4>
     <ul>
       <li><strong>PASS</strong>: zero BLOCKER items AND no structural changes</li>
@@ -992,6 +992,7 @@ flowchart TD
     <div class="head"><span class="name">kzk-freshness-guard</span><span class="ver">v1.4.0</span><span class="badge gate">gate</span><span class="badge auto">auto</span><span class="badge hook">hook</span></div>
     <div class="blurb">Uses CRG symbol reverseRefs to detect which meta-documents a staged code change makes stale, then auto-fixes them by document type (AGENTS row, CLAUDE section, spec line-ref).</div>
     <h4>Triggers / six activation points</h4>
+    <div class="triggers"><span class="chip k">stale 체크</span><span class="chip k">freshness</span><span class="chip k">문서 신선도</span><span class="chip k">Gate 0.5</span><span class="chip k">KZK_GATE05_SKIP</span></div>
     <ul>
       <li>Gate 0.5 (pre-commit)</li>
       <li>kzk-spec-and-review Step 0</li>
