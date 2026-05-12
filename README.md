@@ -142,9 +142,11 @@ Beyond the 9 RULES above, Claude Code also discovers skills via each `SKILL.md` 
 #### 2. 다중 버그 / 사용성 회귀 sweep (3+ 파일 또는 모호한 증상)
 
 - **좋은 prompt**: `"<영역> 사용성 버그 모두 잡아줘"`, `"버그 전수조사 해줘"`, `"플랜 여러개로 쪼개고 사이클 자율로 돌면서 모두 개선"`
-- **자동 로드**: `kzk-codebase-survey` + `kzk-large-task-delegation` (R2 chain rule — via keyword-detector forced injection).
-- **메인 역할**: 5+ 파일 직접 read **금지**. EXPLORER subagent (`oh-my-claudecode:explore`) 위임 → 결과 합성 → 메타 plan → executor sonnet 위임 cycle 반복. 메인은 orchestrate + verify + commit 만.
-- **자율 모드 결합**: 발화 끝에 `"... 자율로 돌려"` / `"끝까지 끝내줘"` 추가 → `kzk-autonomous-boundary` 도 발동, 시작 전 branch 3-슬롯 contract 확인 강제.
+- **자동 로드**:
+  - 위 phrase 들은 **R1 (`kzk-large-task-delegation` 만)** 을 keyword-detector 로 forced 주입. `kzk-codebase-survey` 는 description matching 으로 *보조* 로드 (softer path, 보장 X).
+  - **R2 chain (둘 다 forced 주입) 보장하려면** prompt 에 R2 phrase 추가: `"... codebase survey 먼저 돌리고"`, `"survey first"`, `"상세하게 봐줘"`, `"하나하나 확인"`. 그래야 keyword-detector 가 `kzk-codebase-survey + kzk-large-task-delegation` 둘 다 inject.
+- **메인 역할**: 5+ 파일 직접 read **금지**. EXPLORER subagent (`oh-my-claudecode:explore`) 위임 → 결과 합성 → 메타 plan → executor sonnet 위임 cycle 반복. 메인은 orchestrate + verify + commit 만. (R2 phrase 없이 R1 만 발동 시에도 `kzk-large-task-delegation` 본문이 read-heavy audit dispatch shape 에서 EXPLORER 위임을 강제하므로 메인 직접 read 는 어차피 금지.)
+- **자율 모드 결합**: 발화 끝에 `"... 자율로 돌려"` / `"끝까지 끝내줘"` 추가 → R6 발동 → `kzk-autonomous-boundary` + `kzk-large-task-delegation` + `kzk-autonomous-loop` 3개 모두 inject. 시작 전 branch 3-슬롯 contract 확인 강제 + autonomous-boundary §Pre-dispatch survey rule 에 의해 large-task-delegation 직전 `kzk-codebase-survey` 자동 선행 (Q-SURVEY-MISSING halt 가 enforce).
 
 #### 3. 소규모 신기능 (≤ 200 LoC, 1-2 파일, 명확한 spec)
 
