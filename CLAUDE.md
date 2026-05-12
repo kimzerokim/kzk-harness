@@ -99,6 +99,23 @@ Quick reference:
 
 Re-run after install: `bash /path/to/kzk-harness/install/dependencies.sh "$(pwd)"`.
 
+## Skill-flow HTML & Project-local Staleness Hook
+
+`docs/skill-flow.html` is the single-page visual index of all 18 kzk-* skills, external loading paths, workflow diagrams (mermaid), and hook infrastructure. For both newcomers and the maintainer.
+
+A project-local PreToolUse hook at `.claude/hooks/check-skill-flow-fresh.mjs` (registered by `.claude/settings.json`) blocks `git commit` whenever the SoT (`skills/*/SKILL.md` + `harness-share.md` + this `CLAUDE.md`) drifts from the fingerprint embedded in `docs/skill-flow.html`.
+
+**Scope guarantee**: this hook lives in `.claude/`, which `install/install-global.sh` never reads. Other users who install kzk-harness globally never inherit this gate — it is exclusively for maintenance of *this* repo.
+
+Workflow when you change a skill / harness-share / CLAUDE.md:
+1. Update `docs/skill-flow.html` so its cards / tables / diagrams reflect the change.
+2. `node .claude/hooks/check-skill-flow-fresh.mjs --regen` (rewrites the embedded fingerprint in the HTML).
+3. Stage everything together and commit.
+
+Emergency bypass (autonomous-only): `KZK_SKILL_FLOW_SKIP=1 git commit ...` — leaves a `Q-SKILL-FLOW-STALE` entry in `docs/harness/user-queue.md` for post-hoc cleanup.
+
+Status check: `node .claude/hooks/check-skill-flow-fresh.mjs --status`.
+
 ## Skill Development Rules
 
 When adding or editing skills in this repo:
@@ -109,3 +126,4 @@ When adding or editing skills in this repo:
 - Version bump on any functional change (not cosmetic)
 - Update `README.md` skills table if adding a new skill
 - When adding a new skill, also update the skill count in `CLAUDE.md` line 3, `CLAUDE.md` "All N skills" line, `README.md` line 3, and the `README.md` install command skill count
+- Any change to a SKILL.md, `harness-share.md`, or this `CLAUDE.md` must reflect in `docs/skill-flow.html` (then `--regen` the fingerprint — see section above). The pre-commit hook will block otherwise.

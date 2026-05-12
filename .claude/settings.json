@@ -1,0 +1,16 @@
+{
+  "_comment": "kzk-harness repo PROJECT-LOCAL hooks. NEVER copied to ~/.claude/ by install-global.sh — Claude Code loads this file only when CWD = this repo. End users who install kzk-harness globally never get these hooks.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-skill-flow-fresh.mjs\""
+          }
+        ]
+      }
+    ]
+  }
+}
