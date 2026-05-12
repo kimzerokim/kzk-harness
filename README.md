@@ -60,9 +60,9 @@ External dependencies (codex CLI, code-review-graph) are not auto-removed since 
 
 Skills load when you say their trigger keyword in chat. You don't `/invoke` anything — just describe the work and the relevant skill activates. The flow below is the canonical end-to-end shape for a non-trivial feature (≥ 3 files or ≥ 200 LoC). For a trivial fix, jump straight to step 5.
 
-1. **Write the spec.** "이 기능 spec 좀 잡자: <one-paragraph description>". The phrase `spec 잡자` / `spec draft` (or `plan draft`) auto-loads `kzk-spec-and-review`. The skill enforces a Step 0 precondition: if no codebase survey report exists for the topic in `docs/harness/surveys/` (or the latest is > 7 days old / stale per git history), it auto-triggers `kzk-codebase-survey` first — Step 0.5 + Steps 1–8 (scope expansion via `code-review-graph` MCP/CLI or grep fallback, parallel deep read, library doc fetch via context7, type-contract scan, env-var scan). The survey report path is then cited in the draft prompt as "Required reading" before draft begins. After the draft, the skill sends it to the codex CLI for cross-vendor review (or `oh-my-claudecode:critic` opus fallback), synthesizes the verdict, and saves it to `docs/plans/<topic>-design.md` (spec/brainstorming drafts) or `docs/plans/<topic>-critic-review.md` (codex review) — the canonical path as of 2026-05-12. You see a 🔴/🟡/⚪ bucketed summary; revise until you accept it.
+1. **Write the spec.** "이 기능 spec 좀 잡자: <one-paragraph description>". The phrase `spec 잡자` / `spec draft` (or `plan draft`) auto-loads `kzk-spec-and-review` (R5). The skill enforces a Step 0 precondition: if no codebase survey report exists for the topic in `docs/harness/surveys/` (or the latest is > 7 days old / stale per git history), it auto-triggers `kzk-codebase-survey` first — Step 0.5 + Steps 1–8 (scope expansion via `code-review-graph` MCP/CLI; **CRG is mandatory in v1.17.0+** — grep fallback only via explicit `KZK_CRG_GREP_FALLBACK=1`; parallel deep read, library doc fetch via context7, type-contract scan, env-var scan). The survey report path is then cited in the draft prompt as "Required reading" before draft begins. After the draft, the skill sends it to the codex CLI for cross-vendor review (or `oh-my-claudecode:critic` opus fallback), synthesizes the verdict, and saves it to `docs/plans/<topic>-design.md` (spec/brainstorming drafts) or `docs/research/codex-reviews/<topic>-critic-review.md` (spec/non-plan codex review) — the canonical paths as of 2026-05-12. You see a 🔴/🟡/⚪ bucketed summary; revise until you accept it.
 
-2. **Write the plan.** "plan 작성해줘". This re-enters `kzk-spec-and-review` (the same Step 0 → 1–3 loop applies to plans) with the survey report from Step 1 reused if still fresh. Output: `docs/plans/<topic>-plan.md` (implementation plan) with codex review at `docs/plans/<topic>-critic-review.md` or `docs/research/codex-reviews/<topic>-critic-review.md`. For multi-task plans that feed sonnet executors, `kzk-large-task-delegation`'s narrower in-skill plan-critic loop also triggers — same opus planner + parallel codex consult + critic. Halt + queue on 2 consecutive critic FAILs. Plan freezes after a clean review pass.
+2. **Write the plan.** "plan 작성해줘". This re-enters `kzk-spec-and-review` (the same Step 0 → 1–3 loop applies to plans) with the survey report from Step 1 reused if still fresh. Output: `docs/plans/<topic>-plan.md` (implementation plan) with codex review at `docs/plans/<topic>-critic-review.md` (plan critic reviews always land in `docs/plans/`; non-plan spec/brainstorming codex reviews land in `docs/research/codex-reviews/<topic>-critic-review.md`). For multi-task plans that feed sonnet executors, `kzk-large-task-delegation`'s narrower in-skill plan-critic loop also triggers — same opus planner + parallel codex consult + critic. Halt + queue on 2 consecutive critic FAILs. Plan freezes after a clean review pass.
 
 3. **Branch + dispatch.** Switch to `feature/<topic>` (NEVER edit on `main`). Say "ok 이대로 ralph로 돌려" or "executor에게 넘겨" — `kzk-large-task-delegation` dispatches a sonnet executor subagent with the frozen plan + survey report + Gate 0–4 instructions in the prompt.
 
@@ -108,22 +108,23 @@ Also installed: `harness-share.md` — a portable workflow guide covering the 10
 - **`install/hooks/keyword-detector.mjs`** UserPromptSubmit hook (`install-global.sh --enable-hooks` 후) — 매 prompt 마다 phrase 매칭 → 강제 system-reminder 주입
 - **Claude Code 자체 skill discovery** — `~/.claude/skills/kzk-*/SKILL.md` description + body §Triggers 매칭
 
-### 현재 매칭되는 키워드 (12 RULES)
+### 현재 매칭되는 키워드 (9 RULES — keyword-detector.mjs forced injection)
 
-| RULE | 매칭 phrase 예시 | 자동 로드 skill |
+keyword-detector.mjs RULES (forced system-reminder injection via UserPromptSubmit hook):
+
+| RULE | 매칭 phrase 예시 (source: keyword-detector.mjs) | 자동 로드 skill |
 |---|---|---|
-| **R1 — Large task** | `큰 작업`, `버그 전수조사`, `구현 검증`, `마무리 해줘`, `전수 검토`, `끝내줘`, `사용성 버그`, `사용성 회귀`, `QA scan`, `여러 plan 으로 쪼개`, `플랜 쪼개`, `사이클 자율`, `버그들 모두`, `모두 잡아줘`, `large task`, `subagent dispatch`, `3+ file edits`, `200+ LoC`, `5+ file read`, `read-heavy audit`, `spec verification`, `implementation audit`, `리팩토링`, `refactor`, `정리해줘`, `cleanup`, `개선해줘`, `전반적으로`, `통째로`, `scope estimate` | `kzk-large-task-delegation` |
-| **R2 — Survey chain** | `codebase survey`, `코드베이스 탐색`, `deep explore`, `survey first`, `before planning`, `구현 확인`, `spec vs implementation`, `spec 체크`, `스펙 체크`, `하나하나 확인`, `ralph로 체크`, `상세하게 봐줘`, `상세히 봐줘`, `detailed analysis`, `fix 시작`, `버그 수정` | `kzk-codebase-survey` + `kzk-large-task-delegation` (chain) |
-| **R3 — Spec/plan** | `spec 잡자`, `spec 작성`, `spec draft`, `plan draft`, `plan 작성`, `design draft`, `major design`, `architecture review`, `codex review`, `codex consult`, `cross-verify`, `플랜 만들`, `여러 plan`, `메타 plan`, `brainstorm`, `brainstorm default ON` | `kzk-spec-and-review` |
-| **R4 — Autonomous mode** | `ralph로 돌려`, `ralph로 체크`, `자는 동안 진행`, `실행해놔야 queue 보지`, `끝까지 끝내줘`, `autonomous mode`, `자율실행`, `자율로 돌려`, `autonomous TDD enforce`, `Q-TDD-AUTO-MISSING` | `kzk-autonomous-boundary` |
-| **R5 — Self-improvement** | `harness 개선 루프`, `스킬 개선해줘`, `harness loop`, `자가개선`, `자가개선 루프`, `재발 방지`, `메타 갭` | `kzk-spec-and-review` + `kzk-large-task-delegation` + `kzk-pre-commit-gate` + `kzk-autonomous-loop` (4-set) |
-| **R6 — TDD discipline** | `tdd`, `TDD`, `test first`, `테스트 먼저`, `테스트부터`, `failing test`, `red-green`, `테스트 추가`, `coverage 추가`, `autonomous + 코드 변경 = 자동` | `kzk-test-coverage` |
-| **R7 — Commit gate** | `commit`, `pre-commit`, `Gate 0`, `Gate 0.5`, `Gate 1`, `Gate 1.5`, `Gate 1.6`, `Gate 2`, `Gate 3`, `Gate 4`, `Gate 4.5`, `Gate 5`, `AGENTS.md sync`, `secrets scan`, `doc-only` | `kzk-pre-commit-gate` |
-| **R8 — Pre-merge / PR** | `merge`, `PR 올려`, `feature branch`, `CLAUDE.md sync`, `deepinit`, `pre-merge`, `milestone` | `kzk-pre-merge-sync` |
-| **R9 — Production / credential** | `AWS`, `SSM`, `production`, `production DB`, `credential`, `destructive`, `AKIA`, `ASIA`, `aws-vault` | `kzk-production-access` |
-| **R10 — Playwright / UI** | `Playwright`, `Gate 4`, `browser_navigate`, `screenshot`, `MCP drop`, `OAuth multi-account`, `dev/prod build trap`, `dev server health`, `Q-PW-OAUTH-*` | `kzk-playwright-verification` |
-| **R11 — Freshness / fix-scope** | `stale 체크`, `freshness`, `문서 신선도`, `Gate 0.5`, `KZK_GATE05_SKIP`, `callsite 전수`, `Gate 4.5`, `KZK_GATE45_SKIP`, `callsite mismatch`, `fix-scope-cache` | `kzk-freshness-guard` + `kzk-fix-scope-expansion` |
-| **R12 — Tool retry / autonomous loop** | `rate limit`, `context 50%`, `multi-plan continuation`, `Edit fail`, `Write fail`, `File has not been read yet`, `String to replace not found`, `File has been modified since`, `run_in_background`, `Monitor`, `long-running` | `kzk-autonomous-loop` + `kzk-tool-retry` + `kzk-background-monitoring` |
+| **R1 — Large task** | `큰 작업`, `버그 전수조사`, `구현 검증`, `마무리 해줘`, `전수 검토`, `끝내줘`, `large task`, `subagent dispatch`, `3+ file edits`, `200+ LoC`, `5+ file read`, `read-heavy audit`, `spec verification`, `implementation audit`, `사용성 버그`, `사용성 회귀`, `qa scan`, `QA scan`, `여러 plan 으로 쪼개`, `플랜 쪼개`, `plan 쪼개`, `사이클 자율`, `버그들 모두`, `모두 잡아줘`, `리팩토링`, `refactor`, `정리해줘`, `cleanup`, `개선해줘`, `전반적으로`, `통째로`, `scope estimate` | `kzk-large-task-delegation` |
+| **R2 — Survey chain** | `codebase survey`, `코드베이스 탐색`, `deep explore`, `survey first`, `before planning`, `구현 확인`, `spec vs implementation`, `spec 체크`, `스펙 체크`, `하나하나 확인`, `ralph로 체크`, `상세하게 봐줘`, `상세하게 봐달라`, `상세히 봐줘`, `상세히 봐달라`, `상세하게 분석`, `detailed analysis` | `kzk-codebase-survey` + `kzk-large-task-delegation` (chain) |
+| **R3 — Survey simple** | `코드 서베이`, `코드서베이`, `서베이 해줘`, `서베이해줘`, `code survey`, `코드베이스 서베이`, `코드 survey` | `kzk-codebase-survey` (large-task-delegation 동반 X) |
+| **R4 — Fix start** | `fix 시작`, `버그 수정`, `에러 fix`, `regression fix`, `버그 수정 시작` | `kzk-codebase-survey` (fix-start hub — internally lazy-invokes fix-scope-expansion + freshness-guard) |
+| **R5 — Spec/plan** | `spec 잡자`, `spec 작성`, `spec draft`, `plan draft`, `plan 작성`, `design draft`, `major design`, `architecture review`, `codex review`, `codex consult`, `cross-verify`, `플랜 만들`, `plan 만들`, `여러 plan`, `플랜 여러개`, `메타 plan`, `meta plan`, `spec 만들` | `kzk-spec-and-review` |
+| **R6 — Autonomous mode** | `ralph로 돌려`, `ralph로 체크`, `ralph로 확인`, `자는 동안 진행`, `실행해놔야 queue 보지`, `끝까지 끝내줘`, `autonomous mode`, `자율실행`, `자율 실행`, `자율로 돌려`, `kzk 자율실행`, `kzk 자율 실행` | `kzk-autonomous-boundary` + `kzk-large-task-delegation` + `kzk-autonomous-loop` (3-set) |
+| **R7 — Self-improvement** | `harness 개선 루프`, `스킬 개선해줘`, `harness loop`, `자가개선`, `자가개선 루프`, `재발 방지`, `메타 갭` | `kzk-spec-and-review` + `kzk-large-task-delegation` + `kzk-pre-commit-gate` + `kzk-autonomous-loop` (4-set) |
+| **R8 — TDD discipline** | `tdd`, `TDD`, `test first`, `테스트 먼저`, `테스트부터`, `failing test`, `red-green`, `테스트 추가`, `테스트 추가해줘`, `test 추가`, `coverage 추가` | `kzk-test-coverage` |
+| **R9 — Brainstorm mode** | `어떻게 하면`, `방법 찾자`, `아이디어`, `설계하자`, `브레인스토밍`, `고민해`, `어떤 방향`, `how should we`, `brainstorm`, `let's design` | `kzk-spec-and-review` (Step -1 brainstorming 자동 호출) |
+
+Beyond the 9 RULES above, Claude Code also discovers skills via each `SKILL.md` frontmatter `description` field — phrases like `commit`, `merge`, `Playwright`, `AWS`, `freshness` will surface the corresponding skill via that softer discovery path (no system-reminder injection, but the skill loads when its description matches the conversation). This is why the §6 skill cards list a broader trigger set than the 9 RULES — the chips reflect each skill's `description` triggers, not the keyword-detector's hardcoded list.
 
 (추가 phrase 는 각 skill 본문의 `## Triggers` 섹션 참조 — description Top triggers 는 시스템 리마인더 노출용 부분 집합.)
 
@@ -141,7 +142,7 @@ Also installed: `harness-share.md` — a portable workflow guide covering the 10
 #### 2. 다중 버그 / 사용성 회귀 sweep (3+ 파일 또는 모호한 증상)
 
 - **좋은 prompt**: `"<영역> 사용성 버그 모두 잡아줘"`, `"버그 전수조사 해줘"`, `"플랜 여러개로 쪼개고 사이클 자율로 돌면서 모두 개선"`
-- **자동 로드**: `kzk-codebase-survey` + `kzk-large-task-delegation` (chain rule).
+- **자동 로드**: `kzk-codebase-survey` + `kzk-large-task-delegation` (R2 chain rule — via keyword-detector forced injection).
 - **메인 역할**: 5+ 파일 직접 read **금지**. EXPLORER subagent (`oh-my-claudecode:explore`) 위임 → 결과 합성 → 메타 plan → executor sonnet 위임 cycle 반복. 메인은 orchestrate + verify + commit 만.
 - **자율 모드 결합**: 발화 끝에 `"... 자율로 돌려"` / `"끝까지 끝내줘"` 추가 → `kzk-autonomous-boundary` 도 발동, 시작 전 branch 3-슬롯 contract 확인 강제.
 
@@ -181,14 +182,14 @@ Also installed: `harness-share.md` — a portable workflow guide covering the 10
 #### 7. 구현 검증 / spec audit (read-only)
 
 - **좋은 prompt**: `"<spec file> 제대로 구현됐나 ralph로 체크"`, `"구현 검증해줘"`, `"하나하나 확인"`, `"spec vs implementation 매칭 확인"`
-- **자동 로드**: R2 chain — `kzk-codebase-survey` + `kzk-large-task-delegation`
+- **자동 로드**: R2 chain (keyword-detector forced) — `kzk-codebase-survey` + `kzk-large-task-delegation`
 - **메인 역할**: 절대 직접 read X. EXPLORER subagent 위임 (`oh-my-claudecode:explore`, `model: 'sonnet'` 깊은 read / `'haiku'` 타겟 lookup). CRG MCP / CLI 우선, grep fallback.
 - **출력**: `docs/harness/surveys/YYYY-MM-DD-<topic>-verification.md` (verdict file)
 
 #### 8. 자기개선 (harness 룰 변경 / 메타 갭 닫기)
 
 - **좋은 prompt**: `"자가개선 루프 돌려보자"`, `"harness 개선 루프"`, `"재발 방지"`, `"메타 갭 닫자"`
-- **자동 로드**: R5 4-set 메타 스택 (`kzk-spec-and-review` + `kzk-large-task-delegation` + `kzk-pre-commit-gate` + `kzk-autonomous-loop`)
+- **자동 로드**: R7 4-set 메타 스택 (keyword-detector forced) — `kzk-spec-and-review` + `kzk-large-task-delegation` + `kzk-pre-commit-gate` + `kzk-autonomous-loop`
 - **메인 역할**: spec phase (필요 시 codex skip 명시 + 사유) → executor sonnet/haiku dispatch → 메인 검증 + atomic commit. **자기 자신에게 룰 적용 의무** — 메인이 직접 large-task 실행하면 그 자체가 메타 갭 (Session-28 lesson).
 
 #### 9. 자율 모드 진입 (장시간 / 사용자 부재)
@@ -264,9 +265,9 @@ Also installed: `harness-share.md` — a portable workflow guide covering the 10
 
 - `"<X> 만들어줘"` (단순 신기능) — 의도된 동작 (단순 작업은 메인 직접)
 - `"성능 개선"` / `"perf"` — performance audit trigger 없음 (별도 cycle 후보)
-- `"보안 감사"` / `"security review"` — `kzk-production-access` 가 부분 cover, audit 자체 trigger 없음
+- `"보안 감사"` / `"security review"` — `kzk-production-access` 가 부분 cover (Claude Code description matching), audit 자체 keyword-detector RULE 없음
 
-(닫힌 갭: Cycle 30 — `"테스트 추가"` / `"TDD"` / `"테스트 먼저"` → R6 `kzk-test-coverage`. Cycle 50+ — `"상세하게 봐줘"` / `"상세히 봐줘"` / `"detailed analysis"` → R2 `kzk-codebase-survey`. Cycle 54 — `context 50%` compact 인자 의무 / CRG mandatory / pre-dispatch survey rule → R2/R4/R12 coverage.)
+(닫힌 갭: Cycle 30 — `"테스트 추가"` / `"TDD"` / `"테스트 먼저"` → R8 `kzk-test-coverage`. Cycle 50+ — `"상세하게 봐줘"` / `"상세히 봐줘"` / `"detailed analysis"` → R2 `kzk-codebase-survey`. Cycle 54 — `context 50%` compact 인자 의무 / CRG mandatory / pre-dispatch survey rule → R2/R6 coverage. `"commit"`, `"merge"`, `"AWS"`, `"Playwright"`, `"freshness"` 등 — keyword-detector RULE 없음, Claude Code description matching 으로만 커버.)
 
 위 갭 닫고 싶으면 `"자가개선 루프"` 호출 → `install/hooks/keyword-detector.mjs` RULES 확장 cycle.
 

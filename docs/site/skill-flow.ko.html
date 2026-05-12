@@ -279,7 +279,7 @@
     <h4>좋은 prompt</h4>
     <p><code class="chip k">사용성 버그 모두 잡아줘</code> &nbsp; <code class="chip k">버그 전수조사 해줘</code> &nbsp; <code class="chip k">플랜 여러개로 쪼개고 사이클 자율로 돌면서 모두 개선</code></p>
     <h4>자동 로드</h4>
-    <p><a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> (R2 chain rule)</p>
+    <p><a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> (R1 large-task: <code>버그 전수조사</code>/<code>사용성 버그</code>; R2 survey-chain: <code>상세하게 봐줘</code>/<code>구현 확인</code> 등 — 두 RULE 모두 이 스킬 쌍을 로드)</p>
     <h4>메인 역할</h4>
     <p>5+ 파일 직접 read <strong>금지</strong>. EXPLORER subagent (<code>oh-my-claudecode:explore</code>) 위임 → 결과 합성 → 메타 plan → executor sonnet 위임 cycle 반복. 메인은 orchestrate + verify + commit 만.</p>
     <h4>피하기</h4>
@@ -342,7 +342,7 @@
     <h4>좋은 prompt</h4>
     <p><code class="chip k">ralph로 체크</code> &nbsp; <code class="chip k">구현 검증해줘</code> &nbsp; <code class="chip k">하나하나 확인</code> &nbsp; <code class="chip k">spec vs implementation 매칭 확인</code></p>
     <h4>자동 로드</h4>
-    <p>R2 chain: <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a></p>
+    <p>R2 survey-chain (keyword-detector forced): <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a></p>
     <h4>메인 역할</h4>
     <p>절대 직접 read 금지. EXPLORER subagent 위임 (<code>oh-my-claudecode:explore</code>, <code>model: 'sonnet'</code> 깊은 read / <code>'haiku'</code> 타겟 lookup). CRG MCP / CLI 우선, grep fallback. 출력: <span class="path">docs/harness/surveys/YYYY-MM-DD-&lt;topic&gt;-verification.md</span>.</p>
     <h4>피하기</h4>
@@ -354,7 +354,7 @@
     <h4>좋은 prompt</h4>
     <p><code class="chip k">자가개선 루프 돌려보자</code> &nbsp; <code class="chip k">harness 개선 루프</code> &nbsp; <code class="chip k">재발 방지</code> &nbsp; <code class="chip k">메타 갭 닫자</code></p>
     <h4>자동 로드</h4>
-    <p>R5 4-set 메타 스택: <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> + <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> + <a href="#s-autonomous-loop"><span class="chip">kzk-autonomous-loop</span></a></p>
+    <p>R7 4-set 메타 스택 (keyword-detector forced): <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> + <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> + <a href="#s-autonomous-loop"><span class="chip">kzk-autonomous-loop</span></a></p>
     <h4>메인 역할</h4>
     <p>spec phase (codex skip 시 명시 + 사유 필수) → executor sonnet/haiku dispatch → 메인 검증 + atomic commit. <strong>자기 자신에게 룰 적용 의무</strong> — 메인이 직접 large-task 실행하면 그 자체가 메타 갭 (Session-28 lesson).</p>
     <h4>피하기</h4>
@@ -1320,11 +1320,11 @@ flowchart TD
 
   <div class="card">
     <div class="head"><span class="name">keyword-detector.mjs</span><span class="badge hook">hook</span></div>
-    <div class="blurb">프롬프트 안의 kzk-* 트리거 키워드 감지 → 관련 스킬을 로드하는 system-reminder 주입. 자율-mode 키워드가 발화하면 <code>autonomous-active</code> marker 파일도 기록.</div>
+    <div class="blurb">프롬프트 안의 트리거 키워드 감지 → 관련 스킬 체인을 로드하는 system-reminder 강제 주입. <strong>9 RULES</strong> 구현 (하드코딩 phrase 목록 — forced injection). 자율-mode 키워드 발화 시 <code>autonomous-active</code> marker 파일도 기록. 주의: 18개 스킬 전부가 keyword-detector RULE 을 갖는 것은 아님 — <code>kzk-pre-commit-gate</code>, <code>kzk-pre-merge-sync</code>, <code>kzk-playwright-verification</code>, <code>kzk-production-access</code>, <code>kzk-freshness-guard</code>, <code>kzk-fix-scope-expansion</code>, <code>kzk-tool-retry</code>, <code>kzk-background-monitoring</code>, <code>kzk-regression-memory</code> 는 이 훅이 아닌 Claude Code description-field 매칭으로 로드됨.</div>
     <h4>이벤트</h4><p>UserPromptSubmit</p>
     <h4>주요 세부사항</h4>
     <ul>
-      <li>Matches all 18 skill trigger keyword sets</li>
+      <li><strong>9 RULES</strong>: R1 Large-task, R2 Survey-chain, R3 Survey-simple, R4 Fix-start, R5 Spec/plan, R6 Autonomous-mode (3-set), R7 Self-improvement (4-set), R8 TDD, R9 Brainstorm-mode</li>
       <li>Autonomous marker written to <span class="path">~/.cache/kzk-harness/autonomous-active</span></li>
       <li>Scope: global (all projects)</li>
     </ul>

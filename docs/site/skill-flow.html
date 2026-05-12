@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>kzk-harness — Skill &amp; Workflow Map</title>
-<!-- KZK_SKILL_FLOW_FINGERPRINT: a10d96113d93ea21 -->
+<!-- KZK_SKILL_FLOW_FINGERPRINT: ceed3af220972e84 -->
 <!--
   Single-page reference for the 18 kzk-* skills, their workflow entry points,
   and the hook infrastructure that enforces discipline at runtime.
@@ -281,7 +281,7 @@
     <h4>Good prompts</h4>
     <p><code class="chip k">사용성 버그 모두 잡아줘</code> &nbsp; <code class="chip k">버그 전수조사 해줘</code> &nbsp; <code class="chip k">플랜 여러개로 쪼개고 사이클 자율로 돌면서 모두 개선</code></p>
     <h4>Auto-loaded skills</h4>
-    <p><a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> (R2 chain rule)</p>
+    <p><a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> (R1 large-task fires for <code>버그 전수조사</code>/<code>사용성 버그</code>; R2 survey-chain fires for <code>상세하게 봐줘</code>/<code>구현 확인</code> etc. — both routes load this skill pair)</p>
     <h4>Main's role</h4>
     <p>Direct read of 5+ files is <strong>forbidden</strong>. Delegate to EXPLORER subagent (<code>oh-my-claudecode:explore</code>) → synthesise results → build meta-plan → dispatch executor sonnet per cycle. Main orchestrates, verifies, and commits only.</p>
     <h4>Avoid</h4>
@@ -344,7 +344,7 @@
     <h4>Good prompts</h4>
     <p><code class="chip k">ralph로 체크</code> &nbsp; <code class="chip k">구현 검증해줘</code> &nbsp; <code class="chip k">하나하나 확인</code> &nbsp; <code class="chip k">spec vs implementation 매칭 확인</code></p>
     <h4>Auto-loaded skills</h4>
-    <p>R2 chain: <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a></p>
+    <p>R2 survey-chain (keyword-detector forced): <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a></p>
     <h4>Main's role</h4>
     <p>Never read directly. Delegate to EXPLORER subagent (<code>oh-my-claudecode:explore</code>, <code>model: 'sonnet'</code> for deep reads / <code>'haiku'</code> for targeted lookups). CRG MCP / CLI first, grep fallback. Output: <span class="path">docs/harness/surveys/YYYY-MM-DD-&lt;topic&gt;-verification.md</span>.</p>
     <h4>Avoid</h4>
@@ -356,7 +356,7 @@
     <h4>Good prompts</h4>
     <p><code class="chip k">자가개선 루프 돌려보자</code> &nbsp; <code class="chip k">harness 개선 루프</code> &nbsp; <code class="chip k">재발 방지</code> &nbsp; <code class="chip k">메타 갭 닫자</code></p>
     <h4>Auto-loaded skills</h4>
-    <p>R5 4-skill meta-stack: <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> + <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> + <a href="#s-autonomous-loop"><span class="chip">kzk-autonomous-loop</span></a></p>
+    <p>R7 4-skill meta-stack (keyword-detector forced): <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a> + <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a> + <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> + <a href="#s-autonomous-loop"><span class="chip">kzk-autonomous-loop</span></a></p>
     <h4>Main's role</h4>
     <p>Spec phase (codex skip only if explicitly stated with reason) → executor sonnet/haiku dispatch → main verifies + atomic commit. <strong>Apply own rules to self</strong> — main executing a large task directly is itself a meta-gap (Session-28 lesson).</p>
     <h4>Avoid</h4>
@@ -1321,11 +1321,11 @@ flowchart TD
 
   <div class="card">
     <div class="head"><span class="name">keyword-detector.mjs</span><span class="badge hook">hook</span></div>
-    <div class="blurb">Detects kzk-* trigger keywords in every incoming user prompt and injects a system-reminder that loads the relevant skill. Also writes the <code>autonomous-active</code> marker file when autonomous-mode keywords fire.</div>
+    <div class="blurb">Detects trigger keywords in every incoming user prompt and injects a system-reminder that loads the relevant skill chain. Implements <strong>9 RULES</strong> (hardcoded phrase lists — forced injection). Also writes the <code>autonomous-active</code> marker file when autonomous-mode keywords fire. Note: not all 18 skills have a keyword-detector RULE — skills like <code>kzk-pre-commit-gate</code>, <code>kzk-pre-merge-sync</code>, <code>kzk-playwright-verification</code>, <code>kzk-production-access</code>, <code>kzk-freshness-guard</code>, <code>kzk-fix-scope-expansion</code>, <code>kzk-tool-retry</code>, <code>kzk-background-monitoring</code>, <code>kzk-regression-memory</code> load via Claude Code's description-field matching, not via this hook.</div>
     <h4>Event</h4><p>UserPromptSubmit</p>
     <h4>Key details</h4>
     <ul>
-      <li>Matches all 18 skill trigger keyword sets</li>
+      <li><strong>9 RULES</strong>: R1 Large-task, R2 Survey-chain, R3 Survey-simple, R4 Fix-start, R5 Spec/plan, R6 Autonomous-mode (3-set), R7 Self-improvement (4-set), R8 TDD, R9 Brainstorm-mode</li>
       <li>Autonomous marker written to <span class="path">~/.cache/kzk-harness/autonomous-active</span></li>
       <li>Scope: global (all projects)</li>
     </ul>

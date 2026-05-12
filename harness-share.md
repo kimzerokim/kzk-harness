@@ -120,7 +120,7 @@ autonomous loop 이 commit 한 코드가 이후 잘못된 것으로 판명 된 �
 
 ---
 
-## 3. Pre-commit Gate (6 단계)
+## 3. Pre-commit Gate (10 단계)
 
 매 commit 직전 순차 통과. 하나라도 실패 시 commit 금지.
 
@@ -229,7 +229,7 @@ source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `doc
 - Gate 4 N/A
 - autonomous 모드 = 사용자 확인 없이 commit 허용. 평소 = 사용자 확인
 
-코드 변경 1줄이라도 섞이면 full 6-gate 수행 (AGENTS.md hierarchy 가 없는 레포는 5-gate).
+코드 변경 1줄이라도 섞이면 full 10-gate 수행 (AGENTS.md hierarchy 가 없는 레포는 Gate 0 N/A, 9-gate).
 
 **AGENTS.md / README.md 분류 기준**: 이 파일들은 `*.md` glob 에 해당하지만 상황에 따라 다름.
 - 단독 수정 (파일 구조 변경 없는 routine 갱신) → doc-only 적용 O. Gate 0 트리거 안 됨 (source file add/delete 없음).
@@ -989,7 +989,7 @@ Run a self-directed improvement cycle on a web project until the user explicitly
 1a. Tool runner (`oh-my-claudecode:executor`, sonnet) runs tests + Playwright screenshots → saves raw output to `.web-loop/cycle-N-report.md`.
 1b. Evaluator (`oh-my-claudecode:critic`, opus) reads report + built-in checklist → outputs P0 / P1 / P2 issue list.
 2. Main picks top issue NOT recorded as "Cycle N: completed/skipped" for the current cycle (cycle-scoped, not session-scoped); ambiguous decisions → `docs/harness/user-queue.md` entry with tentative default, never stop.
-3a. P0: executor (sonnet) implements directly via TDD → kzk-pre-commit-gate (6 gates: 0, 1, 1.5, 2, 3, 4 if AGENTS.md hierarchy present; 5 gates (1, 1.5, 2, 3, 4) otherwise) → commit.
+3a. P0: executor (sonnet) implements directly via TDD → kzk-pre-commit-gate (10 gates: 0, 0.5, 1, 1.5, 1.6, 2, 3, 4, 4.5, 5 if AGENTS.md hierarchy present; Gate 0 N/A without hierarchy) → commit.
 3b. P1/P2: kzk-codebase-survey (EXPLORER) → survey report → writing-plans/planner (opus) → critic (opus) reviews → executor (sonnet) implements → commit.
 4. Update `harness-flow-progress.md` one-liner → back to step 1a.
 
@@ -1224,7 +1224,8 @@ spec-and-review 진입 시 Step 0 survey 완료 후 `superpowers:brainstorming` 
 **Skip conditions** — EITHER (A) or (B) holds:
 - **(A) Explicit-skip command**: 사용자 명시 "brainstorming 스킵" / "skip brainstorming" / "skip Step -1" — standalone, no other condition needed.
 - **(B) Trivial-change bundle**: ALL 3 hold: (1) trivial change scope (typo/single-line/sub-5-LoC), (2) 사용자가 모든 변경 내용 명시, (3) 신규 capability 추가 없음.
-Full rule + evidence contract: `kzk-spec-and-review §Step -1`.
+
+**Skip evidence contract (mandatory when invoking (B))**: When skipping under condition (B), main MUST record in the commit message footer OR the cycle entry in `docs/harness/user-queue.md`: `Brainstorm skip evidence: user prompt quote = "<≤2-sentence quote>"; files = <list>; sections = <list>`. Absence of evidence → skip is invalid, brainstorming MUST run. Full rule body: `kzk-spec-and-review §Step -1`.
 
 **Mandatory invoke triggers** (any one forces Step -1):
 - 새 기능 / 새 entry / 새 module 추가 (new capability)
