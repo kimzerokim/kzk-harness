@@ -1,6 +1,6 @@
 ---
 name: kzk-tool-retry
-version: 1.7.0
+version: 1.8.0
 description: "Edit/Write/Bash auto-retry discipline. Single automatic retry on first failure (no user prompt); double-failure → Q-TOOL queue entry. Pre-emptive Read on 7 read-tracker invalidator events. Triggers: 'Edit fail', 'File has not been read yet', 'String to replace not found'. References harness-share.md §27."
 ---
 
@@ -102,22 +102,38 @@ When the auto-retry also fails, append a `Q-TOOL-<FILE>` entry to `docs/harness/
 
 Continue to the next task without waiting for user input.
 
-## Forcing mechanism (PostToolUse hook — Cycle 50)
+## Forcing mechanism (PostToolUse hook — Cycle 50, hardened v1.8.0)
 
-Doc-only enforcement of the auto-retry rule has historically failed when the agent doesn't have this skill loaded at the moment of Edit/Write failure (regression observed 2026-05-08, external-project session). Cycle 50 added `install/hooks/edit-failure-retry.mjs` which fires on every Edit/Write tool call. On failure detection (any of: `is_error`, "String to replace not found", "File has not been read yet", "File has been modified since", "Error editing file", "File does not exist"), the hook emits a `PostToolUse` system-reminder forcing the agent to retry within the same turn. Agent cannot ignore — system-reminder is injected into the next-turn context.
+Doc-only enforcement of the auto-retry rule has historically failed when the agent doesn't have this skill loaded at the moment of Edit/Write failure (regression observed 2026-05-08, external-project session). Cycle 50 added `install/hooks/edit-failure-retry.mjs` which fires on every Edit/Write tool call.
 
-Canonical error patterns covered:
-- `String to replace not found` → re-read file first, then Edit again
-- `File has not been read yet` → Read first, then Edit
-- `File has been modified since read` → Re-read, then Edit (file changed)
-- `Error editing file` (generic) → re-read first as defensive default
-- `File does not exist` → check the path; if typo, correct path; if intentional new file, use Write tool
+### v1.8.0 hardening (this skill version)
 
-Skip conditions:
+Previous (v1.5.0–v1.7.0) hook emitted a soft `hookSpecificOutput.additionalContext` system-reminder — advisory only. The main agent sometimes treated it as guidance and stopped politely or retried with the SAME old_string (which fails identically). v1.8.0 upgrades the enforcement:
+
+1. **`decision: "block"` on 1st failure** — top-level block decision in the hook's stdout. The main agent is blocked from continuing until it actually retries. Replaces the soft `additionalContext` advisory.
+2. **Error-class-specific reason text** — the hook classifies the failure into one of six classes and emits a tailored remediation:
+
+   | Error class | Reason text emphasises |
+   |---|---|
+   | `not-read` (File has not been read yet) | Call `Read("<path>")` then Edit |
+   | `modified-since` (File has been modified since read) | Re-Read 의무 (외부 변경) — old_string 매치 재확인 |
+   | `string-not-found` (String to replace not found) | Re-Read + 새 file 에서 정확한 substring 찾기 + 동일 old_string 단순 재시도 금지 |
+   | `no-such-file` (File does not exist) | 경로 확인 (ls/find), Write 사용 가능성 검토 |
+   | `generic-edit` (Error editing file) | Defensive Re-Read 후 동일 Edit |
+   | `other` (unclassified) | Tool response 분석 후 분기 |
+
+3. **Per-path retry counter** — cache at `~/.cache/kzk-harness/edit-retry-state.json` tracks consecutive failures per file path within a 60-second window. A SUCCESS on the same path resets the counter immediately.
+4. **2nd consecutive failure within window → auto Q-TOOL append + pass-through** — hook automatically appends `Q-TOOL-EDIT-RETRY-EXHAUSTED` to `docs/harness/user-queue.md` with: file path, error class, response excerpt, retry count. Then emits `continue:true` so main proceeds to the next task (no infinite block loop).
+
+### Skip conditions
+
 - `OMC_SKIP_HOOKS=edit-failure-retry` env → bypass (debug only)
 - Hook fail-open on malformed payload — never blocks; agent retains full control if hook breaks
+- `KZK_TEST_STATE_DIR=<dir>` + `NODE_ENV=test` → isolates the retry cache to a test directory (for unit tests, not production use)
 
-After 2 consecutive failures on same file: append Q-TOOL entry to `docs/harness/user-queue.md` with: file path, error pattern, retry attempts, next-task continuation marker. Then proceed to next task. Do NOT halt the entire run.
+### Verification
+
+`node --test install/test/edit-failure-retry.test.mjs` — 10 cases including: error-class-specific reasons (not-read / modified-since / string-not-found), 2nd-failure pass-through with Q-TOOL append, success-after-failure counter reset.
 
 ## Interaction with other kzk-*
 

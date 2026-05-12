@@ -28,3 +28,11 @@ _mattpocock/skills LOW cluster (cycle 47 C1 심사 결과 영구 skip):_
 - [ ] 2026-05-07 — setup-pre-commit (mattpocock LOW) — Node.js/Husky only; conflicts with kzk-pre-commit-gate multi-gate discipline
 - [ ] 2026-05-07 — edit-article (mattpocock LOW) — personal document editing tool; not applicable to kzk-harness workflow
 - [ ] 2026-05-07 — obsidian-vault (mattpocock LOW) — hardcoded vault path (/mnt/d/Obsidian Vault/); not portable
+
+
+## Pending — Q-TOOL-EDIT-RETRY-EXHAUSTED (2026-05-12T09:14:12.768Z)
+- Path: `/tmp/test-t6.txt`
+- Error class: generic-edit
+- Tool response (truncated): Error editing file
+- Retry count: 2 consecutive failures within 60s window.
+- Tentative default: skip this file, continue with next task.
