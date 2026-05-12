@@ -756,7 +756,7 @@ Re-prevention:
 
 ## Session-28 lesson (skill-load chain)
 
-(2026-05-04, gridless grid bug bash): user said "이외에 스프레드 시트 기능 버그들 모두 개선해줘. 플랜 여러개로 쪼개고, 사이클 자율로 돌면서 사용성 버그 모두 잡아줘." Main loaded `kzk-codebase-survey` + `kzk-autonomous-boundary` correctly, dispatched the codebase survey to `oh-my-claudecode:explore` correctly — then proceeded to read 11+ files, edit 4 source files, run Playwright + docker rebuild **all directly in main**, never loading `kzk-large-task-delegation` and never dispatching an executor subagent for the actual fix. Token bloat + uncatchable regressions risk back.
+(2026-05-04, external-project grid bug bash): user said "이외에 스프레드 시트 기능 버그들 모두 개선해줘. 플랜 여러개로 쪼개고, 사이클 자율로 돌면서 사용성 버그 모두 잡아줘." Main loaded `kzk-codebase-survey` + `kzk-autonomous-boundary` correctly, dispatched the codebase survey to `oh-my-claudecode:explore` correctly — then proceeded to read 11+ files, edit 4 source files, run Playwright + docker rebuild **all directly in main**, never loading `kzk-large-task-delegation` and never dispatching an executor subagent for the actual fix. Token bloat + uncatchable regressions risk back.
 
 Root cause: trigger keyword gap — '사용성 버그', '여러 plan 으로 쪼개', '사이클 자율' did not match this skill's description. Fixed in v1.2.0 (description trigger expansion) + `install/hooks/keyword-detector.mjs` activation (Cycle 28).
 

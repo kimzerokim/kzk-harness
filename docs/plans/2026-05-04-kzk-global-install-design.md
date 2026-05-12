@@ -46,7 +46,7 @@ related:
 
 ### 1.4 Why this matters now
 
-- 사용자는 다중 레포 워크플로우. kzk-harness 의 자가개선 레포 외부 (예: enuma 프로덕션 레포) 에서 spec 검증·버그 전수조사 작업이 자주 일어남.
+- 사용자는 다중 레포 워크플로우. kzk-harness 의 자가개선 레포 외부 (예: 외부 프로덕션 레포) 에서 spec 검증·버그 전수조사 작업이 자주 일어남.
 - 그런 작업이 메인 컨텍스트가 직접 opus 로 광범위 read 하는 패턴으로 새는 이유가 모두 (b) — 설치 부재 — 에서 옴.
 - 메타 갭 (kzk-harness 자가개선 루프 자체에서 자체 스킬을 안 부른 패턴) 은 Cycle 22 fix 로 일부만 메움. spec 단계에서 self-trigger 가이드 정식 편입 필요 (Section 10).
 

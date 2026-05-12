@@ -104,7 +104,7 @@ Continue to the next task without waiting for user input.
 
 ## Forcing mechanism (PostToolUse hook — Cycle 50)
 
-Doc-only enforcement of the auto-retry rule has historically failed when the agent doesn't have this skill loaded at the moment of Edit/Write failure (regression observed 2026-05-08, gridless session). Cycle 50 added `install/hooks/edit-failure-retry.mjs` which fires on every Edit/Write tool call. On failure detection (any of: `is_error`, "String to replace not found", "File has not been read yet", "File has been modified since", "Error editing file", "File does not exist"), the hook emits a `PostToolUse` system-reminder forcing the agent to retry within the same turn. Agent cannot ignore — system-reminder is injected into the next-turn context.
+Doc-only enforcement of the auto-retry rule has historically failed when the agent doesn't have this skill loaded at the moment of Edit/Write failure (regression observed 2026-05-08, external-project session). Cycle 50 added `install/hooks/edit-failure-retry.mjs` which fires on every Edit/Write tool call. On failure detection (any of: `is_error`, "String to replace not found", "File has not been read yet", "File has been modified since", "Error editing file", "File does not exist"), the hook emits a `PostToolUse` system-reminder forcing the agent to retry within the same turn. Agent cannot ignore — system-reminder is injected into the next-turn context.
 
 Canonical error patterns covered:
 - `String to replace not found` → re-read file first, then Edit again

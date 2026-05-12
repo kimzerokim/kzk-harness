@@ -114,7 +114,7 @@ Main = orchestrator (categorize, decide). Subagent = executor (apply edits to md
 
 **Why sonnet (not haiku writer):** post-critic spec revision requires understanding technical context from the critic feedback — lock semantics, cascade logic, API contracts. Haiku lacks the depth for precise technical edits. Writer (haiku) is appropriate for standalone documentation, not spec revision.
 
-**Anti-pattern (gridless cycle 7 incident):** main directly applied 7+ Edit operations to a spec file after critic review. Correct flow: main categorizes → builds edit list → dispatches single executor with all edits bundled.
+**Anti-pattern (external-project cycle 7 incident):** main directly applied 7+ Edit operations to a spec file after critic review. Correct flow: main categorizes → builds edit list → dispatches single executor with all edits bundled.
 
 ## When mandatory
 

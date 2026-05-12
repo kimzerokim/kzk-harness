@@ -1081,7 +1081,7 @@ OS-level hook 으로 "Read 없이 Edit" 차단. 본문: `kzk-tool-retry` §PreTo
 
 ## 28. Skill-load chain (메타 갭 방지)
 
-Cycle 28 학습: `kzk-codebase-survey` 가 트리거됐는데 `kzk-large-task-delegation` 이 같이 로드되지 않으면, 메인이 survey 결과만 받고 그 후 read-heavy audit + 직접 edit 을 수행하는 패턴이 발생. (Session-28 worked example: gridless 그리드 버그 batch fix — 메인이 11+ 파일 직접 read + 4 source 파일 직접 edit + Playwright + docker rebuild 전부 메인에서 실행.)
+Cycle 28 학습: `kzk-codebase-survey` 가 트리거됐는데 `kzk-large-task-delegation` 이 같이 로드되지 않으면, 메인이 survey 결과만 받고 그 후 read-heavy audit + 직접 edit 을 수행하는 패턴이 발생. (Session-28 worked example: external-project 그리드 버그 batch fix — 메인이 11+ 파일 직접 read + 4 source 파일 직접 edit + Playwright + docker rebuild 전부 메인에서 실행.)
 
 룰:
 
