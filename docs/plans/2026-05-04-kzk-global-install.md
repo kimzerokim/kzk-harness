@@ -3,7 +3,7 @@ plan: kzk-global-install
 status: frozen
 authors: planner-opus
 date: 2026-05-04
-spec: docs/superpowers/specs/2026-05-04-kzk-global-install-design.md
+spec: docs/plans/2026-05-04-kzk-global-install-design.md
 verdict: docs/research/codex-reviews/kzk-global-install-critic-review.md
 related_branch: feature/kzk-global-install
 ---
@@ -12,7 +12,7 @@ related_branch: feature/kzk-global-install
 
 ## 1. Background
 
-This plan implements the frozen design at `docs/superpowers/specs/2026-05-04-kzk-global-install-design.md` (revision tag `codex-timeout-critic-opus-fallback-applied`, frozen 2026-05-04). Critic-opus review at `docs/research/codex-reviews/kzk-global-install-critic-review.md` was reconciled into the spec — every must-fix #1/#2/#3 + nice-to-have #1/#2/#3 surfaced by critic is already present in the spec text we are implementing here:
+This plan implements the frozen design at `docs/plans/2026-05-04-kzk-global-install-design.md` (revision tag `codex-timeout-critic-opus-fallback-applied`, frozen 2026-05-04). Critic-opus review at `docs/research/codex-reviews/kzk-global-install-critic-review.md` was reconciled into the spec — every must-fix #1/#2/#3 + nice-to-have #1/#2/#3 surfaced by critic is already present in the spec text we are implementing here:
 
 - §6.1 umbrella → dotfile (`~/.claude/skills/.kzk-harness-shared/`) so Claude scanner ignores it (must-fix #1)
 - AC8 precedence probe added (must-fix #2)
@@ -65,7 +65,7 @@ A note on AGENTS.md row text — required by `kzk-pre-commit-gate` Gate 0 if and
 ```bash
 #!/usr/bin/env bash
 # kzk-harness global install entrypoint.
-# Authoritative spec: docs/superpowers/specs/2026-05-04-kzk-global-install-design.md
+# Authoritative spec: docs/plans/2026-05-04-kzk-global-install-design.md
 # Authoritative plan: docs/plans/2026-05-04-kzk-global-install.md
 #
 # Flags:
@@ -763,7 +763,7 @@ exit $RESULT
 1. Run `kzk-pre-merge-sync --dry-run` (or its skill equivalent — invoke via `oh-my-claudecode:executor` model=sonnet with the skill's documented dry-run shape in `skills/kzk-pre-merge-sync/SKILL.md`).
 2. Inspect the proposed PR description. Assert it contains:
    - Each commit's gate-PASS footer (`Gate 0 SKIP / Gate 1 PASS / Gate 1.5 PASS / Gate 2 PASS / Gate 3 PASS / Gate 4 N/A`).
-   - A pointer to `docs/superpowers/specs/2026-05-04-kzk-global-install-design.md` and `docs/plans/2026-05-04-kzk-global-install.md`.
+   - A pointer to `docs/plans/2026-05-04-kzk-global-install-design.md` and `docs/plans/2026-05-04-kzk-global-install.md`.
    - A pointer to the AC8 precedence probe result (`docs/harness/surveys/2026-05-04-ac8-precedence-probe.md` if AC8 produced a saved report).
 3. Run `oh-my-claudecode:deepinit` (or skip if absent — graceful-degrade per `dependencies.md`) → check whether AGENTS.md is consistent with the feature branch tip. Document any drift in the report.
 4. Write `docs/harness/surveys/2026-05-04-kzk-global-install-pre-merge.md` with: (a) the PR-description preview, (b) any AGENTS.md drift, (c) any test failures from Tasks A–E that would block merge.

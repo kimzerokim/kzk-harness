@@ -588,7 +588,7 @@ exec
 // BEFORE it can read/edit files. Closes the meta-gap pattern where main loads
 // only kzk-codebase-survey for a multi-bug task and skips kzk-large-task-delegation.
 //
-// Authoritative spec: docs/superpowers/specs/2026-05-04-kzk-global-install-design.md §7.5
+// Authoritative spec: docs/plans/2026-05-04-kzk-global-install-design.md §7.5
 // Wired into ~/.claude/settings.json by `install-global.sh --enable-hooks` (N3 opt-in).
 
 const RULES = [

@@ -42,7 +42,7 @@ version: 1.0.0
 description: "Autonomous web page improvement loop — runs indefinitely, self-generates tasks via a fresh evaluator agent every cycle. Required triggers: 'web loop', '웹 루프', '12시간', '자율 개선', 'loop forever', '무한 개선'."
 ---
 
-> Authoritative source: repo `docs/superpowers/specs/2026-05-03-kzk-web-loop-design.md` + `harness-share.md §25`. On conflict, those win.
+> Authoritative source: repo `docs/plans/2026-05-03-kzk-web-loop-design.md` + `harness-share.md §25`. On conflict, those win.
 
 # kzk-web-loop
 
@@ -255,7 +255,7 @@ Append the following block at the very end of `harness-share.md` (after the exis
 
 ## 25. kzk-web-loop — Autonomous Web Improvement Loop
 
-Full spec: `docs/superpowers/specs/2026-05-03-kzk-web-loop-design.md`. Skill: `skills/kzk-web-loop/SKILL.md`.
+Full spec: `docs/plans/2026-05-03-kzk-web-loop-design.md`. Skill: `skills/kzk-web-loop/SKILL.md`.
 
 ### Purpose
 

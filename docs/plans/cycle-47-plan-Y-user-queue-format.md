@@ -3,7 +3,7 @@
 ## Frozen
 
 - Date: 2026-05-07
-- Spec: `docs/superpowers/specs/2026-05-07-cycle-47-b2-c1-queue-design.md` §5
+- Spec: `docs/plans/2026-05-07-cycle-47-b2-c1-queue-design.md` §5
 - Survey: `docs/harness/surveys/2026-05-07-cycle-47-b2-c1-queue-survey.md` Sub-scope Y (L196)
 - Depends on: Plan B2 (Q-FIX-PIVOT-FAIL producer originates there)
 - Execution order: B2 → **Y** → C1

@@ -8,7 +8,7 @@
 //
 // Also manages the autonomous-active marker file for autonomous-stop-guard.mjs (Cycle 52).
 //
-// Authoritative spec: docs/superpowers/specs/2026-05-04-kzk-global-install-design.md §7.5
+// Authoritative spec: docs/plans/2026-05-04-kzk-global-install-design.md §7.5
 // Wired into ~/.claude/settings.json by `install-global.sh --enable-hooks` (N3 opt-in).
 
 import fs from 'node:fs';

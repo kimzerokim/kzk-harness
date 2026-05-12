@@ -6,8 +6,8 @@ date: 2026-05-04
 reviewers: [codex, critic-opus]
 revision: codex-timeout-critic-opus-fallback-applied
 related:
-  - docs/superpowers/specs/2026-05-03-kzk-web-loop-design.md
-  - docs/superpowers/specs/2026-05-04-kzk-codebase-survey-design.md
+  - docs/plans/2026-05-03-kzk-web-loop-design.md
+  - docs/plans/2026-05-04-kzk-codebase-survey-design.md
 ---
 
 # kzk-harness Global Install Design

@@ -3,7 +3,7 @@
 ## Frozen
 
 - Date: 2026-05-07
-- Spec source: `docs/superpowers/specs/2026-05-07-cycle-47-b2-c1-queue-design.md` §4
+- Spec source: `docs/plans/2026-05-07-cycle-47-b2-c1-queue-design.md` §4
 - Survey source: `docs/harness/surveys/2026-05-07-cycle-47-b2-c1-queue-survey.md` Sub-scope C1
 - Upstream SKILL.md: `https://raw.githubusercontent.com/mattpocock/skills/main/skills/misc/git-guardrails-claude-code/SKILL.md` (95 lines, fetched 2026-05-07)
 - Sequencing: runs after Plan B2 and Plan Y (Y must complete AC-Y-1 first so NOT_USED entries land in correct section)
@@ -194,5 +194,5 @@ refactor: cycle 47 — Plan C1 git-guardrails-claude-code install
 - Hard-block: git push --force/push -f/reset --hard/clean -f/branch -D/checkout .
 - Normal git push (no --force) passes through — autonomous PR-flow unaffected
 - NOT_USED: 13 MEDIUM/LOW mattpocock skills recorded in user-queue.md (Plan Y)
-- Spec: docs/superpowers/specs/2026-05-07-cycle-47-b2-c1-queue-design.md §4
+- Spec: docs/plans/2026-05-07-cycle-47-b2-c1-queue-design.md §4
 ```

@@ -37,7 +37,7 @@ kzk-harness에 두 가지 기능 추가:
   ↓
 kzk-spec-and-review 진입
   ↓ Step -1: Skill("superpowers:brainstorming") 호출
-  ↓ brainstorming 완료 → design doc 경로 반환 (docs/superpowers/specs/YYYY-MM-DD-<topic>-design.md)
+  ↓ brainstorming 완료 → design doc 경로 반환 (docs/plans/YYYY-MM-DD-<topic>-design.md)
   ↓
 Step 0: codebase survey (기존, brainstorming design doc을 required reading에 포함)
 Step 1-3: 기존 flow

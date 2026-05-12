@@ -1,6 +1,6 @@
 # Implementation Plan: Brainstorm Flow + Freshness Guard
 
-> Spec: `docs/superpowers/specs/2026-05-05-brainstorm-flow-freshness-guard-design.md` (Frozen, codex rev1)
+> Spec: `docs/plans/2026-05-05-brainstorm-flow-freshness-guard-design.md` (Frozen, codex rev1)
 > Status: Frozen
 > Branch contract: main direct, push when done, no PR
 

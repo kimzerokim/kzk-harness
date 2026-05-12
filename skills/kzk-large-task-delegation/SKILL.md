@@ -1,6 +1,6 @@
 ---
 name: kzk-large-task-delegation
-version: 1.18.0
+version: 1.19.0
 description: "Large task delegation for 3+ file edits, 200+ LoC, 5+ file reads, or multi-stage workflows. Main = dispatch+review only. Routes to executor (sonnet), critic+verifier (opus). Triggers: '큰 작업', '버그 전수조사', '마무리 해줘', '사이클 자율', 'plan 쪼개', 'Stage 3', 'ralph로 돌려', '끝까지 끝내줘'. References harness-share.md §4."
 ---
 
@@ -81,6 +81,18 @@ For verification / audit scenarios (user says "스펙파일 체크해줘", "구�
 - The verdict file goes in `docs/harness/surveys/YYYY-MM-DD-<topic>-verification.md` (per `kzk-codebase-survey §Step 7` report path convention).
 
 This is the read-only counterpart to the implementation dispatch above — same delegation rule, different output (verdict instead of diff).
+
+### Pre-dispatch survey requirement (autonomous mode)
+
+When this skill is invoked inside autonomous mode AND scope estimate indicates multi-file / 5+ file read / 200+ LoC work:
+
+1. Check if a `kzk-codebase-survey` report path is already in the same-turn dispatch context.
+2. If not present → dispatch `kzk-codebase-survey` FIRST; halt this skill pending survey completion.
+3. After survey saves the report path → proceed to scope estimation + executor dispatch with the report path included as `Required reading:` in the executor prompt.
+
+**Halt entry**: `Q-SURVEY-MISSING` (full text: `kzk-autonomous-boundary §Pre-dispatch survey rule`). Append to `docs/harness/user-queue.md` if survey is absent and skipping would mean main reads 5+ files directly.
+
+**Rationale**: SoT = `kzk-autonomous-boundary §Pre-dispatch survey rule (autonomous mode)`. This subsection mirrors that rule from the delegation side so the dispatch flow naturally enforces it.
 
 ## Model routing (mandatory split for subagent dispatch)
 

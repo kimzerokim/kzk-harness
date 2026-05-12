@@ -3,7 +3,7 @@
 This directory contains the install, uninstall, and verification layer for kzk-harness. Its scripts manage the global `~/.claude/skills/` install, the CLAUDE.md routing block, and external dependency detection.
 
 Related specs:
-- `docs/superpowers/specs/2026-05-04-kzk-global-install-design.md` — frozen design
+- `docs/plans/2026-05-04-kzk-global-install-design.md` — frozen design
 - `docs/plans/2026-05-04-kzk-global-install.md` — implementation plan (Tasks A–G)
 
 ---

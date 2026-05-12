@@ -8,7 +8,7 @@
 
 **Tech Stack:** Markdown skill files. Verification via `grep`. No compilation. Branch: `feature/kzk-codebase-survey`.
 
-**Spec:** `docs/superpowers/specs/2026-05-04-kzk-codebase-survey-design.md`
+**Spec:** `docs/plans/2026-05-04-kzk-codebase-survey-design.md`
 
 ---
 
@@ -244,7 +244,7 @@ Add the following after the last line of harness-share.md (after the `kzk-autono
 
 ## 26. kzk-codebase-survey — Mandatory Deep Codebase Explorer
 
-Full spec: `docs/superpowers/specs/2026-05-04-kzk-codebase-survey-design.md`. Skill: `skills/kzk-codebase-survey/SKILL.md`.
+Full spec: `docs/plans/2026-05-04-kzk-codebase-survey-design.md`. Skill: `skills/kzk-codebase-survey/SKILL.md`.
 
 ### Purpose
 

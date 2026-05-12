@@ -371,7 +371,7 @@ agent summary 만 신뢰 X — implementation 차원 검증 의무.
 
 이 규칙은 도구 간 문서 난립 방지 + git 버전 관리 + 팀 공유 보장 목적.
 
-**Path consolidation note** (2026-05-12): superpowers brainstorming 의 design doc 출력은 historically `docs/superpowers/specs/` 였지만, 이제 `docs/plans/` 하나로 합친다. `-design.md` 접미사로 design / `-plan.md` (또는 접미사 없음) 으로 implementation plan 을 구분한다. 기존 `docs/superpowers/specs/*.md` 와 `docs/superpowers/plans/*.md` 의 frozen 파일들은 archival 상태로 유지 (install scripts / harness-flow-progress / frozen plans 가 해당 경로를 인용 중 — 깨지 않음). 새로운 brainstorming / spec / plan 출력만 새 경로 적용.
+**Path consolidation note** (2026-05-12): superpowers brainstorming 의 design doc 출력은 historically `docs/superpowers/specs/` 였지만, 이제 `docs/plans/` 하나로 합친다. `-design.md` 접미사로 design / `-plan.md` (또는 접미사 없음) 으로 implementation plan 을 구분한다. 기존 `docs/superpowers/*` 파일들은 2026-05-12 자율 cycle 에서 모두 `docs/plans/` 로 마이그레이션 완료 (8 files; `-plan.md` 접미사 추가됨). 더 이상 `docs/superpowers/` 디렉토리는 존재하지 않음.
 
 ---
 
@@ -953,7 +953,7 @@ Background 프로세스가 hang 상태일 때 main controller 가 직접 작업�
 
 ## 25. kzk-web-loop — Autonomous Web Improvement Loop
 
-Full spec: `docs/superpowers/specs/2026-05-03-kzk-web-loop-design.md`. Skill: `skills/kzk-web-loop/SKILL.md`.
+Full spec: `docs/plans/2026-05-03-kzk-web-loop-design.md`. Skill: `skills/kzk-web-loop/SKILL.md`.
 
 ### Purpose
 
@@ -1002,7 +1002,7 @@ After `/compact`, restate: "Cycle N, last: [issue], queue: [N remaining], PW: [o
 
 ## 26. kzk-codebase-survey — Mandatory Deep Codebase Explorer
 
-Full spec: `docs/superpowers/specs/2026-05-04-kzk-codebase-survey-design.md`. Skill: `skills/kzk-codebase-survey/SKILL.md`.
+Full spec: `docs/plans/2026-05-04-kzk-codebase-survey-design.md`. Skill: `skills/kzk-codebase-survey/SKILL.md`.
 
 ### Purpose
 

@@ -63,7 +63,7 @@ Gate 4: N/A — no frontend source glob match
 
 ### Commit 2 — `ba25be7` `docs(spec): Cycle 24`
 
-Doc-only commit (`docs/superpowers/specs/*.md`).
+Doc-only commit (`docs/plans/*-design.md`).
 
 ```
 Gate 0: N/A — doc-only exception (§doc-only commit exception)
@@ -271,7 +271,7 @@ The following block should appear in the PR #1 description after the Cycle 26 co
 
 ## References
 
-- Spec: `docs/superpowers/specs/2026-05-04-kzk-global-install-design.md`
+- Spec: `docs/plans/2026-05-04-kzk-global-install-design.md`
 - Plan: `docs/plans/2026-05-04-kzk-global-install.md`
 - Critic review: `docs/research/codex-reviews/kzk-global-install-critic-review.md`
 - Pre-merge report: `docs/harness/surveys/2026-05-04-kzk-global-install-pre-merge.md`

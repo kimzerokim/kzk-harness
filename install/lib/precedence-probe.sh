@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # precedence-probe.sh — AC8 project-vs-global precedence probe.
 #
-# Authoritative spec: docs/superpowers/specs/2026-05-04-kzk-global-install-design.md §13 AC8
+# Authoritative spec: docs/plans/2026-05-04-kzk-global-install-design.md §13 AC8
 # Authoritative plan: docs/plans/2026-05-04-kzk-global-install.md Task E
 #
 # Writes a stub SKILL.md globally + locally with the SAME name and the SAME

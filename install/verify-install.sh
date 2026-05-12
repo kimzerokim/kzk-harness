@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # verify-install.sh — AC1-AC8 verification harness for kzk-harness global install.
 #
-# Authoritative spec: docs/superpowers/specs/2026-05-04-kzk-global-install-design.md §13
+# Authoritative spec: docs/plans/2026-05-04-kzk-global-install-design.md §13
 # Authoritative plan: docs/plans/2026-05-04-kzk-global-install.md Task E
 #
 # Each AC is a separate bash function ac1_..ac8_*.  Top-level driver runs all

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # kzk-harness global install entrypoint.
-# Authoritative spec: docs/superpowers/specs/2026-05-04-kzk-global-install-design.md
+# Authoritative spec: docs/plans/2026-05-04-kzk-global-install-design.md
 # Authoritative plan: docs/plans/2026-05-04-kzk-global-install.md
 #
 # Flags:

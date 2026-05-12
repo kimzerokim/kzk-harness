@@ -1,6 +1,6 @@
 # Cycle 47 Spec Critic Review (codex-cli, plain text mode, high effort)
 
-> Spec under review: `docs/superpowers/specs/2026-05-07-cycle-47-b2-c1-queue-design.md` (503 lines)
+> Spec under review: `docs/plans/2026-05-07-cycle-47-b2-c1-queue-design.md` (503 lines)
 > Survey reference: `docs/harness/surveys/2026-05-07-cycle-47-b2-c1-queue-survey.md`
 > Codex CLI: 0.128.0, sandbox=read-only, ephemeral, model_reasoning_effort=high
 > Date: 2026-05-07

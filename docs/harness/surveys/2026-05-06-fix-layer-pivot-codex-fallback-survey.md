@@ -283,7 +283,7 @@ UserPromptSubmit hook. `hook-shared.mjs`에서 `FIX_KEYWORDS`, `shouldSkip`, `de
 
 ### 디렉토리
 
-`/Users/kimzerokim/work/personal/kzk-harness/docs/superpowers/specs/` — 존재 확인.
+`/Users/kimzerokim/work/personal/kzk-harness/docs/plans/` — 마이그레이션 완료 (2026-05-12).
 
 ### 기존 spec 파일명 예
 
@@ -296,7 +296,7 @@ UserPromptSubmit hook. `hook-shared.mjs`에서 `FIX_KEYWORDS`, `shouldSkip`, `de
 
 **네이밍 패턴**: `YYYY-MM-DD-<kebab-topic>-design.md`
 
-**새 스킬 design doc 경로**: `/Users/kimzerokim/work/personal/kzk-harness/docs/superpowers/specs/2026-05-06-fix-layer-pivot-codex-fallback-design.md`
+**새 스킬 design doc 경로**: `/Users/kimzerokim/work/personal/kzk-harness/docs/plans/2026-05-06-codex-handoff-and-fix-layer-pivot-design.md`
 
 ---
 

@@ -36,7 +36,7 @@
 
 ### Phase 2 design doc — §10 Out of scope (verbatim extract)
 
-From `/Users/kimzerokim/work/personal/kzk-harness/docs/superpowers/specs/2026-05-06-codex-handoff-and-fix-layer-pivot-design.md` §10:
+From `/Users/kimzerokim/work/personal/kzk-harness/docs/plans/2026-05-06-codex-handoff-and-fix-layer-pivot-design.md` §10:
 
 > - 4 메타-갭 차단 룰 (FIX-LABEL / 자가-점검 ladder / 자동 위임 / Q-FIX-PIVOT-FAIL halt / kzk-fix-layer-pivot 스킬 / kzk-codex-consult 스킬)
 > - keyword-detector.mjs trigger 매핑 추가
@@ -123,7 +123,7 @@ Fix-verify hook 실행 후, fix 가 같은 레이어에서 2회 연속 실패 �
 | `kzk-autonomous-boundary` SKILL.md | §Halt conditions 표에 `Q-FIX-PIVOT-FAIL` row 추가 |
 | `kzk-user-queue` SKILL.md | Queue producers 섹션에 `kzk-fix-scope-expansion: Q-FIX-PIVOT-FAIL` 추가 |
 | `kzk-pre-commit-gate` SKILL.md | Gate 4.5 cross-ref 에 layer-pivot 언급 (옵션) |
-| `docs/superpowers/specs/2026-05-06-codex-handoff-and-fix-layer-pivot-design.md` | §10 에서 해당 항목 완료 표시 (Phase 2 cycle 에서) |
+| `docs/plans/2026-05-06-codex-handoff-and-fix-layer-pivot-design.md` | §10 에서 해당 항목 완료 표시 (Phase 2 cycle 에서) |
 
 ### Version bump
 

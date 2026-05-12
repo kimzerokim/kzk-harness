@@ -2,7 +2,7 @@
 
 ## Frozen
 
-2026-05-07 | spec: `docs/superpowers/specs/2026-05-07-cycle-47-b2-c1-queue-design.md` §3 | survey: `docs/harness/surveys/2026-05-07-cycle-47-b2-c1-queue-survey.md` §Sub-scope B2 | codex: `docs/research/codex-reviews/cycle-47-spec-critic-review.md`
+2026-05-07 | spec: `docs/plans/2026-05-07-cycle-47-b2-c1-queue-design.md` §3 | survey: `docs/harness/surveys/2026-05-07-cycle-47-b2-c1-queue-survey.md` §Sub-scope B2 | codex: `docs/research/codex-reviews/cycle-47-spec-critic-review.md`
 
 ## Scope
 
@@ -135,7 +135,7 @@ Add ## Fix layer pivot (Phase 2) to kzk-fix-scope-expansion (v1.3.0→1.4.0).
 Global mirror synced. Q-FIX-PIVOT-FAIL row added to kzk-autonomous-boundary
 halt table. Resolves G1/G2 meta-gaps. G3/G4 deferred per spec §7.
 
-Spec: docs/superpowers/specs/2026-05-07-cycle-47-b2-c1-queue-design.md §3
+Spec: docs/plans/2026-05-07-cycle-47-b2-c1-queue-design.md §3
 EOF
 )"
 ```
@@ -169,6 +169,6 @@ Add ## Fix layer pivot (Phase 2) to kzk-fix-scope-expansion (v1.3.0→1.4.0).
 Global mirror synced. Q-FIX-PIVOT-FAIL row added to kzk-autonomous-boundary
 halt table. Resolves G1/G2 meta-gaps. G3/G4 deferred per spec §7.
 
-Spec: docs/superpowers/specs/2026-05-07-cycle-47-b2-c1-queue-design.md §3
+Spec: docs/plans/2026-05-07-cycle-47-b2-c1-queue-design.md §3
 ```
 ```

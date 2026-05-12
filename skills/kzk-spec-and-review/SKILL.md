@@ -37,7 +37,7 @@ If neither (A) nor (B) → brainstorming runs (default ON).
 
 **동작**:
 1. `Skill("superpowers:brainstorming")` 호출
-2. brainstorming 완료 → design doc 경로 수집 (`docs/plans/YYYY-MM-DD-<topic>-design.md`). brainstorming 스킬이 default 로 `docs/superpowers/specs/` 에 쓰면 main 이 즉시 `docs/plans/` 으로 `git mv` 후 그 경로를 Step 1 에 전달. (SoT: `harness-share.md` §5 path consolidation 2026-05-12)
+2. brainstorming 완료 → design doc 경로 수집 (`docs/plans/YYYY-MM-DD-<topic>-design.md`). brainstorming 스킬 output 은 `docs/plans/` 에 직접 저장 (SoT: `harness-share.md §5`). 다른 경로로 출력된 경우 main 이 즉시 `docs/plans/` 으로 `git mv` 후 그 경로를 Step 1 에 전달. (SoT: `harness-share.md` §5 path consolidation 2026-05-12)
 3. design doc 경로를 Step 1 Draft 의 CONTEXT 에 `Required reading: <path>` 로 포함
 4. brainstorming 결정사항을 Step 2 codex consult 의 `LOCKED PRIOR DECISIONS` 에 포함
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # claude-md-marker.sh — idempotent BEGIN/END marker helpers for ~/.claude/CLAUDE.md.
 # Source-only: do not invoke directly.
-# Authoritative spec: docs/superpowers/specs/2026-05-04-kzk-global-install-design.md §6.4
+# Authoritative spec: docs/plans/2026-05-04-kzk-global-install-design.md §6.4
 # Authoritative plan: docs/plans/2026-05-04-kzk-global-install.md Task A
 
 [ "${BASH_SOURCE[0]}" = "$0" ] && {

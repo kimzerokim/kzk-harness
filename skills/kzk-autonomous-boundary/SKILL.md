@@ -1,6 +1,6 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.11.0
+version: 1.12.0
 description: "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contract (destination, name, PR mode) before any autonomous flow; post-contract continuation in same turn (Cycle 48). Autonomous completion fresh-agent verifier (mandatory pre-exit) — main self-declared 'verification PASS' / 'loop exit' forbidden. Halt conditions, destructive-op guardrails, Q-entry patterns (Q-TDD-MAIN, Q-TDD-AUTO-MISSING, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-*, Q-COMPLETION-SELF-VERIFY, Q-PW-OAUTH-NEW-ACCOUNT/MULTI-ACCOUNT/CONSENT-LOOP/STUCK/CHALLENGE/PROVIDER-ERROR). Triggers: 'ralph로 돌려', '끝까지 끝내줘', '자율실행', autonomous TDD enforce, Q-TDD-AUTO-MISSING. References harness-share.md §2 + §33."
 ---
 
@@ -168,3 +168,15 @@ If the autonomous loop committed code that is later found to be wrong (reviewer 
 - **kzk-large-task-delegation / kzk-codebase-survey**: 메인 직접 multi-file edit / 5+ 파일 read 시도 halt entry (`Q-MAIN-DIRECT-EDIT`) 가 본 skill §Halt conditions 표에 등록됨. cross-ref: `kzk-large-task-delegation §Anti-pattern §Main direct-edit` / `kzk-codebase-survey §Preparation phase delegation`.
 - **kzk-codex-handoff**: `Q-CODEX-DISPATCH-FAIL` halt entry 의 정의 출처. 본 skill §Halt conditions 표가 그 entry 를 등록.
 - **kzk-playwright-verification**: §Autonomous completion — fresh-agent verifier 의 Step 1 (dev server health) detection procedure 는 그 skill 의 §Dev/prod build divergence trap 에 위임. 본 skill 의 exit verifier 가 trigger / VERDICT enforcement / Halt entry 정의. Q-PW-OAUTH-* halt entries (6종 — NEW-ACCOUNT, MULTI-ACCOUNT, CONSENT-LOOP, STUCK, CHALLENGE, PROVIDER-ERROR) 정의는 그 skill 의 §OAuth click-through protocol 본문에 위임. 본 §Halt conditions 표는 entry 등록만 담당.
+
+## Pre-dispatch survey rule (autonomous mode)
+
+**Rule**: Inside autonomous mode, every `kzk-large-task-delegation` dispatch MUST be preceded by `kzk-codebase-survey` if a survey report for the topic is not already in the dispatch context.
+
+**Rationale**: large-task scope estimation (3+ files / 200+ LoC / 5+ reads) is itself a read-heavy audit. Autonomous mode forbids main from reading 5+ files directly. Survey must run first inside an EXPLORER subagent (`oh-my-claudecode:explore`, sonnet) so main never absorbs raw code at saturation.
+
+**Exception**: If the current turn already produced a `kzk-codebase-survey` report path (same-turn carry-forward), reuse it — do not re-dispatch.
+
+**Halt on miss**: If `kzk-large-task-delegation` detects multi-file scope but no survey context exists, append `Q-SURVEY-MISSING` to `docs/harness/user-queue.md` and halt the delegation. Resume after survey completes.
+
+**Cross-ref**: `kzk-large-task-delegation §Scope estimation`, `kzk-codebase-survey §8-step`, `harness-share.md §4`.

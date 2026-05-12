@@ -3,7 +3,7 @@ topic: kzk-global-install
 reviewer: critic-opus
 date: 2026-05-04
 codex_status: timeout-after-5min-no-verdict-fallback
-spec: docs/superpowers/specs/2026-05-04-kzk-global-install-design.md
+spec: docs/plans/2026-05-04-kzk-global-install-design.md
 ---
 
 # kzk-harness Global Install — Critic Review
