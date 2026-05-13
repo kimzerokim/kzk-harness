@@ -1,7 +1,7 @@
 ---
 name: kzk-fix-scope-expansion
-version: 1.6.0
-description: "Fix scope expansion + Gate 4.5 callsite sanity. Cross-ref invoked from kzk-codebase-survey on fix-start flows. Direct triggers: 'callsite 전수', 'Gate 4.5', 'fix-scope-cache', 'KZK_GATE45_SKIP', 'callsite 누락'. Default DISABLED until kzk-pre-merge-sync step 3. References harness-share.md §3.5."
+version: 1.7.0
+description: "Fix scope expansion + Gate 4.5 callsite sanity. Cross-ref invoked from kzk-codebase-survey on fix-start flows. Direct triggers: 'callsite 전수', 'Gate 4.5', 'fix-scope-cache', 'KZK_GATE45_SKIP', 'callsite 누락', 'endpoint 삭제', 'endpoint deletion', 'deprecate', 'deprecated', 'removed in cycle', 'removed in phase', '@deprecated', 'API 폐지', 'API removal'. Default DISABLED until kzk-pre-merge-sync step 3. References harness-share.md §3.5."
 ---
 
 > Authoritative source: harness-share.md §3.5. On conflict, that wins.
@@ -31,10 +31,11 @@ Pre-commit **Gate 4.5** is the final sanity check.
    - camelCase word (length ≥ 4, contains uppercase)
    - `functionName()` pattern
    - snake_case word
-4. If CRG available: run `code-review-graph detect-changes`. On failure/not-installed → grep fallback
-5. Capture callsite list → 200 char truncation
-6. Append to `.kzk-harness/fix-scope-cache.jsonl` via `writeSingleEntryWithLock(path, commitSHA, callsiteList)`
-7. Inject system-reminder
+4. **API deprecation flow**: when the prompt contains any of `endpoint 삭제` / `deprecate` / `removed in cycle` / `@deprecated` / `폐지` / `삭제 예정`, treat as fix-start. Skip symbol extraction from prompt; instead extract the endpoint path pattern directly (e.g., `/api/cells/:id`) and use it as the grep search term. CRG command (preferred): `code-review-graph detect-changes --base HEAD~1`. grep fallback: `grep -rn "api/cells\|PATCH.*cells" --include='*.{ts,tsx}' --exclude-dir={node_modules,.git,docs}`
+5. If CRG available: run `code-review-graph detect-changes`. On failure/not-installed → grep fallback
+6. Capture callsite list → 200 char truncation
+7. Append to `.kzk-harness/fix-scope-cache.jsonl` via `writeSingleEntryWithLock(path, commitSHA, callsiteList)`
+8. Inject system-reminder
 
 ### hook-shared import requirement
 
@@ -85,6 +86,20 @@ Plan D recall results are injected first; Plan B callsite reminder is injected i
 4. Gate 4.5 will BLOCK based on `.kzk-harness/fix-scope-cache.jsonl` — this self-check catches it early
 
 This rule is the pre-emptive self-check counterpart to `kzk-pre-commit-gate` Gate 4.5.
+
+## Use case: API deprecation sweep
+
+When deleting or renaming an API endpoint:
+
+1. Before the delete commit, run callsite sweep for the old endpoint path:
+   ```bash
+   grep -rn "<old-path-pattern>" web/src api/src --include='*.{ts,tsx}' --exclude-dir={node_modules,.git,docs}
+   ```
+2. All callsites must be either:
+   - Updated to the new endpoint, OR
+   - Annotated in the commit body as `intentionally removed: <path> (module archived)`
+3. Write the callsite list to `.kzk-harness/fix-scope-cache.jsonl` (same schema as fix-start) so Gate 4.5 can validate before commit.
+4. CRG `query_graph(callers_of=<service_method>)` is the preferred deep sweep — finds indirect callers that grep misses (e.g., hook → hook → GridView pattern from cycle 25). For context, see `kzk-codebase-survey §Step 1 Scope expansion` on how to use CRG query_graph in deprecation context.
 
 ## Gate 4.5
 

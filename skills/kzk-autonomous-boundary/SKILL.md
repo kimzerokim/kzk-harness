@@ -1,7 +1,7 @@
 ---
 name: kzk-autonomous-boundary
-version: 1.13.0
-description: "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contract (destination, name, PR mode) before any autonomous flow; post-contract continuation in same turn (Cycle 48). Autonomous completion fresh-agent verifier (mandatory pre-exit) — main self-declared 'verification PASS' / 'loop exit' forbidden. Halt conditions, destructive-op guardrails, Q-entry patterns (Q-TDD-MAIN, Q-TDD-AUTO-MISSING, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-*, Q-COMPLETION-SELF-VERIFY, Q-PW-OAUTH-NEW-ACCOUNT/MULTI-ACCOUNT/CONSENT-LOOP/STUCK/CHALLENGE/PROVIDER-ERROR). Triggers: 'ralph로 돌려', '끝까지 끝내줘', '자율실행', autonomous TDD enforce, Q-TDD-AUTO-MISSING. References harness-share.md §2 + §33."
+version: 1.14.0
+description: "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contract (destination, name, PR mode) before any autonomous flow; post-contract continuation in same turn (Cycle 48). Autonomous completion fresh-agent verifier (mandatory pre-exit) — main self-declared 'verification PASS' / 'loop exit' forbidden. Cycle-exit mandate: 4 sub-check (prod-build smoke, stub sweep, SoT alignment, spec-freeze re-check). Halt conditions, destructive-op guardrails, Q-entry patterns (Q-TDD-MAIN, Q-TDD-AUTO-MISSING, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-*, Q-COMPLETION-SELF-VERIFY, Q-PW-OAUTH-NEW-ACCOUNT/MULTI-ACCOUNT/CONSENT-LOOP/STUCK/CHALLENGE/PROVIDER-ERROR). Triggers: 'ralph로 돌려', '끝까지 끝내줘', '자율실행', autonomous TDD enforce, Q-TDD-AUTO-MISSING. References harness-share.md §2 + §33."
 ---
 
 > Authoritative source: repo `CLAUDE.md` "Autonomous Execution Boundary" + `harness-share.md` §2. On conflict, those win.
@@ -97,6 +97,7 @@ Mandatory step just before autonomous mode concludes with "done" / "complete" / 
 - After the last commit of an autonomous loop (`ralph` / `ulw` / `web-loop` / `autopilot` / harness self-improvement / "끝까지 끝내줘" / "자는 동안 진행해"), before entering the next cycle or reporting completion to the user
 - **Separate trigger from Plan C Stage 3 verifier** — Stage 3 = per-commit code-level lens; this procedure = exit gate for the entire autonomous run (user-persona run-level lens)
 - Even a single cycle (`/improve` once) is mandatory. One cycle = same main self-verification blind spot.
+- **Large-cycle exit trigger (non-autonomous sessions)**: When a commit message contains any of the keywords `final` / `baseline` / `migration` / `c25` (or similar cycle-closing markers) AND the changed file set spans ≥ 3 modules OR includes a migration SQL file OR includes `CLAUDE.md`, dispatch the fresh-agent verifier before reporting completion to the user — even if no autonomous loop (ralph/ulw/autopilot) was active. Rationale: large multi-phase cycles carry the same dev/prod blind spot regardless of execution mode. Keyword match examples: commit subject contains `final`, `baseline`, `single baseline`, `cycle NN final`, `migration`.
 
 ### Dispatch
 
@@ -119,6 +120,48 @@ Model branching (same schema as Gate 5):
 4. **User-persona visual check** — explicitly visually verify what the user would see when opening the page. shadcn primitive default-brittle states (unstyled anchor / padding-less badge / border-only card), padding / layout, copy text freshness. "looks good" is forbidden — name elements + name tokens.
 5. **Change intent vs actual screen match** — verify from the user's perspective that this cycle's acceptance criteria are actually visible on the page.
 
+### Cycle-exit mandate (4 sub-check)
+
+When the cycle-exit hook (`check-cycle-exit.mjs`) fires and BLOCKS a commit/push, the fresh-agent verifier dispatched to resolve the block MUST execute all 4 sub-checks before returning a verdict. Main self-execute of these checks is forbidden (`Q-COMPLETION-SELF-VERIFY` rule applies).
+
+1. **Prod-build user-persona smoke** — see `kzk-pre-merge-sync §6`. App project: `npm run build` + start prod dist server + Playwright 3+ pages. kzk-harness self: skill-flow HTML render + fingerprint match + index.html nav.
+2. **Stub sweep** — see `kzk-pre-merge-sync §5`. `git log <base>..HEAD --grep='STUB:'` + JSX/comment pattern grep + UI text patterns.
+3. **SoT alignment** — see `kzk-pre-merge-sync §7`. `docs/sot/feature-list.md` (or equivalent) ↔ staged code feature symbol implementation state.
+4. **Spec-freeze re-check** — spec visual/layout modifiers (`Gridly 스타일`, `nice spacing`, `proper hierarchy`, `clean look`, `split-pane`) must have a frozen artifact (ASCII wireframe / layout token / approved screenshot / component library name) AND match implementation screenshots from sub-check 1.
+
+4 sub-check 중 1개라도 FAIL → cycle-exit BLOCK 지속. Verifier returns VERDICT: BLOCK. After all sub-checks PASS, main retries original command with `KZK_CYCLE_EXIT_VERIFIED=1`.
+
+Cross-ref: `kzk-pre-merge-sync §5/§6/§7`, `harness-share.md §3 Gate 6`.
+
+**Verifier dispatch template** (use when cycle-exit hook fires — inject full template from `kzk-pre-merge-sync §7`):
+
+```text
+Role: fresh-agent verifier per kzk-autonomous-boundary §Autonomous completion fresh-agent verifier.
+
+Trigger: cycle-exit hook (check-cycle-exit.mjs) BLOCKED a commit/push.
+Marker matched: <CYCLE-EXIT: ... | MILESTONE: ... | STUB-CLEAR: ...>
+Cycle scope: <base ref> .. HEAD  (or last N commits if no base ref)
+Project context: <app project | kzk-harness self-improvement>
+
+Execute 4 sub-checks. Each FAIL → BLOCK verdict.
+
+1. Prod-build user-persona smoke (§kzk-pre-merge-sync §6)
+2. Stub sweep (§kzk-pre-merge-sync §5)
+3. SoT alignment (§kzk-pre-merge-sync §7)
+4. Spec-freeze re-check (§kzk-autonomous-boundary §Mandate above)
+
+VERDICT format (first line MANDATORY):
+  VERDICT: <PASS | BLOCK>
+
+Sub-check outcomes:
+  1. Prod-build smoke: <PASS|FAIL — reason>
+  2. Stub sweep: <PASS|FAIL — list>
+  3. SoT alignment: <PASS|FAIL — list>
+  4. Spec-freeze re-check: <PASS|FAIL — list>
+
+Evidence: <paths to screenshots / log excerpts / git refs>
+```
+
 ### VERDICT enforcement (same schema as Gate 5)
 
 - First line of response must match `VERDICT: PASS|FAIL|PARTIAL` regex
@@ -134,6 +177,7 @@ Model branching (same schema as Gate 5):
 - **"Stage 3 Gate 5 verifier PASSED so skip exit verifier"** — different lens. Gate 5 = per-commit code-level, exit verifier = run-level user-persona. Both are mandatory.
 - **"Only one cycle so verifier seems excessive"** — one cycle = same main self-verification blind spot. Cost is one sonnet call (~50k tokens) vs average rework cost (this cycle's 20 enum work: 5 extra commits + user direct diagnosis) — far cheaper.
 - **"User can look at the screen and confirm, so skip verifier"** — delegating verification responsibility to the user violates the purpose of autonomous mode. User checking the screen is the fallback, not the primary path.
+- **"Not autonomous mode so exit verifier doesn't apply"** — the blind spot (dev/prod divergence + browser blind spot) exists in any large-cycle session, not just ralph/ulw. Large-cycle exit trigger covers non-autonomous sessions (see §Trigger third bullet).
 
 ### Cross-ref
 
