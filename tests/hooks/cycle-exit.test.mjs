@@ -9,6 +9,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -236,27 +237,29 @@ test("Bypass: KZK_CYCLE_EXIT_VERIFIED=1 → pass", () => {
   assert.equal(r.didPass, true, "VERIFIED=1 should allow through");
 });
 
-test("Bypass: KZK_CYCLE_EXIT_SKIP=1 → pass + queue entry written", () => {
-  const queuePath = path.join(REPO_ROOT, "docs", "harness", "user-queue.md");
-  const beforeContent = fs.existsSync(queuePath)
-    ? fs.readFileSync(queuePath, "utf8")
-    : "";
+test("Bypass: KZK_CYCLE_EXIT_SKIP=1 → pass + queue entry written to temp dir", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "kzk-skip-test-"));
+  try {
+    const r = runHook('git commit -m "MILESTONE: skip test"', {
+      KZK_CYCLE_EXIT_SKIP: "1",
+      KZK_QUEUE_DIR_OVERRIDE: tmpDir,
+    });
+    assert.equal(r.didPass, true, "SKIP=1 should pass through");
+    assert.ok(r.stderr.includes("Q-CYCLE-EXIT-STALE"), "stderr should warn about queue entry");
 
-  const r = runHook('git commit -m "MILESTONE: skip test"', {
-    KZK_CYCLE_EXIT_SKIP: "1",
-  });
-  assert.equal(r.didPass, true, "SKIP=1 should pass through");
-  assert.ok(r.stderr.includes("Q-CYCLE-EXIT-STALE"), "stderr should warn about queue entry");
+    const queuePath = path.join(tmpDir, "user-queue.md");
+    assert.ok(fs.existsSync(queuePath), "queue file should exist in temp dir");
+    const content = fs.readFileSync(queuePath, "utf8");
+    assert.ok(content.includes("Q-CYCLE-EXIT-STALE"), "temp queue should contain Q-CYCLE-EXIT-STALE");
 
-  // Verify queue entry was appended
-  if (fs.existsSync(queuePath)) {
-    const afterContent = fs.readFileSync(queuePath, "utf8");
-    assert.ok(
-      afterContent.includes("Q-CYCLE-EXIT-STALE"),
-      "user-queue.md should contain Q-CYCLE-EXIT-STALE entry",
-    );
-    // Restore original content
-    fs.writeFileSync(queuePath, beforeContent);
+    // Verify production file was NOT touched
+    const prodQueue = path.join(REPO_ROOT, "docs", "harness", "user-queue.md");
+    if (fs.existsSync(prodQueue)) {
+      const prodContent = fs.readFileSync(prodQueue, "utf8");
+      assert.ok(!prodContent.includes("skip test"), "production user-queue.md must not be modified");
+    }
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
 
@@ -272,27 +275,30 @@ test("Bypass conflict: VERIFIED=1 + SKIP=1 → BLOCK with conflicting trust stat
   );
 });
 
-test("Bypass: KZK_CYCLE_EXIT_DISABLE=1 → pass + loud stderr + queue entry", () => {
-  const queuePath = path.join(REPO_ROOT, "docs", "harness", "user-queue.md");
-  const beforeContent = fs.existsSync(queuePath)
-    ? fs.readFileSync(queuePath, "utf8")
-    : "";
+test("Bypass: KZK_CYCLE_EXIT_DISABLE=1 → pass + loud stderr + queue entry in temp dir", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "kzk-disable-test-"));
+  try {
+    const r = runHook('git commit -m "MILESTONE: disable test"', {
+      KZK_CYCLE_EXIT_DISABLE: "1",
+      KZK_QUEUE_DIR_OVERRIDE: tmpDir,
+    });
+    assert.equal(r.didPass, true, "DISABLE=1 should pass through");
+    assert.ok(r.stderr.includes("WARNING"), "stderr should contain WARNING");
+    assert.ok(r.stderr.includes("KZK_CYCLE_EXIT_DISABLE"), "stderr should mention env var");
 
-  const r = runHook('git commit -m "MILESTONE: disable test"', {
-    KZK_CYCLE_EXIT_DISABLE: "1",
-  });
-  assert.equal(r.didPass, true, "DISABLE=1 should pass through");
-  assert.ok(r.stderr.includes("WARNING"), "stderr should contain WARNING");
-  assert.ok(r.stderr.includes("KZK_CYCLE_EXIT_DISABLE"), "stderr should mention env var");
+    const queuePath = path.join(tmpDir, "user-queue.md");
+    assert.ok(fs.existsSync(queuePath), "queue file should exist in temp dir");
+    const content = fs.readFileSync(queuePath, "utf8");
+    assert.ok(content.includes("Q-CYCLE-EXIT-DISABLED"), "temp queue should contain Q-CYCLE-EXIT-DISABLED");
 
-  if (fs.existsSync(queuePath)) {
-    const afterContent = fs.readFileSync(queuePath, "utf8");
-    assert.ok(
-      afterContent.includes("Q-CYCLE-EXIT-DISABLED"),
-      "user-queue.md should contain Q-CYCLE-EXIT-DISABLED entry",
-    );
-    // Restore original content
-    fs.writeFileSync(queuePath, beforeContent);
+    // Verify production file was NOT touched
+    const prodQueue = path.join(REPO_ROOT, "docs", "harness", "user-queue.md");
+    if (fs.existsSync(prodQueue)) {
+      const prodContent = fs.readFileSync(prodQueue, "utf8");
+      assert.ok(!prodContent.includes("disable test"), "production user-queue.md must not be modified");
+    }
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
   }
 });
 
@@ -313,22 +319,43 @@ test("Inline env: KZK_CYCLE_EXIT_VERIFIED=1 git commit -m CYCLE-EXIT → pass", 
 });
 
 test("Inline env: KZK_CYCLE_EXIT_SKIP=1 git commit -m CYCLE-EXIT → pass", () => {
-  const r = runHook('KZK_CYCLE_EXIT_SKIP=1 git commit -m "CYCLE-EXIT: cycle 55"');
-  assert.equal(r.didPass, true, "inline SKIP=1 prefix should allow through");
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "kzk-inline-skip-"));
+  try {
+    const r = runHook('KZK_CYCLE_EXIT_SKIP=1 git commit -m "CYCLE-EXIT: cycle 55"', {
+      KZK_QUEUE_DIR_OVERRIDE: tmpDir,
+    });
+    assert.equal(r.didPass, true, "inline SKIP=1 prefix should allow through");
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 
 test("Inline env: KZK_CYCLE_EXIT_DISABLE=1 git commit -m CYCLE-EXIT → pass", () => {
-  const r = runHook('KZK_CYCLE_EXIT_DISABLE=1 git commit -m "CYCLE-EXIT: cycle 55"');
-  assert.equal(r.didPass, true, "inline DISABLE=1 prefix should allow through");
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "kzk-inline-disable-"));
+  try {
+    const r = runHook('KZK_CYCLE_EXIT_DISABLE=1 git commit -m "CYCLE-EXIT: cycle 55"', {
+      KZK_QUEUE_DIR_OVERRIDE: tmpDir,
+    });
+    assert.equal(r.didPass, true, "inline DISABLE=1 prefix should allow through");
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 
 test("Inline env conflict: KZK_CYCLE_EXIT_VERIFIED=1 KZK_CYCLE_EXIT_SKIP=1 → BLOCK", () => {
-  const r = runHook('KZK_CYCLE_EXIT_VERIFIED=1 KZK_CYCLE_EXIT_SKIP=1 git commit -m "CYCLE-EXIT: x"');
-  assert.equal(r.didPass, false, "inline VERIFIED+SKIP conflict should block");
-  assert.ok(
-    r.reason?.includes("conflicting trust states"),
-    `reason should mention conflicting trust states: ${r.reason}`,
-  );
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "kzk-inline-conflict-"));
+  try {
+    const r = runHook('KZK_CYCLE_EXIT_VERIFIED=1 KZK_CYCLE_EXIT_SKIP=1 git commit -m "CYCLE-EXIT: x"', {
+      KZK_QUEUE_DIR_OVERRIDE: tmpDir,
+    });
+    assert.equal(r.didPass, false, "inline VERIFIED+SKIP conflict should block");
+    assert.ok(
+      r.reason?.includes("conflicting trust states"),
+      `reason should mention conflicting trust states: ${r.reason}`,
+    );
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 
 test("Inline env multi-prefix: OTHER=val KZK_CYCLE_EXIT_VERIFIED=1 → pass", () => {
@@ -421,4 +448,116 @@ test("Signal A: actual gh pr create with heredoc in title arg → BLOCK Signal A
   const r = runHook(cmd);
   assert.equal(r.didPass, false, "actual gh pr create invocation should still block (Signal A)");
   assert.ok(r.reason?.includes("signal: A"), `expected Signal A, got: ${r.reason}`);
+});
+
+// ---------------------------------------------------------------------------
+// Bug 1: KZK_QUEUE_DIR_OVERRIDE — temp dir isolation (3 cases)
+// ---------------------------------------------------------------------------
+
+test("Queue override: SKIP bypass writes to KZK_QUEUE_DIR_OVERRIDE, not production path", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "kzk-q-skip-a-"));
+  try {
+    const r = runHook('git commit -m "CYCLE-EXIT: queue isolation test A"', {
+      KZK_CYCLE_EXIT_SKIP: "1",
+      KZK_QUEUE_DIR_OVERRIDE: tmpDir,
+    });
+    assert.equal(r.didPass, true, "SKIP=1 should pass");
+    const tmpQueue = path.join(tmpDir, "user-queue.md");
+    assert.ok(fs.existsSync(tmpQueue), "queue file must exist in temp dir");
+    assert.ok(
+      fs.readFileSync(tmpQueue, "utf8").includes("Q-CYCLE-EXIT-STALE"),
+      "temp queue must contain stale entry",
+    );
+    const prodQueue = path.join(REPO_ROOT, "docs", "harness", "user-queue.md");
+    if (fs.existsSync(prodQueue)) {
+      assert.ok(
+        !fs.readFileSync(prodQueue, "utf8").includes("queue isolation test A"),
+        "production user-queue.md must not contain test artifact",
+      );
+    }
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("Queue override: DISABLE bypass writes to KZK_QUEUE_DIR_OVERRIDE, not production path", () => {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "kzk-q-disable-b-"));
+  try {
+    const r = runHook('git commit -m "CYCLE-EXIT: queue isolation test B"', {
+      KZK_CYCLE_EXIT_DISABLE: "1",
+      KZK_QUEUE_DIR_OVERRIDE: tmpDir,
+    });
+    assert.equal(r.didPass, true, "DISABLE=1 should pass");
+    const tmpQueue = path.join(tmpDir, "user-queue.md");
+    assert.ok(fs.existsSync(tmpQueue), "queue file must exist in temp dir");
+    assert.ok(
+      fs.readFileSync(tmpQueue, "utf8").includes("Q-CYCLE-EXIT-DISABLED"),
+      "temp queue must contain disabled entry",
+    );
+    const prodQueue = path.join(REPO_ROOT, "docs", "harness", "user-queue.md");
+    if (fs.existsSync(prodQueue)) {
+      assert.ok(
+        !fs.readFileSync(prodQueue, "utf8").includes("queue isolation test B"),
+        "production user-queue.md must not contain test artifact",
+      );
+    }
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("Queue override: two consecutive bypass tests use separate temp dirs, no cross-contamination", () => {
+  const tmpA = fs.mkdtempSync(path.join(os.tmpdir(), "kzk-q-cross-a-"));
+  const tmpB = fs.mkdtempSync(path.join(os.tmpdir(), "kzk-q-cross-b-"));
+  try {
+    runHook('git commit -m "CYCLE-EXIT: cross test A"', {
+      KZK_CYCLE_EXIT_SKIP: "1",
+      KZK_QUEUE_DIR_OVERRIDE: tmpA,
+    });
+    runHook('git commit -m "CYCLE-EXIT: cross test B"', {
+      KZK_CYCLE_EXIT_DISABLE: "1",
+      KZK_QUEUE_DIR_OVERRIDE: tmpB,
+    });
+    const contentA = fs.existsSync(path.join(tmpA, "user-queue.md"))
+      ? fs.readFileSync(path.join(tmpA, "user-queue.md"), "utf8")
+      : "";
+    const contentB = fs.existsSync(path.join(tmpB, "user-queue.md"))
+      ? fs.readFileSync(path.join(tmpB, "user-queue.md"), "utf8")
+      : "";
+    assert.ok(!contentA.includes("cross test B"), "tmpA must not contain tmpB artifact");
+    assert.ok(!contentB.includes("cross test A"), "tmpB must not contain tmpA artifact");
+  } finally {
+    fs.rmSync(tmpA, { recursive: true, force: true });
+    fs.rmSync(tmpB, { recursive: true, force: true });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Bug 2: parseInlineEnv chain command parsing (5 cases)
+// ---------------------------------------------------------------------------
+
+test("Chain env (&&): git add file && KZK_CYCLE_EXIT_VERIFIED=1 git commit -m CYCLE-EXIT → pass", () => {
+  const r = runHook('git add file && KZK_CYCLE_EXIT_VERIFIED=1 git commit -m "CYCLE-EXIT: x"');
+  assert.equal(r.didPass, true, "env prefix on 2nd sub-command (&&) should bypass");
+});
+
+test("Chain env (;): cd /tmp; KZK_CYCLE_EXIT_VERIFIED=1 git commit -m CYCLE-EXIT → pass", () => {
+  const r = runHook('cd /tmp; KZK_CYCLE_EXIT_VERIFIED=1 git commit -m "CYCLE-EXIT: x"');
+  assert.equal(r.didPass, true, "env prefix on 2nd sub-command (;) should bypass");
+});
+
+test("Chain env (||): false || KZK_CYCLE_EXIT_VERIFIED=1 git commit -m CYCLE-EXIT → pass", () => {
+  const r = runHook('false || KZK_CYCLE_EXIT_VERIFIED=1 git commit -m "CYCLE-EXIT: x"');
+  assert.equal(r.didPass, true, "env prefix on 2nd sub-command (||) should bypass");
+});
+
+test("Chain env false-positive: env var text in quoted -m body across && → BLOCK", () => {
+  // KZK_CYCLE_EXIT_VERIFIED=1 is inside the quoted -m arg, not a real env prefix
+  const r = runHook('git add x && git commit -m "feat: KZK_CYCLE_EXIT_VERIFIED=1 in body"');
+  assert.equal(r.didPass, true, "no signal marker in commit body — should pass (no signal match)");
+});
+
+test("Chain env: KZK_CYCLE_EXIT_VERIFIED=1 on 1st sub-command still applies → pass", () => {
+  const r = runHook('KZK_CYCLE_EXIT_VERIFIED=1 git add x && git commit -m "CYCLE-EXIT: x"');
+  assert.equal(r.didPass, true, "env prefix on 1st sub-command should still bypass");
 });

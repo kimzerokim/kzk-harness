@@ -82,7 +82,9 @@ function block(reason) {
 
 function appendUserQueue(entryType, context) {
   try {
-    const queue = path.join(REPO_ROOT, "docs", "harness", "user-queue.md");
+    const queueDir = process.env.KZK_QUEUE_DIR_OVERRIDE
+      ?? path.join(REPO_ROOT, "docs", "harness");
+    const queue = path.join(queueDir, "user-queue.md");
     const ts = new Date().toISOString();
     let note;
     if (entryType === "Q-CYCLE-EXIT-STALE") {
@@ -160,12 +162,15 @@ function stripQuotedAndHeredoc(str) {
 // Extract leading KEY=VAL prefix env vars from a command string.
 // Uses stripQuotedAndHeredoc to neutralize quoted content first,
 // preventing matches inside quoted arguments (e.g., -m "KEY=VAL cmd").
+// Splits on top-level && / ; / || so env prefixes on any sub-command are found.
 function parseInlineEnv(command) {
   const stripped = stripQuotedAndHeredoc(command);
-  const re = /^\s*((?:[A-Z_][A-Z0-9_]*=[^\s]*\s+)+)/;
-  const m = stripped.match(re);
+  const subCmds = stripped.split(/\s*(?:&&|;|\|\|)\s*/);
   const env = {};
-  if (m) {
+  const re = /^\s*((?:[A-Z_][A-Z0-9_]*=[^\s]*\s+)+)/;
+  for (const sub of subCmds) {
+    const m = sub.match(re);
+    if (!m) continue;
     for (const a of m[1].trim().split(/\s+/)) {
       const idx = a.indexOf("=");
       if (idx > 0) env[a.slice(0, idx)] = a.slice(idx + 1);
