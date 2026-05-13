@@ -9,11 +9,14 @@
 .claude/*
 .cursor/
 
-# Project-local hook + settings (skill-flow staleness gate — never propagates globally)
+# Project-local hooks + settings
+# - check-skill-flow-fresh.mjs : project-local only (kzk-harness self-maintenance, never propagates)
+# - check-cycle-exit.mjs       : also project-local for this repo's dogfood; globally propagated copy lives in install/hooks/
 !.claude/settings.json
 !.claude/hooks
 .claude/hooks/*
 !.claude/hooks/check-skill-flow-fresh.mjs
+!.claude/hooks/check-cycle-exit.mjs
 .kiro/
 .cursorrules
 .mcp.json

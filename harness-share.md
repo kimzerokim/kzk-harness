@@ -295,6 +295,35 @@ Official shadcn new-york blocks use prefix-less tokens (`--background`, `--prima
 
 Renaming variables but moving values does NOT make shadcn utility classes work. Always confirm against `/shadcn-ui/ui` via context7 (§9) before migrating tokens. Session-6 ui-migration-shadcn lesson.
 
+### Gate 6 — Cycle-exit verifier (조건부 발동, hook-enforced)
+
+- **Trigger**: hook `check-cycle-exit.mjs` 가 Signal A (PR/push) 또는 Signal B (commit message marker) 매칭
+- **Signal A**: `gh pr create|merge` / `git push origin main` (모든 refspec 형식 포함 — `HEAD:main`, `<sha>:main`, `feature/foo:main`)
+- **Markers (Signal B)**: `^MILESTONE:` / `^CYCLE-EXIT:` / `^STUB-CLEAR:` (3개, multiline mode, case-sensitive)
+- **Action**: fresh-agent verifier dispatch (`oh-my-claudecode:verifier`) 의무. 메인 self-execute 금지 (`Q-COMPLETION-SELF-VERIFY`). 4 sub-check mandate: (1) prod-build user-persona smoke, (2) stub sweep, (3) SoT alignment, (4) spec-freeze re-check. 상세: `kzk-pre-merge-sync §5/§6/§7`, `kzk-autonomous-boundary §Cycle-exit mandate`.
+- **Pass condition**: 4 sub-check 모두 PASS + `KZK_CYCLE_EXIT_VERIFIED=1` env var 로 원래 명령 재시도
+- **Bypass**: `KZK_CYCLE_EXIT_SKIP=1` (Q-CYCLE-EXIT-STALE queue entry 자동 등록)
+- **Disable** (installed env): `KZK_CYCLE_EXIT_DISABLE=1` (loud stderr warning + Q-CYCLE-EXIT-DISABLED)
+- **Conflict**: VERIFIED + SKIP 둘 다 set → BLOCK (fail-closed, 명시 메시지 "conflicting trust states")
+- **Short-circuit**: `check-skill-flow-fresh.mjs` 가 먼저 BLOCK 하면 cycle-exit 실행 안 됨 — 두 hook 다 PASS 해야 commit 진행 (AND condition, race 없음). skill-flow-fresh → cycle-exit 순서.
+
+### STUB / STUB-CLEAR commit message convention
+
+Commit message body 에 다음 형식으로 stub 도입 / 해소를 표시:
+
+```
+# Stub 도입 commit (hook BLOCK 대상 아님)
+STUB: <one-line description>
+Unblocked when: <phase or condition>
+
+# Stub 해소 commit (STUB-CLEAR: → Signal B → hook BLOCK 대상)
+STUB-CLEAR: <stub-id or one-line>
+```
+
+- `STUB:` 만 있는 commit → hook BLOCK 안 함 (stub 도입은 cycle-exit 아님)
+- `STUB-CLEAR:` → Signal B 매칭 → Gate 6 발동, 4 sub-check 의무
+- `MILESTONE:` / `CYCLE-EXIT:` 도 동일하게 Signal B. See `kzk-pre-merge-sync §5`.
+
 ---
 
 ## 4. Subagent-Driven Dispatch
@@ -661,6 +690,17 @@ PR target branch merge 직전 CLAUDE.md 의 다음 영역이 코드 현 상태�
 체크포인트: PR description 에 "CLAUDE.md updated to match current state" 라인 포함. 미반영 = reviewer 차단 사유.
 
 자동화 가능 — fresh subagent dispatch ("compare CLAUDE.md vs current code, list outdated, propose patch in single Edit").
+
+### Cycle-exit gate (hook-driven — cross-ref)
+
+`kzk-pre-merge-sync` 의 trigger 는 conversational keyword 가 아니라 hook 으로 enforce.
+구현: `.claude/hooks/check-cycle-exit.mjs` (repo-local) + `~/.claude/skills/.kzk-harness-shared/hooks/check-cycle-exit.mjs` (글로벌, install-global default propagate).
+
+**Normative body 는 §3 Gate 6**. 본 §14.5 는 cross-reference + 다른 자율 mode 메커니즘 (rate-limit, auto-compact) 와의 관계만 기술.
+
+- Rate-limit 중 cycle-exit hook 발동 → hook 은 BLOCK 유지, rate-limit 해소 후 verifier dispatch + 4 sub-check 수행 후 bypass 재시도.
+- auto-compact (context 50%) 중 cycle-exit BLOCK 상태라면 compact 후 재개 시 BLOCK 상태 복원 — verifier dispatch 의무 유지.
+- `kzk-autonomous-loop §Multi-plan CRG refresh` 와 독립 동작: cycle-exit gate 는 CRG refresh 전/후 무관하게 Signal A/B 매칭 시 발동.
 
 ## 15. Pre-Merge `/deepinit`
 

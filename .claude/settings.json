@@ -1,5 +1,5 @@
 {
-  "_comment": "kzk-harness repo PROJECT-LOCAL hooks. NEVER copied to ~/.claude/ by install-global.sh — Claude Code loads this file only when CWD = this repo. End users who install kzk-harness globally never get these hooks.",
+  "_comment": "kzk-harness repo PROJECT-LOCAL hooks. NEVER copied to ~/.claude/ by install-global.sh — Claude Code loads this file only when CWD = this repo. End users who install kzk-harness globally never get these hooks. check-skill-flow-fresh.mjs is project-local only (SoT-HTML drift gate). check-cycle-exit.mjs is also registered here for kzk-harness dogfooding; the same hook IS propagated globally by install-global.sh (default ON) to enforce cycle-exit verification in adopting projects.",
   "hooks": {
     "PreToolUse": [
       {
@@ -8,6 +8,10 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-skill-flow-fresh.mjs\""
+          },
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/check-cycle-exit.mjs\""
           }
         ]
       }
