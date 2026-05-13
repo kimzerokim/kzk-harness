@@ -3,6 +3,28 @@
 # Authoritative spec: docs/plans/2026-05-04-kzk-global-install-design.md
 # Authoritative plan: docs/plans/2026-05-04-kzk-global-install.md
 #
+# Hook propagation policy (two tiers):
+#
+#   DEFAULT-ON hooks (propagated by --enable-hooks without extra flags):
+#     edit-read-guard.mjs, dispatcher.mjs, edit-failure-retry.mjs,
+#     autonomous-stop-guard.mjs, check-cycle-exit.mjs
+#     These generalize across all adopting projects. check-cycle-exit.mjs
+#     enforces the cycle-exit fresh-agent verifier gate (harness-share.md §3
+#     Gate 6) in any project that uses kzk-harness globally.
+#     Runtime opt-out: KZK_CYCLE_EXIT_DISABLE=1 (leaves Q-CYCLE-EXIT-DISABLED
+#     entry in docs/harness/user-queue.md). Install-time opt-out: --no-cycle-exit-hook.
+#
+#   OPT-IN hooks (require an explicit extra flag):
+#     regression-recall.mjs  (--regression-recall)
+#     fix-scope-trigger.mjs  (--fix-scope-trigger)
+#     freshness-guard.mjs    (--freshness-guard)
+#     These are project-type-specific and off by default.
+#
+#   NOT propagated (project-local only, never copied to ~/.claude/):
+#     check-skill-flow-fresh.mjs — kzk-harness self-maintenance SoT-HTML
+#     drift gate. Wired only in this repo's .claude/settings.json. End users
+#     who install kzk-harness globally never get this gate.
+#
 # Flags:
 #   --update          Re-sync from the source repo. Same as fresh install
 #                     except per-skill version-aware overwrite + harness-share
@@ -24,6 +46,12 @@
 #                     in ~/.claude/settings.json. Default OFF (N3). The
 #                     scaffold file ships always; this flag is the only thing
 #                     that wires it into settings.json.
+#   --no-cycle-exit-hook
+#                     When --enable-hooks is active, skip registering
+#                     check-cycle-exit.mjs in settings.json. The file is still
+#                     copied to ~/.claude/skills/.kzk-harness-shared/hooks/ so
+#                     it can be re-enabled later without a full re-install.
+#                     Runtime alternative: KZK_CYCLE_EXIT_DISABLE=1 env var.
 #   --yes             Skip the "preview marker replacement, proceed?" prompt
 #                     (still emits the diff to stdout). Ralph cycles use this.
 #   --ac8-attested-by-user "<DATE> probe-attested"
@@ -58,6 +86,7 @@ SYMLINK_MODE_FORCE=0
 ENABLE_HOOKS=0
 DO_REGRESSION_RECALL=0
 DO_FRESHNESS_GUARD=0
+NO_CYCLE_EXIT_HOOK=0
 AUTO_YES=0
 AC8_ATTESTED=""
 SOURCE_REPO_DIR=""
@@ -80,6 +109,7 @@ Flags:
   --symlink-mode                   Dev mode: symlink harness-share.md only
   --symlink-mode-force             Skip multi-checkout refusal for --symlink-mode
   --enable-hooks                   Wire keyword-detector.mjs into settings.json (N3)
+  --no-cycle-exit-hook             Skip registering check-cycle-exit.mjs (default ON when --enable-hooks)
   --regression-recall              Also wire regression-recall.mjs (implies --enable-hooks)
   --fix-scope-trigger              Also wire fix-scope-trigger.mjs (Plan B, implies --enable-hooks)
   --freshness-guard                Also wire freshness-guard.mjs (implies --enable-hooks)
@@ -132,6 +162,10 @@ parse_flags() {
         ;;
       --freshness-guard)
         DO_FRESHNESS_GUARD=1
+        shift
+        ;;
+      --no-cycle-exit-hook)
+        NO_CYCLE_EXIT_HOOK=1
         shift
         ;;
       --yes)
@@ -637,8 +671,14 @@ verify_install() {
 # ---------------------------------------------------------------------------
 
 # update_hooks_canonical — canonical reconstruct of PreToolUse / PostToolUse /
-# UserPromptSubmit / Stop arrays in settings.json. Managed whitelist (7 filenames)
+# UserPromptSubmit / Stop arrays in settings.json. Managed whitelist (8 filenames)
 # only stripped — user custom hooks preserved. dispatcher only registered.
+#
+# check-cycle-exit.mjs is DEFAULT ON (registered as a PreToolUse Bash matcher
+# unless NO_CYCLE_EXIT_HOOK=1 was passed at install time). All other always-on
+# hooks (edit-read-guard, dispatcher, edit-failure-retry, autonomous-stop-guard)
+# are also unconditional. Opt-in hooks (regression-recall, fix-scope-trigger,
+# freshness-guard) are wired via the dispatcher manifest (enabled.json), not here.
 update_hooks_canonical() {
   local settings="$1"
   local hook_dest="$HOME/.claude/skills/.kzk-harness-shared/hooks"
@@ -647,39 +687,77 @@ update_hooks_canonical() {
   local post_retry_cmd="node $hook_dest/edit-failure-retry.mjs"
   local disp_cmd="node $hook_dest/dispatcher.mjs"
   local stop_cmd="node $hook_dest/autonomous-stop-guard.mjs"
+  local cycle_exit_cmd="node $hook_dest/check-cycle-exit.mjs"
 
   local tmp
   tmp=$(mktemp)
 
-  # managed filenames whitelist: strip only these 7, preserve user custom hooks
-  jq --arg pre "$pre_cmd" --arg post "$post_cmd" --arg post_retry "$post_retry_cmd" --arg disp "$disp_cmd" --arg stop "$stop_cmd" '
-    def is_managed: (.command // "") |
-      (test("/dispatcher\\.mjs(\\s|$)") or
-       test("/edit-read-guard\\.mjs(\\s|$)") or
-       test("/edit-failure-retry\\.mjs(\\s|$)") or
-       test("/keyword-detector\\.mjs(\\s|$)") or
-       test("/regression-recall\\.mjs(\\s|$)") or
-       test("/fix-scope-trigger\\.mjs(\\s|$)") or
-       test("/autonomous-stop-guard\\.mjs(\\s|$)"));
+  # managed filenames whitelist: strip only these 8, preserve user custom hooks
+  if [ "${NO_CYCLE_EXIT_HOOK:-0}" -eq 1 ]; then
+    # --no-cycle-exit-hook: omit check-cycle-exit.mjs from PreToolUse registration
+    # (still strip it from managed list so re-runs stay idempotent)
+    jq --arg pre "$pre_cmd" --arg post "$post_cmd" --arg post_retry "$post_retry_cmd" --arg disp "$disp_cmd" --arg stop "$stop_cmd" '
+      def is_managed: (.command // "") |
+        (test("/dispatcher\\.mjs(\\s|$)") or
+         test("/edit-read-guard\\.mjs(\\s|$)") or
+         test("/edit-failure-retry\\.mjs(\\s|$)") or
+         test("/keyword-detector\\.mjs(\\s|$)") or
+         test("/regression-recall\\.mjs(\\s|$)") or
+         test("/fix-scope-trigger\\.mjs(\\s|$)") or
+         test("/autonomous-stop-guard\\.mjs(\\s|$)") or
+         test("/check-cycle-exit\\.mjs(\\s|$)"));
 
-    .hooks.PreToolUse = (((.hooks.PreToolUse // []) | map(
-        .hooks |= map(select(is_managed | not))
-      ) | map(select((.hooks // []) | length > 0))) +
-      [{matcher:"Edit|Write", hooks:[{type:"command", command:$pre}]}])
-    | .hooks.PostToolUse = (((.hooks.PostToolUse // []) | map(
-        .hooks |= map(select(is_managed | not))
-      ) | map(select((.hooks // []) | length > 0))) +
-      [{matcher:"Read", hooks:[{type:"command", command:$post}]},
-       {matcher:"Edit|Write", hooks:[{type:"command", command:$post_retry}]}])
-    | .hooks.UserPromptSubmit = (((.hooks.UserPromptSubmit // []) | map(
-        .hooks |= map(select(is_managed | not))
-      ) | map(select((.hooks // []) | length > 0))) +
-      [{matcher:"*", hooks:[{type:"command", command:$disp}]}])
-    | .hooks.Stop = (((.hooks.Stop // []) | map(
-        .hooks |= map(select(is_managed | not))
-      ) | map(select((.hooks // []) | length > 0))) +
-      [{matcher:"*", hooks:[{type:"command", command:$stop}]}])
-  ' "$settings" >"$tmp" && mv "$tmp" "$settings" || return 1
+      .hooks.PreToolUse = (((.hooks.PreToolUse // []) | map(
+          .hooks |= map(select(is_managed | not))
+        ) | map(select((.hooks // []) | length > 0))) +
+        [{matcher:"Edit|Write", hooks:[{type:"command", command:$pre}]}])
+      | .hooks.PostToolUse = (((.hooks.PostToolUse // []) | map(
+          .hooks |= map(select(is_managed | not))
+        ) | map(select((.hooks // []) | length > 0))) +
+        [{matcher:"Read", hooks:[{type:"command", command:$post}]},
+         {matcher:"Edit|Write", hooks:[{type:"command", command:$post_retry}]}])
+      | .hooks.UserPromptSubmit = (((.hooks.UserPromptSubmit // []) | map(
+          .hooks |= map(select(is_managed | not))
+        ) | map(select((.hooks // []) | length > 0))) +
+        [{matcher:"*", hooks:[{type:"command", command:$disp}]}])
+      | .hooks.Stop = (((.hooks.Stop // []) | map(
+          .hooks |= map(select(is_managed | not))
+        ) | map(select((.hooks // []) | length > 0))) +
+        [{matcher:"*", hooks:[{type:"command", command:$stop}]}])
+    ' "$settings" >"$tmp" && mv "$tmp" "$settings" || return 1
+  else
+    # Default ON: register check-cycle-exit.mjs as PreToolUse Bash matcher
+    jq --arg pre "$pre_cmd" --arg post "$post_cmd" --arg post_retry "$post_retry_cmd" --arg disp "$disp_cmd" --arg stop "$stop_cmd" --arg ce "$cycle_exit_cmd" '
+      def is_managed: (.command // "") |
+        (test("/dispatcher\\.mjs(\\s|$)") or
+         test("/edit-read-guard\\.mjs(\\s|$)") or
+         test("/edit-failure-retry\\.mjs(\\s|$)") or
+         test("/keyword-detector\\.mjs(\\s|$)") or
+         test("/regression-recall\\.mjs(\\s|$)") or
+         test("/fix-scope-trigger\\.mjs(\\s|$)") or
+         test("/autonomous-stop-guard\\.mjs(\\s|$)") or
+         test("/check-cycle-exit\\.mjs(\\s|$)"));
+
+      .hooks.PreToolUse = (((.hooks.PreToolUse // []) | map(
+          .hooks |= map(select(is_managed | not))
+        ) | map(select((.hooks // []) | length > 0))) +
+        [{matcher:"Edit|Write", hooks:[{type:"command", command:$pre}]},
+         {matcher:"Bash", hooks:[{type:"command", command:$ce}]}])
+      | .hooks.PostToolUse = (((.hooks.PostToolUse // []) | map(
+          .hooks |= map(select(is_managed | not))
+        ) | map(select((.hooks // []) | length > 0))) +
+        [{matcher:"Read", hooks:[{type:"command", command:$post}]},
+         {matcher:"Edit|Write", hooks:[{type:"command", command:$post_retry}]}])
+      | .hooks.UserPromptSubmit = (((.hooks.UserPromptSubmit // []) | map(
+          .hooks |= map(select(is_managed | not))
+        ) | map(select((.hooks // []) | length > 0))) +
+        [{matcher:"*", hooks:[{type:"command", command:$disp}]}])
+      | .hooks.Stop = (((.hooks.Stop // []) | map(
+          .hooks |= map(select(is_managed | not))
+        ) | map(select((.hooks // []) | length > 0))) +
+        [{matcher:"*", hooks:[{type:"command", command:$stop}]}])
+    ' "$settings" >"$tmp" && mv "$tmp" "$settings" || return 1
+  fi
 }
 
 # update_hook_manifest — write enabled.json manifest for dispatcher
@@ -729,6 +807,10 @@ enable_hooks() {
   cp "$src/install/hooks/edit-failure-retry.mjs" "$hook_dest/" || return 1
   # Cycle 52: copy autonomous-stop-guard.mjs (Stop hook for autonomous mode)
   cp "$src/install/hooks/autonomous-stop-guard.mjs" "$hook_dest/" || return 1
+  # Phase G: copy check-cycle-exit.mjs (PreToolUse Bash, default ON)
+  # File is always copied regardless of --no-cycle-exit-hook; the flag only
+  # controls whether settings.json registers it (opt-out = settings only).
+  cp "$src/install/hooks/check-cycle-exit.mjs" "$hook_dest/" || return 1
 
   # Always copy keyword-detector (needed by dispatcher manifest)
   cp "$src/install/hooks/keyword-detector.mjs" "$hook_dest/"

@@ -245,8 +245,8 @@ remove_skill_dirs() {
     removed=$((removed + 1))
   fi
 
-  # Plan F rev2: Remove managed hook entries from all three hook arrays
-  # managed filenames whitelist (5 files) — same as install-global.sh
+  # Plan F rev2 + Phase G: Remove managed hook entries from all hook arrays
+  # managed filenames whitelist (8 files) — mirrors install-global.sh is_managed
   local settings="$HOME/.claude/settings.json"
   if [ -f "$settings" ] && command -v jq >/dev/null 2>&1; then
     if grep -qF "kzk-harness-shared" "$settings" 2>/dev/null; then
@@ -256,9 +256,12 @@ remove_skill_dirs() {
         def is_managed: (.command // "") |
           (test("/dispatcher\\.mjs(\\s|$)") or
            test("/edit-read-guard\\.mjs(\\s|$)") or
+           test("/edit-failure-retry\\.mjs(\\s|$)") or
            test("/keyword-detector\\.mjs(\\s|$)") or
            test("/regression-recall\\.mjs(\\s|$)") or
-           test("/fix-scope-trigger\\.mjs(\\s|$)"));
+           test("/fix-scope-trigger\\.mjs(\\s|$)") or
+           test("/autonomous-stop-guard\\.mjs(\\s|$)") or
+           test("/check-cycle-exit\\.mjs(\\s|$)"));
 
         .hooks.PreToolUse = ((.hooks.PreToolUse // []) | map(
           .hooks |= map(select(is_managed | not))
@@ -269,13 +272,16 @@ remove_skill_dirs() {
         | .hooks.UserPromptSubmit = ((.hooks.UserPromptSubmit // []) | map(
           .hooks |= map(select(is_managed | not))
         ) | map(select((.hooks // []) | length > 0)))
+        | .hooks.Stop = ((.hooks.Stop // []) | map(
+          .hooks |= map(select(is_managed | not))
+        ) | map(select((.hooks // []) | length > 0)))
       ' "$settings" >"$tmp" 2>/dev/null; then
         mv "$tmp" "$settings"
       else
         rm -f "$tmp"
       fi
-      emit "  Removed kzk-harness hook entries from ~/.claude/settings.json (PreToolUse + PostToolUse + UserPromptSubmit)"
-      record "hooks: PreToolUse + PostToolUse + UserPromptSubmit entries removed"
+      emit "  Removed kzk-harness hook entries from ~/.claude/settings.json (PreToolUse + PostToolUse + UserPromptSubmit + Stop)"
+      record "hooks: PreToolUse + PostToolUse + UserPromptSubmit + Stop entries removed"
     fi
   fi
 
