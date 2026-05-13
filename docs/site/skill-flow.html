@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>kzk-harness — Skill &amp; Workflow Map</title>
-<!-- KZK_SKILL_FLOW_FINGERPRINT: ceed3af220972e84 -->
+<!-- KZK_SKILL_FLOW_FINGERPRINT: f9a71bf946cd959a -->
 <!--
   Single-page reference for the 18 kzk-* skills, their workflow entry points,
   and the hook infrastructure that enforces discipline at runtime.
@@ -380,12 +380,12 @@
     <h4>Good prompts</h4>
     <p><code class="chip k">commit</code> &nbsp; <code class="chip k">PR 올려줘</code> &nbsp; <code>"merge it"</code></p>
     <h4>Auto-loaded skills</h4>
-    <p><a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> (Gate 0–5, full 10-gate) → <a href="#s-pre-merge-sync"><span class="chip">kzk-pre-merge-sync</span></a> (deepinit + CLAUDE.md sync before PR/milestone)</p>
+    <p><a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> (Gate 0–5, full 10-gate) → <a href="#s-pre-merge-sync"><span class="chip">kzk-pre-merge-sync</span></a> (deepinit + CLAUDE.md sync before PR/milestone). If commit message contains <code>MILESTONE:</code> / <code>CYCLE-EXIT:</code> / <code>STUB-CLEAR:</code>, or the command is <code>gh pr create</code> / <code>git push origin main</code>: <strong>Gate 6</strong> (<code>check-cycle-exit.mjs</code> hook) fires and requires fresh-agent verifier with 4 sub-checks before proceeding.</p>
     <h4>Main's role</h4>
-    <p><strong>Non-doc-only full sequence:</strong> Gate 0 (AGENTS sync) → 0.5 (freshness) → 1 (ai-slop) → 1.5 (secrets AKIA/ASIA) → 1.6 (prod code-first) → 2 (build) → 3 (test) → 4 (Playwright, UI changes) → 4.5 (fix-scope) → 5 (fresh-agent verifier).<br/>
+    <p><strong>Non-doc-only full sequence:</strong> Gate 0 (AGENTS sync) → 0.5 (freshness) → 1 (ai-slop) → 1.5 (secrets AKIA/ASIA) → 1.6 (prod code-first) → 2 (build) → 3 (test) → 4 (Playwright, UI changes) → 4.5 (fix-scope) → 5 (fresh-agent verifier) → 6 (cycle-exit, if marker matched).<br/>
     <strong>Doc-only fast path</strong> (<code>*.md</code> / <code>docs/**</code> only): Gate 1.5 secrets + verify-install AC2 only. Full suite runs once at cycle close.</p>
     <h4>Avoid</h4>
-    <p>Skipping Gate 5 fresh-agent verifier on non-doc changes. Calling doc-only fast path when any production code is staged.</p>
+    <p>Skipping Gate 5 fresh-agent verifier on non-doc changes. Calling doc-only fast path when any production code is staged. Bypassing Gate 6 (<code>KZK_CYCLE_EXIT_SKIP=1</code>) without adding a <span class="chip q">Q-CYCLE-EXIT-STALE</span> entry to user-queue.md.</p>
   </div>
 
   <div class="card" id="task-11">
@@ -636,10 +636,11 @@ flowchart TD
   G3 --> G4[Gate 4<br/>kzk-playwright-verification<br/>UI smoke]
   G4 --> G45[Gate 4.5<br/>kzk-fix-scope-expansion<br/>callsite cache]
   G45 --> G5[Gate 5<br/>fresh-agent verifier<br/>via kzk-large-task-delegation]
-  G5 --> OK[commit proceeds<br/>+ post-commit CRG refresh]
+  G5 --> G6[Gate 6<br/>check-cycle-exit.mjs<br/>cycle-exit verifier]
+  G6 --> OK[commit proceeds<br/>+ post-commit CRG refresh]
 
   classDef gate fill:#fbeee0,stroke:#b86e00,color:#1d1d1f;
-  class G0,G05,G1,G15,G16,G2,G3,G4,G45,G5 gate;
+  class G0,G05,G1,G15,G16,G2,G3,G4,G45,G5,G6 gate;
 </pre>
   </div>
 </section>
@@ -755,8 +756,8 @@ flowchart TD
 
   <!-- ============== kzk-autonomous-boundary ============== -->
   <div class="card" id="s-autonomous-boundary">
-    <div class="head"><span class="name">kzk-autonomous-boundary</span><span class="ver">v1.13.0</span><span class="badge entry">entry</span></div>
-    <div class="blurb">On entry into autonomous mode, immediately presents the 3-slot contract (destination / branch name / PR mode) via ASK FIRST. Governs 19 halt entries (Q-* prefix) including Q-SURVEY-MISSING (new in v1.12.0). Autonomous completion verifier is mandatory — main self-declaration is forbidden. Every kzk-large-task-delegation dispatch in autonomous mode must be preceded by kzk-codebase-survey unless a survey report is already in the same-turn context.</div>
+    <div class="head"><span class="name">kzk-autonomous-boundary</span><span class="ver">v1.14.0</span><span class="badge entry">entry</span></div>
+    <div class="blurb">On entry into autonomous mode, immediately presents the 3-slot contract (destination / branch name / PR mode) via ASK FIRST. Governs 19 halt entries (Q-* prefix) including Q-SURVEY-MISSING (new in v1.12.0). Autonomous completion verifier is mandatory — main self-declaration is forbidden. Every kzk-large-task-delegation dispatch in autonomous mode must be preceded by kzk-codebase-survey unless a survey report is already in the same-turn context. v1.14.0 adds the Cycle-exit mandate: large-cycle exit (commit markers MILESTONE: / CYCLE-EXIT: / STUB-CLEAR: or ≥ 3 modules changed) triggers a fresh-agent verifier with 4 sub-checks even in non-autonomous sessions.</div>
     <h4>Triggers</h4>
     <div class="triggers"><span class="chip k">ralph로 돌려</span><span class="chip k">끝까지 끝내줘</span><span class="chip k">자율실행</span><span class="chip k">ralph로 체크</span><span class="chip k">ralph로 확인</span><span class="chip k">autonomous TDD enforce</span></div>
     <h4>Halt entries (Q-*)</h4>
@@ -768,11 +769,21 @@ flowchart TD
       <span class="chip q">Q-PW-OAUTH-CONSENT-LOOP</span><span class="chip q">Q-PW-OAUTH-STUCK</span>
       <span class="chip q">Q-PW-OAUTH-CHALLENGE</span><span class="chip q">Q-PW-OAUTH-PROVIDER-ERROR</span>
     </div>
+    <h4>Cycle-exit mandate (v1.14.0)</h4>
+    <ul>
+      <li>Trigger: large-cycle exit — commit markers <code>MILESTONE:</code> / <code>CYCLE-EXIT:</code> / <code>STUB-CLEAR:</code> OR ≥ 3 modules changed (applies even in non-autonomous sessions)</li>
+      <li>Action: dispatch <code>oh-my-claudecode:verifier</code> opus with 4 sub-checks</li>
+      <li>Sub-check 1: prod-build user-persona smoke (see <code>kzk-pre-merge-sync §6</code>)</li>
+      <li>Sub-check 2: stub sweep (see <code>kzk-pre-merge-sync §5</code>)</li>
+      <li>Sub-check 3: SoT alignment (see <code>kzk-pre-merge-sync §7</code>)</li>
+      <li>Sub-check 4: spec-freeze re-check — visual/layout modifier absorption (e.g. "Gridly 스타일") verified against screenshots</li>
+      <li>All 4 sub-checks PASS → <code>KZK_CYCLE_EXIT_VERIFIED=1</code> + retry original command</li>
+    </ul>
     <h4>Outputs</h4>
     <ul>
       <li>Branch contract decision (within the same turn)</li>
       <li>user-queue.md Q-* entries (on halt)</li>
-      <li>Fresh-agent verifier dispatch</li>
+      <li>Fresh-agent verifier dispatch (autonomous completion + cycle-exit)</li>
     </ul>
     <h4>Linked skills</h4>
     <div class="triggers">
@@ -782,6 +793,7 @@ flowchart TD
       <a href="#s-playwright-verification"><span class="chip">kzk-playwright-verification</span></a>
       <a href="#s-tool-retry"><span class="chip">kzk-tool-retry</span></a>
       <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span> (pre-dispatch requirement)</a>
+      <a href="#s-pre-merge-sync"><span class="chip">kzk-pre-merge-sync</span> (§5/§6/§7 sub-checks)</a>
     </div>
     <h4>Source of truth</h4>
     <p><code>harness-share.md §2 + §33</code></p>
@@ -872,16 +884,19 @@ flowchart TD
 
   <!-- ============== kzk-pre-merge-sync ============== -->
   <div class="card" id="s-pre-merge-sync">
-    <div class="head"><span class="name">kzk-pre-merge-sync</span><span class="ver">v1.8.0</span></div>
-    <div class="blurb">Four-step checklist that runs immediately before PR creation (or a direct-main milestone commit). Ensures CLAUDE.md is synced, deepinit is run, hooks are enabled, and a full freshness sweep is complete.</div>
+    <div class="head"><span class="name">kzk-pre-merge-sync</span><span class="ver">v1.9.0</span></div>
+    <div class="blurb">Seven-step checklist that runs immediately before PR creation (or a direct-main milestone commit). Ensures CLAUDE.md is synced, deepinit is run, hooks are enabled, a full freshness sweep is complete, stub sweep is clean, prod-build smoke passes, and SoT alignment is verified.</div>
     <h4>Triggers</h4>
     <div class="triggers"><span class="chip k">merge</span><span class="chip k">feature branch</span><span class="chip k">CLAUDE.md sync</span><span class="chip k">deepinit</span><span class="chip k">pre-merge</span><span class="chip k">milestone</span></div>
-    <h4>Four steps</h4>
+    <h4>Seven steps</h4>
     <ol>
       <li>CLAUDE.md sync (six sections: Tech Stack / Project Structure / API Endpoints / DB / Key Rules / Env Vars)</li>
       <li><code>/oh-my-claudecode:deepinit</code> mandatory run</li>
       <li>Hook auto-enable: <code>regression-recall</code> + <code>fix-scope-trigger</code> (jq verification, user explicit confirm)</li>
       <li>Branch-wide freshness sweep (<code>kzk-freshness-guard</code>)</li>
+      <li>§5 Stub sweep: <code>git log --grep='STUB:'</code> + JSX comment + UI text patterns; user-visible unresolved stubs → BLOCK, behind-flag → WARN</li>
+      <li>§6 Prod-build user-persona smoke: <code>npm run build &amp;&amp; node dist/main</code> (or <code>vite preview</code>) + Playwright 3+ pages, 0 console errors, 0 network 4xx/5xx</li>
+      <li>§7 SoT alignment: <code>docs/sot/feature-list.md</code> (or equivalent) <code>wip</code>/<code>tbd</code>/<code>todo</code> markers vs staged code feature symbols; CRG <code>semantic_search_nodes</code> primary, grep fallback</li>
     </ol>
     <h4>Linked skills</h4>
     <div class="triggers">
@@ -1069,10 +1084,17 @@ flowchart TD
 
   <!-- ============== kzk-fix-scope-expansion ============== -->
   <div class="card" id="s-fix-scope-expansion">
-    <div class="head"><span class="name">kzk-fix-scope-expansion</span><span class="ver">v1.6.0</span><span class="badge gate">gate</span><span class="badge hook">hook</span></div>
-    <div class="blurb">On fix-start, enumerates all callsites and saves them to a cache. Gate 4.5 compares the staged diff against the cache; a mismatch blocks the commit. On the same layer failing twice, triggers a fix-layer pivot (L0 → L3).</div>
+    <div class="head"><span class="name">kzk-fix-scope-expansion</span><span class="ver">v1.7.0</span><span class="badge gate">gate</span><span class="badge hook">hook</span></div>
+    <div class="blurb">On fix-start, enumerates all callsites and saves them to a cache. Gate 4.5 compares the staged diff against the cache; a mismatch blocks the commit. On the same layer failing twice, triggers a fix-layer pivot (L0 → L3). v1.7.0 adds API deprecation flow: endpoint deletion / <code>@deprecated</code> / <code>API 폐지</code> triggers CRG <code>detect-changes --base HEAD~1</code> callsite sweep across all callers.</div>
     <h4>Triggers</h4>
-    <div class="triggers"><span class="chip k">callsite 전수</span><span class="chip k">Gate 4.5</span><span class="chip k">fix-scope-cache</span><span class="chip k">callsite mismatch</span><span class="chip k">KZK_GATE45_SKIP</span></div>
+    <div class="triggers"><span class="chip k">callsite 전수</span><span class="chip k">Gate 4.5</span><span class="chip k">fix-scope-cache</span><span class="chip k">callsite mismatch</span><span class="chip k">KZK_GATE45_SKIP</span><span class="chip k">endpoint 삭제</span><span class="chip k">deprecate</span><span class="chip k">@deprecated</span><span class="chip k">API 폐지</span></div>
+    <h4>Core mechanism</h4>
+    <ul>
+      <li>fix-start callsite enumeration → <span class="path">.kzk-harness/fix-scope-cache.jsonl</span></li>
+      <li>Gate 4.5 cache vs staged diff comparison → BLOCK on mismatch</li>
+      <li>Same-layer 2× fail → fix-layer pivot (L0 → L3)</li>
+      <li>API deprecation flow (v1.7.0): endpoint path pattern grep + CRG <code>detect-changes --base HEAD~1</code> → enumerate all callers → add to cache</li>
+    </ul>
     <h4>Related hooks</h4>
     <ul>
       <li><span class="path">install/hooks/fix-scope-trigger.mjs</span> — UserPromptSubmit; CRG detect-changes / grep fallback</li>
@@ -1145,6 +1167,7 @@ flowchart TD
       <tr><td>Self-improvement cycle</td><td><code>kzk-large-task-delegation</code> + <code>kzk-pre-commit-gate</code> + <code>kzk-autonomous-loop</code></td></tr>
       <tr><td>Multi-file code change (3+ files / 200+ LoC)</td><td><code>kzk-large-task-delegation §Model routing</code> (executor sonnet)</td></tr>
       <tr><td>Commit at the end of a cycle</td><td><code>kzk-pre-commit-gate</code> Gate 0–5 + <code>kzk-pre-merge-sync</code></td></tr>
+      <tr><td>Cycle-exit / milestone commit (<code>MILESTONE:</code> / <code>CYCLE-EXIT:</code> / <code>STUB-CLEAR:</code> marker)</td><td><code>check-cycle-exit.mjs</code> hook (Gate 6) → <code>kzk-autonomous-boundary §Cycle-exit mandate</code> → fresh-agent verifier with 4 sub-checks → <code>KZK_CYCLE_EXIT_VERIFIED=1</code> retry</td></tr>
       <tr><td>Multi-cycle autonomous run</td><td><code>kzk-autonomous-loop</code> + <code>kzk-autonomous-boundary</code></td></tr>
       <tr><td>Production / DB / IAM work</td><td><code>kzk-production-access</code></td></tr>
       <tr><td>UI change commit</td><td><code>kzk-playwright-verification</code> (Gate 4)</td></tr>
@@ -1316,7 +1339,7 @@ flowchart TD
 </section>
 
 <section id="hooks-infra">
-  <h2>10. Hook infrastructure — 8 global + 1 project-only</h2>
+  <h2>10. Hook infrastructure — 9 global + 1 project-only</h2>
   <p>Skill bodies are markdown and cannot enforce behavior by themselves. Hooks provide real enforcement at runtime:</p>
 
   <div class="card">
@@ -1434,9 +1457,31 @@ flowchart TD
     </p>
   </div>
 
+  <div class="card">
+    <div class="head"><span class="name">check-cycle-exit.mjs</span><span class="badge hook">hook</span><span class="badge gate">gate</span></div>
+    <div class="blurb">Gate 6 — enforces the cycle-exit fresh-agent verifier + 4 sub-check mandate before any commit, PR creation, or push to main that signals a cycle exit. Runs after <code>check-skill-flow-fresh.mjs</code> in the PreToolUse Bash hook chain (AND condition: both must pass).</div>
+    <h4>Event</h4><p>PreToolUse (Bash — intercepts <code>git commit</code> with cycle-exit markers, <code>gh pr create</code>, <code>git push origin main</code>)</p>
+    <h4>Signal detection</h4>
+    <ul>
+      <li><strong>Signal A</strong>: <code>gh pr create|merge</code> / <code>git push origin main</code> (all refspec forms: <code>HEAD:main</code>, <code>&lt;sha&gt;:main</code>, <code>feature/foo:main</code>)</li>
+      <li><strong>Signal B</strong>: <code>git commit</code> with message matching <code>^MILESTONE:</code> / <code>^CYCLE-EXIT:</code> / <code>^STUB-CLEAR:</code> (multiline, case-sensitive)</li>
+    </ul>
+    <h4>Key details</h4>
+    <ul>
+      <li>Repo-local: <span class="path">.claude/hooks/check-cycle-exit.mjs</span></li>
+      <li>Global (default propagate): <span class="path">~/.claude/skills/.kzk-harness-shared/hooks/check-cycle-exit.mjs</span></li>
+      <li>Pass: <code>KZK_CYCLE_EXIT_VERIFIED=1 &lt;original command&gt;</code> (after verifier PASS)</li>
+      <li>Emergency bypass: <code>KZK_CYCLE_EXIT_SKIP=1</code> — auto-appends <span class="chip q">Q-CYCLE-EXIT-STALE</span> to user-queue.md</li>
+      <li>Disable (installed env): <code>KZK_CYCLE_EXIT_DISABLE=1</code> — loud stderr warning + <span class="chip q">Q-CYCLE-EXIT-DISABLED</span></li>
+      <li>Conflict: <code>VERIFIED</code> + <code>SKIP</code> both set → BLOCK (fail-closed, "conflicting trust states" message)</li>
+      <li>Scope: <strong>global</strong> (default propagate via install-global.sh)</li>
+    </ul>
+  </div>
+
   <p>
-    The 8 global hooks are activated with <code>install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard</code>.
+    The 9 global hooks are activated with <code>install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard</code>.
     They are copied to <span class="path">~/.claude/skills/.kzk-harness-shared/hooks/</span> and registered in the appropriate event arrays in <span class="path">~/.claude/settings.json</span>.
+    <code>check-cycle-exit.mjs</code> is default-propagate (no extra flag required).
   </p>
 </section>
 

@@ -378,12 +378,12 @@
     <h4>좋은 prompt</h4>
     <p><code class="chip k">commit</code> &nbsp; <code class="chip k">PR 올려줘</code> &nbsp; <code>"merge it"</code></p>
     <h4>자동 로드</h4>
-    <p><a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> (Gate 0–5, 전체 10-gate) → <a href="#s-pre-merge-sync"><span class="chip">kzk-pre-merge-sync</span></a> (PR/milestone 직전 deepinit + CLAUDE.md sync)</p>
+    <p><a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a> (Gate 0–5, 전체 10-gate) → <a href="#s-pre-merge-sync"><span class="chip">kzk-pre-merge-sync</span></a> (PR/milestone 직전 deepinit + CLAUDE.md sync). commit 메시지에 <code>MILESTONE:</code> / <code>CYCLE-EXIT:</code> / <code>STUB-CLEAR:</code> 포함, 또는 명령이 <code>gh pr create</code> / <code>git push origin main</code> 이면: <strong>Gate 6</strong> (<code>check-cycle-exit.mjs</code> 훅) 발동 — fresh-agent verifier 4 sub-check 통과 후 진행.</p>
     <h4>메인 역할</h4>
-    <p><strong>doc-only 아닌 일반 commit:</strong> Gate 0 (AGENTS sync) → 0.5 (freshness) → 1 (ai-slop) → 1.5 (secrets AKIA/ASIA) → 1.6 (prod code-first) → 2 (build) → 3 (test) → 4 (Playwright, UI 변경 시) → 4.5 (fix-scope) → 5 (fresh-agent verifier).<br/>
+    <p><strong>doc-only 아닌 일반 commit:</strong> Gate 0 (AGENTS sync) → 0.5 (freshness) → 1 (ai-slop) → 1.5 (secrets AKIA/ASIA) → 1.6 (prod code-first) → 2 (build) → 3 (test) → 4 (Playwright, UI 변경 시) → 4.5 (fix-scope) → 5 (fresh-agent verifier) → 6 (사이클-exit, 마커 매칭 시).<br/>
     <strong>doc-only 빠른 길</strong> (<code>*.md</code> / <code>docs/**</code> 단독): Gate 1.5 secrets + verify-install AC2 만. full suite 는 cycle close 1회.</p>
     <h4>피하기</h4>
-    <p>doc-only 아닌 변경에 Gate 5 fresh-agent verifier 생략. production 코드 staged 상태에서 doc-only 빠른 길 사용.</p>
+    <p>doc-only 아닌 변경에 Gate 5 fresh-agent verifier 생략. production 코드 staged 상태에서 doc-only 빠른 길 사용. Gate 6 비상 bypass (<code>KZK_CYCLE_EXIT_SKIP=1</code>) 후 user-queue.md 에 <span class="chip q">Q-CYCLE-EXIT-STALE</span> 미등록.</p>
   </div>
 
   <div class="card" id="task-11">
@@ -635,10 +635,11 @@ flowchart TD
   G3 --> G4[Gate 4<br/>kzk-playwright-verification<br/>UI smoke]
   G4 --> G45[Gate 4.5<br/>kzk-fix-scope-expansion<br/>callsite cache]
   G45 --> G5[Gate 5<br/>fresh-agent verifier<br/>via kzk-large-task-delegation]
-  G5 --> OK[commit proceeds<br/>+ post-commit CRG refresh]
+  G5 --> G6[Gate 6<br/>check-cycle-exit.mjs<br/>사이클-exit verifier]
+  G6 --> OK[commit proceeds<br/>+ post-commit CRG refresh]
 
   classDef gate fill:#fbeee0,stroke:#b86e00,color:#1d1d1f;
-  class G0,G05,G1,G15,G16,G2,G3,G4,G45,G5 gate;
+  class G0,G05,G1,G15,G16,G2,G3,G4,G45,G5,G6 gate;
 </pre>
   </div>
 </section>
@@ -754,8 +755,8 @@ flowchart TD
 
   <!-- ============== kzk-autonomous-boundary ============== -->
   <div class="card" id="s-autonomous-boundary">
-    <div class="head"><span class="name">kzk-autonomous-boundary</span><span class="ver">v1.13.0</span><span class="badge entry">entry</span></div>
-    <div class="blurb">자율 모드 진입 시 ASK FIRST를 통해 3-슬롯 계약(목적지 / 브랜치명 / PR 모드)을 즉시 제시합니다. Q-SURVEY-MISSING (v1.12.0 신규)을 포함한 19개 중단 항목(Q-* 접두사)을 관할합니다. 자율 완료 verifier는 필수 — 메인의 자가 선언은 금지. 자율 모드에서 모든 kzk-large-task-delegation 디스패치는 같은 턴 컨텍스트에 survey 보고서가 없으면 kzk-codebase-survey를 먼저 실행해야 합니다.</div>
+    <div class="head"><span class="name">kzk-autonomous-boundary</span><span class="ver">v1.14.0</span><span class="badge entry">entry</span></div>
+    <div class="blurb">자율 모드 진입 시 ASK FIRST를 통해 3-슬롯 계약(목적지 / 브랜치명 / PR 모드)을 즉시 제시합니다. Q-SURVEY-MISSING (v1.12.0 신규)을 포함한 19개 중단 항목(Q-* 접두사)을 관할합니다. 자율 완료 verifier는 필수 — 메인의 자가 선언은 금지. 자율 모드에서 모든 kzk-large-task-delegation 디스패치는 같은 턴 컨텍스트에 survey 보고서가 없으면 kzk-codebase-survey를 먼저 실행해야 합니다. v1.14.0: 사이클-exit mandate 추가 — commit 마커 MILESTONE: / CYCLE-EXIT: / STUB-CLEAR: 또는 ≥ 3 모듈 변경 시 비자율 세션에서도 fresh-agent verifier + 4 sub-check 의무.</div>
     <h4>트리거</h4>
     <div class="triggers"><span class="chip k">ralph로 돌려</span><span class="chip k">끝까지 끝내줘</span><span class="chip k">자율실행</span><span class="chip k">ralph로 체크</span><span class="chip k">ralph로 확인</span><span class="chip k">autonomous TDD enforce</span></div>
     <h4>중단 항목 (Q-*)</h4>
@@ -767,11 +768,21 @@ flowchart TD
       <span class="chip q">Q-PW-OAUTH-CONSENT-LOOP</span><span class="chip q">Q-PW-OAUTH-STUCK</span>
       <span class="chip q">Q-PW-OAUTH-CHALLENGE</span><span class="chip q">Q-PW-OAUTH-PROVIDER-ERROR</span>
     </div>
+    <h4>사이클-exit mandate (v1.14.0)</h4>
+    <ul>
+      <li>트리거: 대형 사이클 exit — commit 마커 <code>MILESTONE:</code> / <code>CYCLE-EXIT:</code> / <code>STUB-CLEAR:</code> OR ≥ 3 모듈 변경 (비자율 세션에서도 적용)</li>
+      <li>Action: <code>oh-my-claudecode:verifier</code> opus 를 4 sub-check 와 함께 dispatch</li>
+      <li>Sub-check 1: prod-build 사용자 시나리오 smoke (<code>kzk-pre-merge-sync §6</code> 참조)</li>
+      <li>Sub-check 2: stub sweep (<code>kzk-pre-merge-sync §5</code> 참조)</li>
+      <li>Sub-check 3: SoT alignment (<code>kzk-pre-merge-sync §7</code> 참조)</li>
+      <li>Sub-check 4: spec-freeze 재확인 — 시각/레이아웃 modifier 흡수 여부 (예: "Gridly 스타일") screenshot 비교</li>
+      <li>4 sub-check 모두 PASS → <code>KZK_CYCLE_EXIT_VERIFIED=1</code> + 원래 명령 재시도</li>
+    </ul>
     <h4>산출물</h4>
     <ul>
       <li>브랜치 계약 결정 (같은 턴 내)</li>
       <li>user-queue.md Q-* 항목 (중단 시)</li>
-      <li>Fresh-agent verifier 디스패치</li>
+      <li>Fresh-agent verifier 디스패치 (자율 완료 + 사이클-exit)</li>
     </ul>
     <h4>이어지는 스킬</h4>
     <div class="triggers">
@@ -781,6 +792,7 @@ flowchart TD
       <a href="#s-playwright-verification"><span class="chip">kzk-playwright-verification</span></a>
       <a href="#s-tool-retry"><span class="chip">kzk-tool-retry</span></a>
       <a href="#s-codebase-survey"><span class="chip">kzk-codebase-survey</span> (pre-dispatch requirement)</a>
+      <a href="#s-pre-merge-sync"><span class="chip">kzk-pre-merge-sync</span> (§5/§6/§7 sub-check)</a>
     </div>
     <h4>SoT</h4>
     <p><code>harness-share.md §2 + §33</code></p>
@@ -871,16 +883,19 @@ flowchart TD
 
   <!-- ============== kzk-pre-merge-sync ============== -->
   <div class="card" id="s-pre-merge-sync">
-    <div class="head"><span class="name">kzk-pre-merge-sync</span><span class="ver">v1.8.0</span></div>
-    <div class="blurb">PR 생성 (또는 direct-main milestone) 직전 4-step 체크리스트. CLAUDE.md sync → deepinit → hook auto-enable → freshness sweep.</div>
+    <div class="head"><span class="name">kzk-pre-merge-sync</span><span class="ver">v1.9.0</span></div>
+    <div class="blurb">PR 생성 (또는 direct-main milestone) 직전 7-step 체크리스트. CLAUDE.md sync → deepinit → hook auto-enable → freshness sweep → stub sweep → prod-build smoke → SoT alignment.</div>
     <h4>트리거</h4>
     <div class="triggers"><span class="chip k">merge</span><span class="chip k">feature branch</span><span class="chip k">CLAUDE.md sync</span><span class="chip k">deepinit</span><span class="chip k">pre-merge</span><span class="chip k">milestone</span></div>
-    <h4>4단계</h4>
+    <h4>7단계</h4>
     <ol>
       <li>CLAUDE.md sync (six sections: Tech Stack / Project Structure / API Endpoints / DB / Key Rules / Env Vars)</li>
       <li><code>/oh-my-claudecode:deepinit</code> mandatory run</li>
       <li>Hook auto-enable: <code>regression-recall</code> + <code>fix-scope-trigger</code> (jq verification, user explicit confirm)</li>
       <li>Branch-wide freshness sweep (<code>kzk-freshness-guard</code>)</li>
+      <li>§5 Stub sweep: <code>git log --grep='STUB:'</code> + JSX 주석 + UI 텍스트 패턴; 사용자 노출 미해결 stub → BLOCK, 플래그 뒤 → WARN</li>
+      <li>§6 Prod-build 사용자 시나리오 smoke: <code>npm run build &amp;&amp; node dist/main</code> (또는 <code>vite preview</code>) + Playwright 3+ 페이지, 콘솔 오류 0, 네트워크 4xx/5xx 0</li>
+      <li>§7 SoT alignment: <code>docs/sot/feature-list.md</code> (또는 동등) <code>wip</code>/<code>tbd</code>/<code>todo</code> 마커 vs staged 코드 feature symbol; CRG <code>semantic_search_nodes</code> 우선, grep fallback</li>
     </ol>
     <h4>이어지는 스킬</h4>
     <div class="triggers">
@@ -1068,15 +1083,25 @@ flowchart TD
 
   <!-- ============== kzk-fix-scope-expansion ============== -->
   <div class="card" id="s-fix-scope-expansion">
-    <div class="head"><span class="name">kzk-fix-scope-expansion</span><span class="ver">v1.6.0</span><span class="badge gate">gate</span><span class="badge hook">hook</span></div>
-    <div class="blurb">fix-start 시 callsite 전수 → 캐시 저장. Gate 4.5 에서 staged diff 와 캐시 비교, mismatch 시 commit BLOCK. 동일 layer 2× fail 시 fix-layer pivot (L0 → L3).</div>
+    <div class="head"><span class="name">kzk-fix-scope-expansion</span><span class="ver">v1.7.0</span><span class="badge gate">gate</span><span class="badge hook">hook</span></div>
+    <div class="blurb">fix-start 시 callsite 전수 → 캐시 저장. Gate 4.5 에서 staged diff 와 캐시 비교, mismatch 시 commit BLOCK. 동일 layer 2× fail 시 fix-layer pivot (L0 → L3). v1.7.0: API deprecation flow 추가 — endpoint 삭제 / <code>@deprecated</code> / <code>API 폐지</code> 시 CRG <code>detect-changes --base HEAD~1</code> 로 전체 caller 전수 sweep.</div>
     <h4>트리거</h4>
-    <div class="triggers"><span class="chip k">callsite 전수</span><span class="chip k">Gate 4.5</span><span class="chip k">fix-scope-cache</span><span class="chip k">callsite mismatch</span><span class="chip k">KZK_GATE45_SKIP</span></div>
+    <div class="triggers"><span class="chip k">callsite 전수</span><span class="chip k">Gate 4.5</span><span class="chip k">fix-scope-cache</span><span class="chip k">callsite mismatch</span><span class="chip k">KZK_GATE45_SKIP</span><span class="chip k">endpoint 삭제</span><span class="chip k">deprecate</span><span class="chip k">@deprecated</span><span class="chip k">API 폐지</span></div>
+    <h4>핵심 메커니즘</h4>
+    <ul>
+      <li>fix-start callsite 전수 → <span class="path">.kzk-harness/fix-scope-cache.jsonl</span></li>
+      <li>Gate 4.5 캐시 vs staged diff 비교 → mismatch 시 BLOCK</li>
+      <li>동일 layer 2× fail → fix-layer pivot (L0 → L3)</li>
+      <li>API deprecation flow (v1.7.0): endpoint 경로 패턴 grep + CRG <code>detect-changes --base HEAD~1</code> → 전체 caller 열거 → 캐시 추가</li>
+    </ul>
     <h4>관련 훅</h4>
     <ul>
       <li><span class="path">install/hooks/fix-scope-trigger.mjs</span> — UserPromptSubmit; CRG detect-changes / grep fallback</li>
       <li>Cache location: <span class="path">.kzk-harness/fix-scope-cache.jsonl</span></li>
     </ul>
+    <div class="triggers">
+      <a href="#s-pre-merge-sync"><span class="chip">kzk-pre-merge-sync</span> (Gate 4.5와 동시 작동)</a>
+    </div>
     <h4>SoT</h4>
     <p><code>harness-share.md §3.5</code></p>
   </div>
@@ -1144,6 +1169,7 @@ flowchart TD
       <tr><td>자가개선 사이클</td><td><code>kzk-large-task-delegation</code> + <code>kzk-pre-commit-gate</code> + <code>kzk-autonomous-loop</code></td></tr>
       <tr><td>멀티-파일 코드 변경 (3+ 파일 / 200+ LoC)</td><td><code>kzk-large-task-delegation §Model routing</code> (executor sonnet)</td></tr>
       <tr><td>사이클 끝에서 commit</td><td><code>kzk-pre-commit-gate</code> Gate 0–5 + <code>kzk-pre-merge-sync</code></td></tr>
+      <tr><td>사이클-exit / milestone commit (<code>MILESTONE:</code> / <code>CYCLE-EXIT:</code> / <code>STUB-CLEAR:</code> 마커)</td><td><code>check-cycle-exit.mjs</code> 훅 (Gate 6) → <code>kzk-autonomous-boundary §사이클-exit mandate</code> → fresh-agent verifier 4 sub-check → <code>KZK_CYCLE_EXIT_VERIFIED=1</code> 재시도</td></tr>
       <tr><td>다중 사이클 자율 실행</td><td><code>kzk-autonomous-loop</code> + <code>kzk-autonomous-boundary</code></td></tr>
       <tr><td>Production / DB / IAM 작업</td><td><code>kzk-production-access</code></td></tr>
       <tr><td>UI 변경 commit</td><td><code>kzk-playwright-verification</code> (Gate 4)</td></tr>
@@ -1315,7 +1341,7 @@ flowchart TD
 </section>
 
 <section id="hooks-infra">
-  <h2>10. 훅 인프라 — 글로벌 8개 + 프로젝트 전용 1개</h2>
+  <h2>10. 훅 인프라 — 글로벌 9개 + 프로젝트 전용 1개</h2>
   <p>스킬 본문은 마크다운이므로 스스로 행동을 강제할 수 없습니다. 훅이 런타임에서 실제 강제 실행을 담당합니다.</p>
 
   <div class="card">
@@ -1433,9 +1459,31 @@ flowchart TD
     </p>
   </div>
 
+  <div class="card">
+    <div class="head"><span class="name">check-cycle-exit.mjs</span><span class="badge hook">hook</span><span class="badge gate">gate</span></div>
+    <div class="blurb">Gate 6 — 사이클-exit 신호가 있는 commit / PR 생성 / main push 직전 fresh-agent verifier + 4 sub-check mandate 를 강제합니다. PreToolUse Bash 훅 체인에서 <code>check-skill-flow-fresh.mjs</code> 다음에 실행 (AND 조건: 둘 다 통과해야 commit 진행).</div>
+    <h4>이벤트</h4><p>PreToolUse (Bash — 사이클-exit 마커 <code>git commit</code>, <code>gh pr create</code>, <code>git push origin main</code> 인터셉트)</p>
+    <h4>신호 감지</h4>
+    <ul>
+      <li><strong>Signal A</strong>: <code>gh pr create|merge</code> / <code>git push origin main</code> (모든 refspec 형식: <code>HEAD:main</code>, <code>&lt;sha&gt;:main</code>, <code>feature/foo:main</code>)</li>
+      <li><strong>Signal B</strong>: <code>git commit</code> 메시지가 <code>^MILESTONE:</code> / <code>^CYCLE-EXIT:</code> / <code>^STUB-CLEAR:</code> 매칭 (multiline, 대소문자 구분)</li>
+    </ul>
+    <h4>주요 세부사항</h4>
+    <ul>
+      <li>레포 로컬: <span class="path">.claude/hooks/check-cycle-exit.mjs</span></li>
+      <li>글로벌 (기본 전파): <span class="path">~/.claude/skills/.kzk-harness-shared/hooks/check-cycle-exit.mjs</span></li>
+      <li>통과: <code>KZK_CYCLE_EXIT_VERIFIED=1 &lt;원래 명령&gt;</code> (verifier PASS 후)</li>
+      <li>비상 bypass: <code>KZK_CYCLE_EXIT_SKIP=1</code> — user-queue.md 에 <span class="chip q">Q-CYCLE-EXIT-STALE</span> 자동 추가</li>
+      <li>비활성화 (설치된 환경): <code>KZK_CYCLE_EXIT_DISABLE=1</code> — 큰 stderr 경고 + <span class="chip q">Q-CYCLE-EXIT-DISABLED</span></li>
+      <li>충돌: <code>VERIFIED</code> + <code>SKIP</code> 동시 설정 → BLOCK (fail-closed, "conflicting trust states" 메시지)</li>
+      <li>Scope: <strong>global</strong> (install-global.sh 기본 전파)</li>
+    </ul>
+  </div>
+
   <p>
-    8개 글로벌 훅은 <code>install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard</code> 로 활성화합니다.
+    9개 글로벌 훅은 <code>install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard</code> 로 활성화합니다.
     <span class="path">~/.claude/skills/.kzk-harness-shared/hooks/</span> 에 복사되고 <span class="path">~/.claude/settings.json</span> 의 해당 이벤트 배열에 등록됩니다.
+    <code>check-cycle-exit.mjs</code> 는 기본 전파 (추가 플래그 불필요).
   </p>
 </section>
 
