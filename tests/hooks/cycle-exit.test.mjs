@@ -304,6 +304,45 @@ test("Bypass: KZK_CYCLE_EXIT_VERIFIED=1 with Signal A (push) → pass", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Inline env var prefix bypass (6 cases)
+// ---------------------------------------------------------------------------
+
+test("Inline env: KZK_CYCLE_EXIT_VERIFIED=1 git commit -m CYCLE-EXIT → pass", () => {
+  const r = runHook('KZK_CYCLE_EXIT_VERIFIED=1 git commit -m "CYCLE-EXIT: cycle 55"');
+  assert.equal(r.didPass, true, "inline VERIFIED=1 prefix should allow through");
+});
+
+test("Inline env: KZK_CYCLE_EXIT_SKIP=1 git commit -m CYCLE-EXIT → pass", () => {
+  const r = runHook('KZK_CYCLE_EXIT_SKIP=1 git commit -m "CYCLE-EXIT: cycle 55"');
+  assert.equal(r.didPass, true, "inline SKIP=1 prefix should allow through");
+});
+
+test("Inline env: KZK_CYCLE_EXIT_DISABLE=1 git commit -m CYCLE-EXIT → pass", () => {
+  const r = runHook('KZK_CYCLE_EXIT_DISABLE=1 git commit -m "CYCLE-EXIT: cycle 55"');
+  assert.equal(r.didPass, true, "inline DISABLE=1 prefix should allow through");
+});
+
+test("Inline env conflict: KZK_CYCLE_EXIT_VERIFIED=1 KZK_CYCLE_EXIT_SKIP=1 → BLOCK", () => {
+  const r = runHook('KZK_CYCLE_EXIT_VERIFIED=1 KZK_CYCLE_EXIT_SKIP=1 git commit -m "CYCLE-EXIT: x"');
+  assert.equal(r.didPass, false, "inline VERIFIED+SKIP conflict should block");
+  assert.ok(
+    r.reason?.includes("conflicting trust states"),
+    `reason should mention conflicting trust states: ${r.reason}`,
+  );
+});
+
+test("Inline env multi-prefix: OTHER=val KZK_CYCLE_EXIT_VERIFIED=1 → pass", () => {
+  const r = runHook('OTHER=val KZK_CYCLE_EXIT_VERIFIED=1 git commit -m "CYCLE-EXIT: x"');
+  assert.equal(r.didPass, true, "multi-var inline env with VERIFIED=1 should pass");
+});
+
+test("Inline env false-positive: KZK_CYCLE_EXIT_VERIFIED=1 inside quoted -m → BLOCK", () => {
+  // The env var text appears inside the commit message, not as a real prefix
+  const r = runHook('git commit -m "CYCLE-EXIT: x KZK_CYCLE_EXIT_VERIFIED=1"');
+  assert.equal(r.didPass, false, "KZK_CYCLE_EXIT_VERIFIED=1 inside quoted message must not bypass");
+});
+
+// ---------------------------------------------------------------------------
 // Edge cases (4 cases)
 // ---------------------------------------------------------------------------
 

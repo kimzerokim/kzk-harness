@@ -157,6 +157,23 @@ function stripQuotedAndHeredoc(str) {
   return str;
 }
 
+// Extract leading KEY=VAL prefix env vars from a command string.
+// Uses stripQuotedAndHeredoc to neutralize quoted content first,
+// preventing matches inside quoted arguments (e.g., -m "KEY=VAL cmd").
+function parseInlineEnv(command) {
+  const stripped = stripQuotedAndHeredoc(command);
+  const re = /^\s*((?:[A-Z_][A-Z0-9_]*=[^\s]*\s+)+)/;
+  const m = stripped.match(re);
+  const env = {};
+  if (m) {
+    for (const a of m[1].trim().split(/\s+/)) {
+      const idx = a.indexOf("=");
+      if (idx > 0) env[a.slice(0, idx)] = a.slice(idx + 1);
+    }
+  }
+  return env;
+}
+
 function detectSignalA(command) {
   const stripped = stripQuotedAndHeredoc(command);
   if (SIGNAL_A_GH_PR.test(stripped)) return { signal: "A", pattern: "gh pr create|merge" };
@@ -263,10 +280,11 @@ if (!command) pass();
 const signalHit = detectSignalA(command) ?? detectSignalB(command);
 if (!signalHit) pass();
 
-// Signal matched — check bypass env vars
-const verified = process.env.KZK_CYCLE_EXIT_VERIFIED === "1";
-const skip = process.env.KZK_CYCLE_EXIT_SKIP === "1";
-const disable = process.env.KZK_CYCLE_EXIT_DISABLE === "1";
+// Signal matched — check bypass env vars (process.env OR inline prefix on command)
+const inlineEnv = parseInlineEnv(command);
+const verified = process.env.KZK_CYCLE_EXIT_VERIFIED === "1" || inlineEnv.KZK_CYCLE_EXIT_VERIFIED === "1";
+const skip = process.env.KZK_CYCLE_EXIT_SKIP === "1" || inlineEnv.KZK_CYCLE_EXIT_SKIP === "1";
+const disable = process.env.KZK_CYCLE_EXIT_DISABLE === "1" || inlineEnv.KZK_CYCLE_EXIT_DISABLE === "1";
 
 // Conflict: VERIFIED + SKIP both set → BLOCK (fail-closed)
 if (verified && skip) {
