@@ -198,8 +198,9 @@ const reason = REASONS[errClass] ?? REASONS.other;
 // ---------------------------------------------------------------------------
 if (retryCount >= 2) {
   try {
-    const repoRoot = process.env.CLAUDE_PROJECT_DIR ?? process.cwd();
-    const queueFile = path.join(repoRoot, "docs", "harness", "user-queue.md");
+    const queueDir = process.env.KZK_QUEUE_DIR_OVERRIDE
+      ?? path.join(process.env.CLAUDE_PROJECT_DIR ?? process.cwd(), "docs", "harness");
+    const queueFile = path.join(queueDir, "user-queue.md");
     if (fs.existsSync(queueFile)) {
       const ts = new Date().toISOString();
       const entry =

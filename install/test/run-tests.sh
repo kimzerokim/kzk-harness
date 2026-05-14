@@ -717,6 +717,16 @@ else
   ERRORS+=("autonomous-stop-guard.test.mjs")
 fi
 
+# Cycle 57 — check-hook-pair-sync
+printf '\n--- check-hook-pair-sync.mjs (Cycle 57) ---\n'
+if node --test "$REPO_ROOT/install/test/check-hook-pair-sync.mjs"; then
+  PASS=$((PASS + 1))
+  printf '  PASS: check-hook-pair-sync.mjs\n'
+else
+  FAIL=$((FAIL + 1))
+  ERRORS+=("check-hook-pair-sync.mjs")
+fi
+
 printf '\n'
 printf '=%.0s' {1..60}
 printf '\n'

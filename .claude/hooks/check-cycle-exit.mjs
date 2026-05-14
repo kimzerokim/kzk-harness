@@ -30,6 +30,7 @@ const REPO_ROOT = path.resolve(__dirname, "..", "..");
 // Signal patterns (per plan §3.3)
 // ---------------------------------------------------------------------------
 
+// ===== shared:start signal-constants =====
 // Signal A: PR/push to main
 const SIGNAL_A_GH_PR = /\bgh\s+pr\s+(create|merge)\b/;
 const SIGNAL_A_GIT_PUSH = /\bgit\s+push\b.*\borigin\s+(?:[^\s:]+:)?main\b/;
@@ -39,6 +40,7 @@ const SIGNAL_B_MARKER = /^(MILESTONE:|CYCLE-EXIT:|STUB-CLEAR:)/m;
 
 // Signal B: git commit command
 const GIT_COMMIT_RE = /(^|\s|;|&&|\|\|)git\s+commit\b/;
+// ===== shared:end signal-constants =====
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -54,6 +56,7 @@ function block(reason) {
   process.exit(0);
 }
 
+// ===== shared:start appendUserQueue =====
 function appendUserQueue(entryType, context) {
   try {
     const queueDir = process.env.KZK_QUEUE_DIR_OVERRIDE
@@ -81,7 +84,9 @@ function appendUserQueue(entryType, context) {
     /* best-effort — don't block on queue write failure */
   }
 }
+// ===== shared:end appendUserQueue =====
 
+// ===== shared:start extractCommitMessage =====
 // Extract commit message from git commit command string
 function extractCommitMessage(command) {
   // Try -m "..." or -m '...' (multiple -m args concatenated with newline)
@@ -120,7 +125,9 @@ function extractCommitMessage(command) {
 
   return null; // nothing found → fail-open
 }
+// ===== shared:end extractCommitMessage =====
 
+// ===== shared:start stripQuotedAndHeredoc =====
 // Strip HEREDOC bodies and quoted strings before Signal A pattern matching.
 // This prevents false positives when command text like "gh pr create" appears
 // inside a HEREDOC body or quoted string (e.g., inside a git commit -m "$(cat <<'EOF'...)").
@@ -133,7 +140,9 @@ function stripQuotedAndHeredoc(str) {
   str = str.replace(/'(?:[^'\\]|\\.)*'/g, "''");
   return str;
 }
+// ===== shared:end stripQuotedAndHeredoc =====
 
+// ===== shared:start parseInlineEnv =====
 // Extract leading KEY=VAL prefix env vars from a command string.
 // Uses stripQuotedAndHeredoc to neutralize quoted content first,
 // preventing matches inside quoted arguments (e.g., -m "KEY=VAL cmd").
@@ -153,14 +162,18 @@ function parseInlineEnv(command) {
   }
   return env;
 }
+// ===== shared:end parseInlineEnv =====
 
+// ===== shared:start detectSignalA =====
 function detectSignalA(command) {
   const stripped = stripQuotedAndHeredoc(command);
   if (SIGNAL_A_GH_PR.test(stripped)) return { signal: "A", pattern: "gh pr create|merge" };
   if (SIGNAL_A_GIT_PUSH.test(stripped)) return { signal: "A", pattern: "git push origin main" };
   return null;
 }
+// ===== shared:end detectSignalA =====
 
+// ===== shared:start detectSignalB =====
 function detectSignalB(command) {
   if (!GIT_COMMIT_RE.test(command)) return null;
 
@@ -174,6 +187,7 @@ function detectSignalB(command) {
 
   return { signal: "B", pattern: markerMatch[0].trim() };
 }
+// ===== shared:end detectSignalB =====
 
 const BLOCK_MESSAGE = (signalLabel, pattern) =>
   `🛑 Cycle-exit detected (signal: ${signalLabel} / pattern: ${pattern}).
@@ -260,6 +274,7 @@ if (!command) pass();
 const signalHit = detectSignalA(command) ?? detectSignalB(command);
 if (!signalHit) pass();
 
+// ===== shared:start bypass-decision =====
 // Signal matched — check bypass env vars (process.env OR inline prefix on command)
 const inlineEnv = parseInlineEnv(command);
 const verified = process.env.KZK_CYCLE_EXIT_VERIFIED === "1" || inlineEnv.KZK_CYCLE_EXIT_VERIFIED === "1";
@@ -303,3 +318,4 @@ if (skip) {
 
 // BLOCK
 block(BLOCK_MESSAGE(signalHit.signal, signalHit.pattern));
+// ===== shared:end bypass-decision =====

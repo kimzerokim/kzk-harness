@@ -139,6 +139,7 @@ test("Edit 1st 'not been read yet' → not-read reason", () => {
 // ---------------------------------------------------------------------------
 test("2nd consecutive failure → continue + Q-TOOL additionalContext", () => {
   const stateDir = freshStateDir();
+  const queueDir = freshStateDir();
   const filePath = "/tmp/test-t6.txt";
 
   // 1st failure
@@ -148,7 +149,7 @@ test("2nd consecutive failure → continue + Q-TOOL additionalContext", () => {
       tool_input: { file_path: filePath },
       tool_response: { is_error: true, content: "Error editing file" },
     },
-    env: { KZK_TEST_STATE_DIR: stateDir },
+    env: { KZK_TEST_STATE_DIR: stateDir, KZK_QUEUE_DIR_OVERRIDE: queueDir },
   });
   const out1 = JSON.parse(r1.stdout);
   assert.equal(out1.decision, "block");
@@ -160,12 +161,15 @@ test("2nd consecutive failure → continue + Q-TOOL additionalContext", () => {
       tool_input: { file_path: filePath },
       tool_response: { is_error: true, content: "Error editing file" },
     },
-    env: { KZK_TEST_STATE_DIR: stateDir },
+    env: { KZK_TEST_STATE_DIR: stateDir, KZK_QUEUE_DIR_OVERRIDE: queueDir },
   });
   const out2 = JSON.parse(r2.stdout);
   assert.equal(out2.decision, undefined, "2nd failure should NOT block (passes through)");
   assert.ok(out2.hookSpecificOutput, "expected hookSpecificOutput");
   assert.match(out2.hookSpecificOutput.additionalContext, /Q-TOOL-EDIT-RETRY-EXHAUSTED/);
+
+  // Cleanup queue dir
+  fs.rmSync(queueDir, { recursive: true, force: true });
 });
 
 // ---------------------------------------------------------------------------
