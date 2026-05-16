@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>kzk-harness — Skill &amp; Workflow Map</title>
-<!-- KZK_SKILL_FLOW_FINGERPRINT: f9a71bf946cd959a -->
+<!-- KZK_SKILL_FLOW_FINGERPRINT: 3228adfaef266d62 -->
 <!--
   Single-page reference for the 18 kzk-* skills, their workflow entry points,
   and the hook infrastructure that enforces discipline at runtime.
@@ -633,14 +633,15 @@ flowchart TD
   G15 --> G16[Gate 1.6<br/>kzk-production-access<br/>code-first check]
   G16 --> G2[Gate 2<br/>build green]
   G2 --> G3[Gate 3<br/>module test]
-  G3 --> G4[Gate 4<br/>kzk-playwright-verification<br/>UI smoke]
+  G3 --> G35[Gate 3.5<br/>docker-compose-gate.mjs<br/>conditional docker smoke]
+  G35 --> G4[Gate 4<br/>kzk-playwright-verification<br/>UI smoke]
   G4 --> G45[Gate 4.5<br/>kzk-fix-scope-expansion<br/>callsite cache]
   G45 --> G5[Gate 5<br/>fresh-agent verifier<br/>via kzk-large-task-delegation]
   G5 --> G6[Gate 6<br/>check-cycle-exit.mjs<br/>cycle-exit verifier]
   G6 --> OK[commit proceeds<br/>+ post-commit CRG refresh]
 
   classDef gate fill:#fbeee0,stroke:#b86e00,color:#1d1d1f;
-  class G0,G05,G1,G15,G16,G2,G3,G4,G45,G5,G6 gate;
+  class G0,G05,G1,G15,G16,G2,G3,G35,G4,G45,G5,G6 gate;
 </pre>
   </div>
 </section>
@@ -669,6 +670,7 @@ flowchart TD
       <li>Gate 1.5: secrets grep (<code>AKIA</code>, <code>ASIA</code>)</li>
       <li>Gate 1.6: production-access code-first check (shell command detection)</li>
       <li>Gate 2/3: <code>npm run build</code> / <code>npm test</code> (scoped)</li>
+      <li>Gate 3.5: <code>docker-compose-gate.mjs</code> — fires only on <code>git commit</code> / <code>gh pr create-merge</code> / <code>git push origin main</code> with staged files matching <code>(^|/)Dockerfile(\..+)?$</code> / <code>(^|/)(docker-)?compose(\..+)?\.ya?ml$</code> / <code>(^|/)backend/</code>. Doc-only commits (any of <code>.md / .mdx / .rst / .adoc / .txt</code> or special files <code>CLAUDE.md / DESIGN.md / harness-share.md / README.md / AGENTS.md / LICENSE / CHANGELOG.md / docs/</code> etc.) skip. Bypass env precedence <code>KZK_GATE35_DISABLE=1</code> &gt; <code>KZK_GATE35_SKIP=1</code> &gt; <code>CI=true</code> with queue codes <code>Q-GATE35-DISABLED</code> / <code>Q-GATE35-SKIPPED</code> / <code>Q-GATE35-CI-SKIP</code>. Runs <code>docker compose up --build -d</code> (timeout <code>dockerTimeoutMs</code> default 600000ms) + optional smoke endpoint from <code>.kzk/docker-smoke.json</code> (<code>endpoint</code>, <code>method</code> GET/HEAD, <code>smokeTimeoutMs</code> default 30000ms). OPT-IN propagation via <code>install-global.sh --docker-gate</code> (tier alongside <code>--regression-recall</code> / <code>--fix-scope-trigger</code> / <code>--freshness-guard</code>); runtime opt-out <code>KZK_GATE35_DISABLE=1</code>.</li>
       <li>Gate 4: <code>kzk-playwright-verification</code> (UI changes only)</li>
       <li>Gate 4.5: <code>kzk-fix-scope-expansion</code> (callsite cache validation)</li>
       <li>Gate 5: fresh-agent verifier (cache key = staged_diff_hash + acceptance_hash + verifier_model)</li>

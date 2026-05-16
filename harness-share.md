@@ -182,6 +182,18 @@ npm test -- --testPathPatterns=<changed-area>
 
 전체 회귀는 PR 시점에.
 
+### Gate 3.5 — Conditional docker compose smoke
+
+**Trigger**: `git commit` / `gh pr create|merge` / `git push origin main` (commit-signal guard — other Bash commands silent passthrough). Staged files match `/(^|\/)Dockerfile(\..+)?$/`, `/(^|\/)(docker-)?compose(\..+)?\.ya?ml$/`, `/(^|\/)backend\//`, or custom `triggers.includes` glob (`.kzk/docker-smoke.json`). Doc-only commit → skip (N/A).
+
+**Docker command**: `docker compose up --build -d` (default timeout 600000ms).
+
+**Optional smoke endpoint**: `.kzk/docker-smoke.json` `endpoint` field → GET/HEAD → non-2xx BLOCK.
+
+**Bypass env** (precedence DISABLE > SKIP > CI): `KZK_GATE35_DISABLE=1` (`Q-GATE35-DISABLED`) / `KZK_GATE35_SKIP=1` (`Q-GATE35-SKIPPED`) / `CI=true` (`Q-GATE35-CI-SKIP`). Inline prefix: `KZK_GATE35_SKIP=1 git commit ...`.
+
+**OPT-IN**: `install-global.sh --docker-gate`. Hook pair: `.claude/hooks/docker-compose-gate.mjs` ↔ `install/hooks/docker-compose-gate.mjs`.
+
 ### Gate 4 — UI/CSS visual verification (Playwright MCP)
 
 **변경 파일에 `src/**/*.{tsx,ts,css}` 1개라도 포함되면 의무** (your repo's frontend glob). skip 금지.
@@ -223,9 +235,10 @@ npm test -- --testPathPatterns=<changed-area>
 
 ### Doc-only commit 예외
 
-source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `docs/**`, `harness-flow-progress.md`, `CLAUDE.md`, `DESIGN.md`, `skills/**/*.md`, `.claude/skills/**/*.md`, `docs/screenshots/**`):
+source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `*.mdx`, `*.rst`, `*.adoc`, `*.txt`, `docs/**`, `harness-flow-progress.md`, `CLAUDE.md`, `DESIGN.md`, `skills/**/*.md`, `.claude/skills/**/*.md`, `docs/screenshots/**`):
 - Gate 2 (build) + Gate 3 (test) skip
 - Gate 1 (ai-slop-cleaner) 변경 md 에 한해 필요시
+- Gate 3.5 N/A (doc-only commit exception — no docker trigger)
 - Gate 4 N/A
 - autonomous 모드 = 사용자 확인 없이 commit 허용. 평소 = 사용자 확인
 
@@ -237,7 +250,7 @@ source code 변경 없이 문서/설정/screenshot 만 수정 (예: `*.md`, `doc
 
 ### Doc-only fast path
 
-Staged diff = only `*.md` (skills / harness-share / CLAUDE / README / progress / docs/) + no source file → run only Gate 1.5 (secrets) + verify-install AC2 (marker row count). Full gate set runs once at cycle close. See `kzk-pre-commit-gate §Doc-only patch policy`.
+Staged diff = only `*.md`, `*.mdx`, `*.rst`, `*.adoc`, `*.txt` (skills / harness-share / CLAUDE / README / progress / docs/) + no source file → run only Gate 1.5 (secrets) + verify-install AC2 (marker row count). Full gate set runs once at cycle close. See `kzk-pre-commit-gate §Doc-only patch policy`.
 
 ## 3.5. CRG Auto-refresh Policy
 
@@ -605,7 +618,7 @@ TDD red 단계에서 implementation 본 후 거기에 맞춘 test 작성하는 �
 
 자율실행 mode + code-file change → TDD strict 자동 적용. explicit 'tdd' 키워드 불필요.
 
-- **정의**: 자율 mode 활성 (Category A 동사구 OR `KZK_AUTONOMOUS=1`, §33 참조) AND staged/in-progress diff 에 code-file 변경 포함 (doc-only 제외 — `*.md`, `docs/**`, `skills/**/*.md`, `harness-share.md`, `CLAUDE.md`, `AGENTS.md` 는 doc-only; SoT: `kzk-pre-commit-gate §doc-only fast path`).
+- **정의**: 자율 mode 활성 (Category A 동사구 OR `KZK_AUTONOMOUS=1`, §33 참조) AND staged/in-progress diff 에 code-file 변경 포함 (doc-only 제외 — `*.md`, `*.mdx`, `*.rst`, `*.adoc`, `*.txt`, `docs/**`, `skills/**/*.md`, `harness-share.md`, `CLAUDE.md`, `AGENTS.md` 는 doc-only; SoT: `kzk-pre-commit-gate §doc-only fast path`).
 - **절차 본문**: `kzk-test-coverage §Autonomous mode TDD enforcement` (code-file 정의 + enforcement + skip 조건 + TDD evidence contract + infra-missing fallback 포함).
 - **Halt entry**: `Q-TDD-AUTO-MISSING` — 자율 mode + code-file 변경 감지 후 해당 cycle 에 failing→passing test 없이 commit 시도 시 halt. 등록: `kzk-autonomous-boundary §Halt conditions`.
 - **Evidence contract**: commit-message footer 필수 — `TDD evidence: test_files=…, covers_code=…, runner=…, runner_exit=0`. 3-artifact 요건 미충족 시 `Q-TDD-AUTO-MISSING`. 본문: `kzk-test-coverage §Autonomous mode TDD enforcement §TDD evidence per cycle`.

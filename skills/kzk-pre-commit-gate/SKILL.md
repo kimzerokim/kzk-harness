@@ -1,7 +1,7 @@
 ---
 name: kzk-pre-commit-gate
-version: 1.12.0
-description: "Pre-commit gate runs sequential gates (AGENTS.md sync, freshness Gate 0.5, ai-slop, secrets AKIA/ASIA, prod code-first, build, test, Playwright Gate 4, fix-scope Gate 4.5, fresh-agent verifier Gate 5) before every commit. One FAIL blocks. Triggers: commit, pre-commit, Gate 0-5. References harness-share.md §3."
+version: 1.13.0
+description: "Pre-commit gate runs sequential gates (AGENTS.md sync, freshness Gate 0.5, ai-slop, secrets AKIA/ASIA, prod code-first, build, test, docker compose smoke Gate 3.5, Playwright Gate 4, fix-scope Gate 4.5, fresh-agent verifier Gate 5) before every commit. One FAIL blocks. Triggers: commit, pre-commit, Gate 0-5. References harness-share.md §3."
 ---
 
 > Authoritative source: `harness-share.md` §3. On conflict, that wins.
@@ -95,6 +95,39 @@ Run the repo's build command (e.g. `npm run build`). Verify dist artifact exists
 ## Gate 3 — module test pass
 
 `npm test` scoped to changed area is acceptable mid-work. Full regression at PR time.
+
+## Gate 3.5 — Conditional docker compose smoke
+
+**Trigger condition** (path-aware, NOT root-anchored):
+
+Runs when ALL of the following are true:
+1. Bash command is `git commit` / `gh pr create|merge` / `git push origin main` (commit-signal guard — other commands silent passthrough).
+2. Staged files include at least one match for `/(^|\/)Dockerfile(\..+)?$/`, `/(^|\/)(docker-)?compose(\..+)?\.ya?ml$/`, or `/(^|\/)backend\//` (or custom `triggers.includes` globs from `.kzk/docker-smoke.json`).
+3. Commit is NOT doc-only (all staged files match doc extensions / doc directories — same exception as Gate 5).
+
+**Bypass env precedence** (highest to lowest):
+- `KZK_GATE35_DISABLE=1` → persistent disable + queue code `Q-GATE35-DISABLED`
+- `KZK_GATE35_SKIP=1` → one-shot skip + queue code `Q-GATE35-SKIPPED`
+- `CI=true` or `CI=1` → CI auto-skip + queue code `Q-GATE35-CI-SKIP`
+- Inline env-prefix form: `KZK_GATE35_SKIP=1 git commit ...`
+
+**Docker command**: `docker compose up --build -d` (timeout default 600000ms, configurable).
+
+**Optional smoke endpoint**: if `.kzk/docker-smoke.json` has an `endpoint` field, a GET (or HEAD) is issued after docker up. Non-2xx response → BLOCK.
+
+**Config file** (`.kzk/docker-smoke.json`, optional):
+- `endpoint` — smoke ping URL (absent = build success only)
+- `method` — `"GET"` | `"HEAD"` (default `"GET"`)
+- `dockerTimeoutMs` — 1–3600000 (default 600000)
+- `smokeTimeoutMs` — 1–300000 (default 30000)
+- `triggers.includes` / `triggers.excludes` — additional glob patterns
+- Malformed JSON → BLOCK (fail-loud, not silent ignore)
+
+**Failure behavior**: docker up non-zero or smoke ping non-2xx → commit blocked, stderr shown. Append queue entry with queue code.
+
+**OPT-IN propagation**: `install-global.sh --docker-gate` flag. Runtime disable: `KZK_GATE35_DISABLE=1`.
+
+**Hook**: `docker-compose-gate.mjs` (project-local `.claude/hooks/` ↔ global `install/hooks/` pair, 9 marker regions byte-equal per cycle 57 drift-detection pattern).
 
 ## Gate 4 — UI/CSS visual verification (Playwright MCP)
 

@@ -632,14 +632,15 @@ flowchart TD
   G15 --> G16[Gate 1.6<br/>kzk-production-access<br/>code-first check]
   G16 --> G2[Gate 2<br/>build green]
   G2 --> G3[Gate 3<br/>module test]
-  G3 --> G4[Gate 4<br/>kzk-playwright-verification<br/>UI smoke]
+  G3 --> G35[Gate 3.5<br/>docker-compose-gate.mjs<br/>조건부 docker smoke]
+  G35 --> G4[Gate 4<br/>kzk-playwright-verification<br/>UI smoke]
   G4 --> G45[Gate 4.5<br/>kzk-fix-scope-expansion<br/>callsite cache]
   G45 --> G5[Gate 5<br/>fresh-agent verifier<br/>via kzk-large-task-delegation]
   G5 --> G6[Gate 6<br/>check-cycle-exit.mjs<br/>사이클-exit verifier]
   G6 --> OK[commit proceeds<br/>+ post-commit CRG refresh]
 
   classDef gate fill:#fbeee0,stroke:#b86e00,color:#1d1d1f;
-  class G0,G05,G1,G15,G16,G2,G3,G4,G45,G5,G6 gate;
+  class G0,G05,G1,G15,G16,G2,G3,G35,G4,G45,G5,G6 gate;
 </pre>
   </div>
 </section>
@@ -668,6 +669,7 @@ flowchart TD
       <li>Gate 1.5: 시크릿 grep (<code>AKIA</code>, <code>ASIA</code>)</li>
       <li>Gate 1.6: production-access 코드 우선 체크 (쉘 명령 감지)</li>
       <li>Gate 2/3: <code>npm run build</code> / <code>npm test</code> (범위 지정)</li>
+      <li>Gate 3.5: <code>docker-compose-gate.mjs</code> — <code>git commit</code> / <code>gh pr create-merge</code> / <code>git push origin main</code> 일 때 staged 파일이 <code>(^|/)Dockerfile(\..+)?$</code> / <code>(^|/)(docker-)?compose(\..+)?\.ya?ml$</code> / <code>(^|/)backend/</code> 매치 시에만 발동. Doc-only 커밋 (<code>.md / .mdx / .rst / .adoc / .txt</code> 또는 <code>CLAUDE.md / DESIGN.md / harness-share.md / README.md / AGENTS.md / LICENSE / CHANGELOG.md / docs/</code> 등) 은 skip. Bypass env precedence <code>KZK_GATE35_DISABLE=1</code> &gt; <code>KZK_GATE35_SKIP=1</code> &gt; <code>CI=true</code> + queue codes <code>Q-GATE35-DISABLED</code> / <code>Q-GATE35-SKIPPED</code> / <code>Q-GATE35-CI-SKIP</code>. <code>docker compose up --build -d</code> 실행 (timeout <code>dockerTimeoutMs</code> default 600000ms) + 선택적 smoke endpoint (<code>.kzk/docker-smoke.json</code> 의 <code>endpoint</code>, <code>method</code> GET/HEAD, <code>smokeTimeoutMs</code> default 30000ms). OPT-IN propagation via <code>install-global.sh --docker-gate</code> (<code>--regression-recall</code> / <code>--fix-scope-trigger</code> / <code>--freshness-guard</code> 와 동일 tier); 런타임 opt-out <code>KZK_GATE35_DISABLE=1</code>.</li>
       <li>Gate 4: <code>kzk-playwright-verification</code> (UI 변경 시에만)</li>
       <li>Gate 4.5: <code>kzk-fix-scope-expansion</code> (callsite 캐시 검증)</li>
       <li>Gate 5: fresh-agent verifier (캐시 키 = staged_diff_hash + acceptance_hash + verifier_model)</li>

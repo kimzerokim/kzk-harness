@@ -1,27 +1,41 @@
 #!/usr/bin/env node
-// check-hook-pair-sync.mjs — Cycle 57 Goal A.
+// check-hook-pair-sync.mjs — Cycle 57 Goal A, Cycle 58 Phase D.
 //
-// Verifies that the `// ===== shared:<name> =====` regions in the hook pair
+// Verifies that the `// ===== shared:<name> =====` regions in each hook pair
 // are byte-identical. Code outside shared markers is allowed to diverge
 // (header, REPO_ROOT setup, CLI boilerplate).
 //
-// Hook pair:
-//   .claude/hooks/check-cycle-exit.mjs   (repo-local dogfood copy)
-//   install/hooks/check-cycle-exit.mjs   (propagation copy)
+// Hook pairs (PAIR_LIST):
+//   .claude/hooks/check-cycle-exit.mjs    ↔ install/hooks/check-cycle-exit.mjs
+//   .claude/hooks/docker-compose-gate.mjs ↔ install/hooks/docker-compose-gate.mjs
 //
 // Runner: node --test install/test/check-hook-pair-sync.mjs
 
-import { test } from "node:test";
-import assert from "node:assert/strict";
-import fs from "node:fs";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { test } from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, "../..");
+const REPO_ROOT = path.resolve(__dirname, '../..');
 
-const LOCAL_HOOK = path.join(REPO_ROOT, ".claude", "hooks", "check-cycle-exit.mjs");
-const INSTALL_HOOK = path.join(REPO_ROOT, "install", "hooks", "check-cycle-exit.mjs");
+// ---------------------------------------------------------------------------
+// Hook pair list (Cycle 58: expanded from single-pair to multi-pair)
+// ---------------------------------------------------------------------------
+
+const PAIR_LIST = [
+  {
+    name: 'check-cycle-exit.mjs',
+    projectLocal: path.join(REPO_ROOT, '.claude', 'hooks', 'check-cycle-exit.mjs'),
+    global: path.join(REPO_ROOT, 'install', 'hooks', 'check-cycle-exit.mjs'),
+  },
+  {
+    name: 'docker-compose-gate.mjs',
+    projectLocal: path.join(REPO_ROOT, '.claude', 'hooks', 'docker-compose-gate.mjs'),
+    global: path.join(REPO_ROOT, 'install', 'hooks', 'docker-compose-gate.mjs'),
+  },
+];
 
 // ---------------------------------------------------------------------------
 // Region extraction
@@ -57,98 +71,87 @@ function extractRegions(text, filePath) {
 }
 
 // ---------------------------------------------------------------------------
-// Load both files
+// Per-pair validation
 // ---------------------------------------------------------------------------
 
-let localText, installText;
+function validatePair(pair) {
+  const { name, projectLocal, global: installPath } = pair;
 
-test("both hook files exist and are readable", () => {
-  assert.ok(fs.existsSync(LOCAL_HOOK), `local hook missing: ${LOCAL_HOOK}`);
-  assert.ok(fs.existsSync(INSTALL_HOOK), `install hook missing: ${INSTALL_HOOK}`);
-  localText = fs.readFileSync(LOCAL_HOOK, "utf8");
-  installText = fs.readFileSync(INSTALL_HOOK, "utf8");
-  assert.ok(localText.length > 0, "local hook is empty");
-  assert.ok(installText.length > 0, "install hook is empty");
-});
-
-// ---------------------------------------------------------------------------
-// Region presence and symmetry
-// ---------------------------------------------------------------------------
-
-let localRegions, installRegions;
-
-test("both files have at least one shared region", () => {
-  localRegions = extractRegions(localText, LOCAL_HOOK);
-  installRegions = extractRegions(installText, INSTALL_HOOK);
-  assert.ok(localRegions.size > 0, "local hook has no shared regions");
-  assert.ok(installRegions.size > 0, "install hook has no shared regions");
-});
-
-test("both files have the same set of shared region names", () => {
-  // Ensure previous test populated the maps (node:test runs sequentially)
-  if (!localRegions) localRegions = extractRegions(localText ?? fs.readFileSync(LOCAL_HOOK, "utf8"), LOCAL_HOOK);
-  if (!installRegions) installRegions = extractRegions(installText ?? fs.readFileSync(INSTALL_HOOK, "utf8"), INSTALL_HOOK);
-
-  const localNames = new Set(localRegions.keys());
-  const installNames = new Set(installRegions.keys());
-
-  const onlyInLocal = [...localNames].filter((n) => !installNames.has(n));
-  const onlyInInstall = [...installNames].filter((n) => !localNames.has(n));
-
-  assert.deepEqual(
-    onlyInLocal,
-    [],
-    `Regions in local but not install: ${onlyInLocal.join(", ")}`,
-  );
-  assert.deepEqual(
-    onlyInInstall,
-    [],
-    `Regions in install but not local: ${onlyInInstall.join(", ")}`,
-  );
-});
-
-// ---------------------------------------------------------------------------
-// Per-region content comparison
-// ---------------------------------------------------------------------------
-
-// Dynamically generate one test per shared region so failures name the region.
-// We read the files directly here to avoid test-ordering dependency.
-const localRegionsForTests = extractRegions(fs.readFileSync(LOCAL_HOOK, "utf8"), LOCAL_HOOK);
-const installRegionsForTests = extractRegions(fs.readFileSync(INSTALL_HOOK, "utf8"), INSTALL_HOOK);
-
-for (const [name, localContent] of localRegionsForTests) {
-  test(`shared region "${name}" is byte-identical in both files`, () => {
-    assert.ok(
-      installRegionsForTests.has(name),
-      `Region "${name}" exists in local but is missing from install hook`,
-    );
-    const installContent = installRegionsForTests.get(name);
-    if (localContent !== installContent) {
-      // Build a helpful diff summary (first differing line)
-      const localLines = localContent.split("\n");
-      const installLines = installContent.split("\n");
-      const maxLen = Math.max(localLines.length, installLines.length);
-      let firstDiff = -1;
-      for (let i = 0; i < maxLen; i++) {
-        if (localLines[i] !== installLines[i]) {
-          firstDiff = i + 1;
-          break;
-        }
-      }
-      const diffMsg =
-        firstDiff >= 0
-          ? `\n  First diff at line ${firstDiff} of the region:\n` +
-            `    local  : ${JSON.stringify(localLines[firstDiff - 1])}\n` +
-            `    install: ${JSON.stringify(installLines[firstDiff - 1])}`
-          : "\n  (length differs but no line-level diff found — possible trailing whitespace)";
-
-      assert.fail(
-        `Region "${name}" differs between hook files.${diffMsg}\n` +
-        `Fix: ensure the content inside\n` +
-        `  // ===== shared:start ${name} =====\n` +
-        `  // ===== shared:end ${name} =====\n` +
-        `is byte-identical in both files.`,
-      );
-    }
+  test(`[${name}] both hook files exist and are readable`, () => {
+    assert.ok(fs.existsSync(projectLocal), `local hook missing: ${projectLocal}`);
+    assert.ok(fs.existsSync(installPath), `install hook missing: ${installPath}`);
+    const localText = fs.readFileSync(projectLocal, 'utf8');
+    const installText = fs.readFileSync(installPath, 'utf8');
+    assert.ok(localText.length > 0, 'local hook is empty');
+    assert.ok(installText.length > 0, 'install hook is empty');
   });
+
+  test(`[${name}] both files have at least one shared region`, () => {
+    const localRegions = extractRegions(fs.readFileSync(projectLocal, 'utf8'), projectLocal);
+    const installRegions = extractRegions(fs.readFileSync(installPath, 'utf8'), installPath);
+    assert.ok(localRegions.size > 0, `local hook has no shared regions: ${projectLocal}`);
+    assert.ok(installRegions.size > 0, `install hook has no shared regions: ${installPath}`);
+  });
+
+  test(`[${name}] both files have the same set of shared region names`, () => {
+    const localRegions = extractRegions(fs.readFileSync(projectLocal, 'utf8'), projectLocal);
+    const installRegions = extractRegions(fs.readFileSync(installPath, 'utf8'), installPath);
+
+    const localNames = new Set(localRegions.keys());
+    const installNames = new Set(installRegions.keys());
+
+    const onlyInLocal = [...localNames].filter(n => !installNames.has(n));
+    const onlyInInstall = [...installNames].filter(n => !localNames.has(n));
+
+    assert.deepEqual(onlyInLocal, [], `Regions in local but not install: ${onlyInLocal.join(', ')}`);
+    assert.deepEqual(onlyInInstall, [], `Regions in install but not local: ${onlyInInstall.join(', ')}`);
+  });
+
+  // Per-region byte-equality tests (read files once outside the loop)
+  const localRegionsForTests = extractRegions(fs.readFileSync(projectLocal, 'utf8'), projectLocal);
+  const installRegionsForTests = extractRegions(fs.readFileSync(installPath, 'utf8'), installPath);
+
+  for (const [regionName, localContent] of localRegionsForTests) {
+    test(`[${name}] shared region "${regionName}" is byte-identical in both files`, () => {
+      assert.ok(
+        installRegionsForTests.has(regionName),
+        `Region "${regionName}" exists in local but is missing from install hook`,
+      );
+      const installContent = installRegionsForTests.get(regionName);
+      if (localContent !== installContent) {
+        const localLines = localContent.split('\n');
+        const installLines = installContent.split('\n');
+        const maxLen = Math.max(localLines.length, installLines.length);
+        let firstDiff = -1;
+        for (let i = 0; i < maxLen; i++) {
+          if (localLines[i] !== installLines[i]) {
+            firstDiff = i + 1;
+            break;
+          }
+        }
+        const diffMsg =
+          firstDiff >= 0
+            ? `\n  First diff at line ${firstDiff} of the region:\n` +
+              `    local  : ${JSON.stringify(localLines[firstDiff - 1])}\n` +
+              `    install: ${JSON.stringify(installLines[firstDiff - 1])}`
+            : '\n  (length differs but no line-level diff found — possible trailing whitespace)';
+
+        assert.fail(
+          `Region "${regionName}" differs between hook files.${diffMsg}\n` +
+          `Fix: ensure the content inside\n` +
+          `  // ===== shared:start ${regionName} =====\n` +
+          `  // ===== shared:end ${regionName} =====\n` +
+          `is byte-identical in both files.`,
+        );
+      }
+    });
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Run validation for all pairs
+// ---------------------------------------------------------------------------
+
+for (const pair of PAIR_LIST) {
+  validatePair(pair);
 }

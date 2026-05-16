@@ -727,6 +727,16 @@ else
   ERRORS+=("check-hook-pair-sync.mjs")
 fi
 
+# Cycle 58 — docker-compose-gate
+printf '\n--- docker-compose-gate.test.mjs (Cycle 58) ---\n'
+if node --test "$REPO_ROOT/install/test/docker-compose-gate.test.mjs"; then
+  PASS=$((PASS + 1))
+  printf '  PASS: docker-compose-gate.test.mjs\n'
+else
+  FAIL=$((FAIL + 1))
+  ERRORS+=("docker-compose-gate.test.mjs")
+fi
+
 printf '\n'
 printf '=%.0s' {1..60}
 printf '\n'

@@ -86,6 +86,8 @@ SYMLINK_MODE_FORCE=0
 ENABLE_HOOKS=0
 DO_REGRESSION_RECALL=0
 DO_FRESHNESS_GUARD=0
+DO_DOCKER_GATE=0
+NO_DOCKER_GATE=0
 NO_CYCLE_EXIT_HOOK=0
 AUTO_YES=0
 AC8_ATTESTED=""
@@ -113,6 +115,8 @@ Flags:
   --regression-recall              Also wire regression-recall.mjs (implies --enable-hooks)
   --fix-scope-trigger              Also wire fix-scope-trigger.mjs (Plan B, implies --enable-hooks)
   --freshness-guard                Also wire freshness-guard.mjs (implies --enable-hooks)
+  --docker-gate                    Also wire docker-compose-gate.mjs (OPT-IN, implies --enable-hooks)
+  --no-docker-gate                 Install-time opt-out: skip docker-compose-gate.mjs even if --enable-hooks
   --yes                            Skip interactive marker-replace prompt
   --ac8-attested-by-user "<DATE>"  Manual AC8 attestation (CI / no claude CLI)
   -h, --help                       Show this help
@@ -162,6 +166,14 @@ parse_flags() {
         ;;
       --freshness-guard)
         DO_FRESHNESS_GUARD=1
+        shift
+        ;;
+      --docker-gate)
+        DO_DOCKER_GATE=1
+        shift
+        ;;
+      --no-docker-gate)
+        NO_DOCKER_GATE=1
         shift
         ;;
       --no-cycle-exit-hook)
@@ -764,15 +776,17 @@ update_hooks_canonical() {
 update_hook_manifest() {
   local manifest_dir="$HOME/.claude/skills/.kzk-harness-shared/hooks"
   local manifest="$manifest_dir/enabled.json"
-  local kw="${1:-true}"   # keyword_detector default ON
-  local rr="${2:-false}"  # regression_recall default OFF
-  local fs_flag="${3:-false}"  # fix_scope_trigger default OFF
-  local fg_flag="${4:-false}"  # freshness_guard default OFF
+  local kw="${1:-true}"      # keyword_detector default ON
+  local rr="${2:-false}"     # regression_recall default OFF
+  local fs_flag="${3:-false}" # fix_scope_trigger default OFF
+  local fg_flag="${4:-false}" # freshness_guard default OFF
+  local dg_flag="${5:-false}" # docker_compose_gate default OFF
   local tmp
   tmp=$(mktemp)
   jq -n \
-    --argjson kw "$kw" --argjson rr "$rr" --argjson fs "$fs_flag" --argjson fg "$fg_flag" \
-    '{keyword_detector: $kw, regression_recall: $rr, fix_scope_trigger: $fs, freshness_guard: $fg}' \
+    --argjson kw "$kw" --argjson rr "$rr" --argjson fs "$fs_flag" \
+    --argjson fg "$fg_flag" --argjson dg "$dg_flag" \
+    '{keyword_detector: $kw, regression_recall: $rr, fix_scope_trigger: $fs, freshness_guard: $fg, docker_compose_gate: $dg}' \
     >"$tmp" && mv "$tmp" "$manifest"
 }
 
@@ -832,6 +846,14 @@ enable_hooks() {
     cp "$src/install/hooks/freshness-guard.mjs" "$hook_dest/" 2>/dev/null || true
   fi
 
+  # docker-compose-gate hook (OPT-IN: --docker-gate; suppressed by --no-docker-gate)
+  if [ "${DO_DOCKER_GATE:-0}" -eq 1 ] && [ "${NO_DOCKER_GATE:-0}" -eq 0 ]; then
+    cp "$src/install/hooks/docker-compose-gate.mjs" "$hook_dest/" 2>/dev/null || true
+    # Also propagate the shared lib (required by docker-compose-gate.mjs)
+    mkdir -p "$hook_dest/lib"
+    cp "$src/install/hooks/lib/cycle-exit-utils.mjs" "$hook_dest/lib/" 2>/dev/null || true
+  fi
+
   local settings="$HOME/.claude/settings.json"
   if [ ! -f "$settings" ]; then
     printf '{}' >"$settings"
@@ -854,11 +876,13 @@ enable_hooks() {
   local rr_flag="false"
   local fst_flag="false"
   local fg_flag="false"
+  local dg_flag="false"
   [ "${DO_REGRESSION_RECALL:-0}" -eq 1 ] && rr_flag="true"
   [ "${DO_FIX_SCOPE_TRIGGER:-0}" -eq 1 ] && fst_flag="true"
   [ "${DO_FRESHNESS_GUARD:-0}" -eq 1 ] && fg_flag="true"
-  update_hook_manifest "$kw_flag" "$rr_flag" "$fst_flag" "$fg_flag" || return 1
-  emit "  hooks: enabled.json manifest written (kw=$kw_flag rr=$rr_flag fst=$fst_flag fg=$fg_flag)"
+  [ "${DO_DOCKER_GATE:-0}" -eq 1 ] && [ "${NO_DOCKER_GATE:-0}" -eq 0 ] && dg_flag="true"
+  update_hook_manifest "$kw_flag" "$rr_flag" "$fst_flag" "$fg_flag" "$dg_flag" || return 1
+  emit "  hooks: enabled.json manifest written (kw=$kw_flag rr=$rr_flag fst=$fst_flag fg=$fg_flag dg=$dg_flag)"
   record "hooks: enabled.json manifest written"
 
   return 0
@@ -946,6 +970,12 @@ main() {
   # --freshness-guard 는 --enable-hooks 의 explicit dependency
   if [ "${DO_FRESHNESS_GUARD:-0}" -eq 1 ] && [ "${ENABLE_HOOKS:-0}" -eq 0 ]; then
     emit "  --freshness-guard implies --enable-hooks (explicit dependency)"
+    ENABLE_HOOKS=1
+  fi
+
+  # --docker-gate 는 --enable-hooks 의 explicit dependency
+  if [ "${DO_DOCKER_GATE:-0}" -eq 1 ] && [ "${ENABLE_HOOKS:-0}" -eq 0 ]; then
+    emit "  --docker-gate implies --enable-hooks (explicit dependency)"
     ENABLE_HOOKS=1
   fi
 

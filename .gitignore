@@ -12,11 +12,16 @@
 # Project-local hooks + settings
 # - check-skill-flow-fresh.mjs : project-local only (kzk-harness self-maintenance, never propagates)
 # - check-cycle-exit.mjs       : also project-local for this repo's dogfood; globally propagated copy lives in install/hooks/
+# - docker-compose-gate.mjs    : also project-local for this repo's dogfood (cycle 58); globally propagated copy lives in install/hooks/
+# - lib/cycle-exit-utils.mjs   : shared util for the pair hooks above; mirror of install/hooks/lib/cycle-exit-utils.mjs
 !.claude/settings.json
 !.claude/hooks
 .claude/hooks/*
 !.claude/hooks/check-skill-flow-fresh.mjs
 !.claude/hooks/check-cycle-exit.mjs
+!.claude/hooks/docker-compose-gate.mjs
+!.claude/hooks/lib
+!.claude/hooks/lib/cycle-exit-utils.mjs
 .kiro/
 .cursorrules
 .mcp.json
