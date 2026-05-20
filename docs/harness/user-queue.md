@@ -38,3 +38,18 @@ _mattpocock/skills LOW cluster (cycle 47 C1 심사 결과 영구 skip):_
 - Tentative default: skip this file, continue with next task.
 
 
+## Pending — Q-DESIGN-BOILERPLATE (2026-05-20T04:00:00.000Z)
+- Context: kzk-large-task-delegation §Task-level dispatch shape design (`docs/plans/2026-05-20-task-level-dispatch-design.md`), Cycle 1 codex review BLOCKER B1.
+- Original user choice (clarifying Q&A round): Hybrid boilerplate (agent definition for general guardrails + kzk-specific inlined).
+- Codex finding: OMC `agents/executor.md:21-30,55-70,95-104` does NOT carry kzk-required TDD strict / production-code-first / code-quality / anti-self-verification rules. The "inherit from agent definition" premise is factually false.
+- Tentative default (autonomous cycle 2): retreat to **Defensive** — all kzk-required boilerplate inlined per dispatch. Agent definition only relied upon for OMC's own Tool_Usage / Failure_Modes_To_Avoid (generic). Rationale: cannot silently drop protections to chase a leaner prompt.
+- User decision needed (post-hoc): accept Defensive retreat, or pin a specific OMC version + add OMC parity PR as out-of-scope follow-up.
+
+## Pending — Q-DESIGN-WAVE (2026-05-20T04:00:00.000Z)
+- Context: kzk-large-task-delegation §Multi-dispatch wave shape design, Cycle 1 codex review PUSH-BACK P2.
+- Original user choice (clarifying Q&A round): Hybrid wave identification (plan `## Dependencies` recommended + main fallback file-disjoint heuristic).
+- Codex finding: File-disjoint heuristic is too weak for semantic dependencies (shared types/contracts/tests can race even when file lists are disjoint).
+- Tentative default (autonomous cycle 2): **Dependency declaration mandatory for any plan with parallel waves**. File-disjoint fallback retained only for legacy plans without `## Dependencies`, defaulting conservative sequential (no auto-parallelism) when uncertain.
+- User decision needed (post-hoc): accept mandatory-declaration retreat, or keep Hybrid with explicit semantic-dependency caveat in plan-writing guide.
+
+
