@@ -71,6 +71,7 @@ Each cycle:
 - **사용자 prompt 가 'plan 쪼개', '사이클 자율', '사용성 버그', '버그 전수조사' 등 large-task signal 포함 시** = `install/hooks/keyword-detector.mjs` (UserPromptSubmit hook, `--enable-hooks` 로 활성화 — 매칭 시 system-reminder 강제 주입)
 - **메인이 reference collection 목적으로 Bash(ls) / Read 를 연속 호출** = 메타 갭 = 즉시 EXPLORER subagent 로 전환 (`kzk-codebase-survey §Preparation phase delegation`)
 - **메인이 multi-file 라이브러리 변경 / 5+ 파일 edit** = `kzk-large-task-delegation §Model routing` (executor sonnet) 으로 위임, 메인 직접 Edit 금지 (`kzk-autonomous-boundary §Q-MAIN-DIRECT-EDIT`)
+- **Plan 큰 경우 (50+ task / 5k+ 라인) = task-level wave dispatch with `## Dependencies` 의무** = `kzk-large-task-delegation §Task-level dispatch shape` + `§Multi-dispatch wave shape` + `§Plan size policy` (post 2026-05-20 design)
 - **Pre-commit Gate 0.5 freshness check** = `kzk-freshness-guard` (staged 코드 → CRG 심볼 역참조 → 메타 문서 stale 감지 → auto-fix)
 
 자가개선 루프가 자기 스킬을 안 쓰는 패턴은 메타 갭 — 즉시 다음 cycle 의 P0 로 처리한다.
