@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>kzk-harness — Skill &amp; Workflow Map</title>
-<!-- KZK_SKILL_FLOW_FINGERPRINT: 3228adfaef266d62 -->
+<!-- KZK_SKILL_FLOW_FINGERPRINT: e85828c695b986fb -->
 <!--
   Single-page reference for the 18 kzk-* skills, their workflow entry points,
   and the hook infrastructure that enforces discipline at runtime.
@@ -491,7 +491,13 @@ flowchart TD
   SPEC --> LTD[kzk-large-task-delegation]
   AL --> LTD
   WL --> LTD
-  LTD --> EXEC[executor sonnet]
+  LTD --> PLAN_READ[main reads plan once]
+  PLAN_READ --> WAVES[identify waves<br/>from ## Dependencies]
+  WAVES --> WAVE_N[Wave N: parallel Agent() calls<br/>run_in_background: true]
+  WAVE_N --> WAVE_REV[wave reviewer subagent<br/>合 review]
+  WAVE_REV --> NEXT{next wave<br/>or done?}
+  NEXT -->|more waves| WAVE_N
+  NEXT -->|done| EXEC[executor sonnet]
   EXEC --> E5
   E5 --> GATES[kzk-pre-commit-gate<br/>Gate 0 to 5]
   GATES --> COMMIT[git commit]
@@ -499,9 +505,11 @@ flowchart TD
   classDef entry fill:#e3ecfa,stroke:#0066cc,color:#1d1d1f;
   classDef gate fill:#fbeee0,stroke:#b86e00,color:#1d1d1f;
   classDef skill fill:#ffffff,stroke:#d2d2d7,color:#1d1d1f;
+  classDef wave fill:#e9f7ee,stroke:#1f8a3a,color:#1d1d1f;
   class E1,E2,E3,E4,E5 entry;
   class GATES gate;
   class SURVEY,SPEC,LTD,AB,AL,WL,EXEC skill;
+  class PLAN_READ,WAVES,WAVE_N,WAVE_REV,NEXT wave;
 </pre>
   </div>
   <p>
@@ -708,6 +716,9 @@ flowchart TD
       <li>TDD boilerplate auto-injected in autonomous mode when code changes are in scope</li>
       <li>Production code-first injection (Plan E)</li>
       <li>Pre-dispatch survey requirement: if autonomous + multi-file scope and no survey report in context → append <span class="chip q">Q-SURVEY-MISSING</span> to user-queue.md and halt</li>
+      <li>§Task-level dispatch shape — per-task ≤120 lines, all boilerplate inlined; one Agent() call per task unit</li>
+      <li>§Multi-dispatch wave shape — <code>## Dependencies</code> section mandatory in plan; waves are parallel <code>Agent()</code> calls with <code>run_in_background: true</code>; wave reviewer subagent合 reviews before next wave</li>
+      <li>§Plan size policy — no plan cap; phase split at 50+ tasks / 5k+ LoC / 9+ Groups; overflow → sidecar addendum file</li>
     </ul>
     <h4>Outputs</h4>
     <ul>

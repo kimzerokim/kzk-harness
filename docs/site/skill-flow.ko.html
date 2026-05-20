@@ -490,7 +490,13 @@ flowchart TD
   SPEC --> LTD[kzk-large-task-delegation]
   AL --> LTD
   WL --> LTD
-  LTD --> EXEC[executor sonnet]
+  LTD --> PLAN_READ[메인 plan 1회 읽기]
+  PLAN_READ --> WAVES[## Dependencies에서<br/>wave 식별]
+  WAVES --> WAVE_N[Wave N: 병렬 Agent() 호출<br/>run_in_background: true]
+  WAVE_N --> WAVE_REV[wave reviewer subagent<br/>合 리뷰]
+  WAVE_REV --> NEXT{다음 wave<br/>또는 완료?}
+  NEXT -->|wave 더 있음| WAVE_N
+  NEXT -->|완료| EXEC[executor sonnet]
   EXEC --> E5
   E5 --> GATES[kzk-pre-commit-gate<br/>Gate 0 to 5]
   GATES --> COMMIT[git commit]
@@ -498,9 +504,11 @@ flowchart TD
   classDef entry fill:#e3ecfa,stroke:#0066cc,color:#1d1d1f;
   classDef gate fill:#fbeee0,stroke:#b86e00,color:#1d1d1f;
   classDef skill fill:#ffffff,stroke:#d2d2d7,color:#1d1d1f;
+  classDef wave fill:#e9f7ee,stroke:#1f8a3a,color:#1d1d1f;
   class E1,E2,E3,E4,E5 entry;
   class GATES gate;
   class SURVEY,SPEC,LTD,AB,AL,WL,EXEC skill;
+  class PLAN_READ,WAVES,WAVE_N,WAVE_REV,NEXT wave;
 </pre>
   </div>
   <p>
@@ -707,6 +715,9 @@ flowchart TD
       <li>자율 모드에서 코드 변경이 범위에 포함될 때 TDD 보일러플레이트 자동 주입</li>
       <li>프로덕션 코드 우선 주입 (Plan E)</li>
       <li>디스패치 전 survey 요건: 자율 + 멀티 파일 범위이고 컨텍스트에 survey 보고서가 없으면 → user-queue.md에 <span class="chip q">Q-SURVEY-MISSING</span> 추가 후 중단</li>
+      <li>§Task-level dispatch shape — 작업 단위 dispatch: task 당 ≤120 라인 soft cap, 모든 boilerplate 인라인; task 단위당 Agent() 호출 1개</li>
+      <li>§Multi-dispatch wave shape — <code>## Dependencies</code> 섹션 plan 내 의무 포함; wave는 <code>run_in_background: true</code>의 병렬 <code>Agent()</code> 호출; 다음 wave 전 wave reviewer subagent合 리뷰</li>
+      <li>§Plan size policy — plan 자체 cap 없음; 50+ task / 5k+ LoC / 9+ Group 초과 시 phase 분리; overflow → sidecar addendum 파일</li>
     </ul>
     <h4>산출물</h4>
     <ul>

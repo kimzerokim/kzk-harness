@@ -118,6 +118,8 @@ autonomous loop 이 commit 한 코드가 이후 잘못된 것으로 판명 된 �
 - 매 task 끝 = 즉시 다음 task dispatch (사용자 prompt 기다리지 X)
 - "다음 plan 은 사용자 승인 후" 같은 anti-pattern 금지
 
+> Dispatch anatomy canonical reference: §4 kzk-large-task-delegation §Task-level dispatch shape.
+
 ---
 
 ## 3. Pre-commit Gate (10 단계)
@@ -395,6 +397,221 @@ agent summary 만 신뢰 X — implementation 차원 검증 의무.
 
 4. **Stage 3 — Fresh-agent verification (Plan C rev2)** — 자율실행 cycle 끝 / large-task delegation 끝 / 메인 직접 commit 모든 case / high-risk tag / 3+ 파일 multi-file 의 commit 직전 fresh `oh-my-claudecode:verifier` dispatch. VERDICT 첫 줄 강제. 메인 self-approve 금지. 2 consecutive FAIL on same thread → halt + `Q-VERIFIER-FAIL`. INVALID_VERDICT → fail-closed BLOCK + `Q-VERIFIER-INVALID`. 룰 본문: `kzk-large-task-delegation` §Three-stage review §Stage 3.
 
+## §Task-level dispatch shape
+
+### Plan reference policy
+
+- Dispatch prompt 안에 plan 파일 path 만 references 로 넘김.
+- Full plan 본문 인라인 금지 (3k 라인 plan 도 path 1줄로 끝).
+- Required reading 형식:
+  ```
+  Required reading:
+  - /abs/path/plan.md §Group A.1 (lines 64–150)
+  - /abs/path/spec.md §<section> (if relevant)
+  ```
+
+### Dispatch prompt anatomy
+
+(sonnet executor 기준 — must include all existing Subagent prompt requirements from SKILL.md:220-235 plus the literal boilerplate text)
+
+**Literal block extraction rule** (cycle 3 N1 fix): when the template below references "literal block from §X", copy ONLY the fenced code block content from that section. Do NOT include the surrounding meta-prose (e.g., "auto-inject..." explanations). The fenced rule body is the contract; the prose is documentation.
+
+```
+You are oh-my-claudecode:executor for kzk-harness <project>.
+
+## Task
+Execute task <task-id> from plan.
+
+## Required reading
+- /abs/path/to/plan.md §<section> (lines N1–N2)
+- /abs/path/to/spec.md §<section> (if relevant)
+- /abs/path/to/<touched-file>.ts
+
+## Scope
+Files you may touch: <explicit list, no glob>
+Files you may read but not edit: <list>
+DO-NOT-MODIFY paths: <list per kzk convention>
+
+## Branch contract verification
+Before any edit, run `git branch --show-current` and verify the branch matches
+the session contract (locked by kzk-autonomous-boundary). If branch is `main`,
+direct-main flow must have been explicitly authorized this session.
+
+## Task body (inlined excerpt from plan §<section>)
+<task body, ≤120 lines soft cap; hard trigger if exceeded — see §Plan size policy>
+
+## Rules block — kzk-required boilerplate (LITERAL, all inlined every dispatch)
+
+### Anti-self-verification (from §Anti-self-verification boilerplate)
+<literal block from skills/kzk-large-task-delegation/SKILL.md §Anti-self-verification boilerplate>
+
+### Production-code-first (from §Production-code-first boilerplate)
+<literal block from skills/kzk-large-task-delegation/SKILL.md §Production-code-first boilerplate>
+
+### Code-quality-discipline (from §Code-quality-discipline boilerplate)
+<literal block from skills/kzk-large-task-delegation/SKILL.md §Code-quality-discipline boilerplate>
+
+### TDD strict
+- Red→Green→Refactor mandatory (per kzk-test-coverage).
+- Failing test BEFORE implementation is non-negotiable in autonomous mode.
+- Touched-file 100% line+branch coverage (per kzk-test-coverage).
+
+### Plan reference policy (task scope discipline)
+- Execute ONLY the task body above. Do not touch adjacent tasks even if they
+  look related. If you find scope ambiguity, STOP and return findings.
+
+### Halt conditions
+- If blocked / scope creep needed / plan ambiguous → STOP and return findings;
+  do not improvise.
+
+### External library / API usage
+- context7 mandate: before implementing with any external library/framework/SDK,
+  fetch current docs via context7 MCP. Don't rely on training data.
+
+### Pre-commit gate
+- Final commit must pass kzk-pre-commit-gate (Gate 0 AGENTS.md sync if applicable,
+  Gate 0.5 freshness, Gate 1.5 secrets, etc. per skill body).
+
+### Race-condition awareness
+- File scopes vs other parallel subagents in this wave: <list of sibling wave tasks>
+
+### Regression-recall (cycle 4 B2'' fix — invocation aligned to gstack/learn SoT)
+- If this dispatch is a fix-start (per kzk-regression-memory trigger keywords),
+  recall prior regression entries before drafting the test/impl. Use the
+  `gstack:learn` skill via `Skill("gstack:learn")` and follow its `search`
+  flow (per `~/.claude/skills/gstack/learn/SKILL.md:690-692`), or run the
+  CLI binary `gstack-learnings-search --query "<query>"` if available (per
+  SoT `~/.claude/skills/gstack/learn/SKILL.md:718` — `--query` flag 의무).
+  Inline any non-dismissed entries with confidence ≥ 0.6 here as context.
+  Cite recall result file paths.
+
+### CRG refresh (cycle 4 P1'' fix — relaxed to session-level + Gate 0.5 gating)
+- Per-dispatch CRG refresh is NOT required. Default is session-level: main
+  refreshes CRG once per session before the first plan-touching dispatch
+  (via `code-review-graph update`, build fallback if `update` unavailable).
+- If kzk-pre-commit-gate Gate 0.5 freshness check is gating the commit at
+  cycle end, executor's wave-completion subagent (not per-task executor)
+  runs `code-review-graph update` before re-attempting commit.
+- **Mid-cycle re-refresh (cycle 5 N2''' fix)**: 새 commit 이 cycle 중간에
+  들어가고 그 후에 plan-touching CRG usage 가 더 있으면 (예: 다음 wave 가
+  같은 영역 read), 그 사용 시점에 main 이 `code-review-graph update` 1회
+  추가 호출. 즉 "session-level 1회" 는 floor, "code-touch 후 cache-invalidation
+  필요 시점" 은 추가 refresh trigger. 이는 kzk-codebase-survey 의 cache-
+  invalidation 의미와 일관.
+- See `~/.claude/skills/kzk-codebase-survey/SKILL.md:55-67` for the SoT
+  refresh contract.
+
+### Commit convention (cycle 3 B2' fix)
+- DO NOT add Co-Authored-By trailers (global ~/.claude/CLAUDE.md mandate).
+- Use HEREDOC for commit messages with multiple lines.
+- Pass commit message via `git commit -m "$(cat <<'EOF' ... EOF)"`.
+
+## Output contract
+Concise execution summary <100 words: what changed, files touched,
+verification status (test ran? coverage met?), blockers. No long logs inline.
+```
+
+### Per-task line guide
+
+- **Soft trigger**: task body ≤120 라인 권장 (cycle 3 B1' fix — was 150; lowered so anatomy total + body stays within sonnet 100–220 prompt budget). 초과 시 writer 의 자가검토 trigger. codex Step 2 review NIT 지적 가능.
+- **Hard trigger**: task body > 120 라인 시 plan 작성자는 그 task 안에 `## Split rationale` 단락 명시 + reviewer subagent (opus) ACK before dispatch. Reviewer ACK 없으면 dispatch 금지.
+- **Hotfix bypass (cycle 3 P2' fix; cycle 4 N2'' format pinned)**: `HOTFIX_ACK_DEFER=1` env var + 사용자 explicit approval (this session) = reviewer ACK defer 가능. 단, post-fix reviewer backfill 의무 (다음 cycle 안에 dispatched task 의 retroactive review) + `docs/harness/user-queue.md` 에 `Q-HOTFIX-ACK-DEFER` entry 의무. **Queue 삽입 형식**: 새 `## Pending — Q-HOTFIX-ACK-DEFER (<ISO timestamp>)` heading 으로 append (기존 `## Pending — Q-TOOL-EDIT-RETRY-EXHAUSTED` 패턴 동일). 본문 필드: `- Task id: <id>`, `- Defer time: <timestamp>`, `- Backfill deadline: <within next cycle>`, `- User approval quote: "<≤1 sentence>"`.
+- Atomic deliverable 의무 변동 없음 (PR-sized commit + 단일 RED→GREEN→REFACTOR).
+
+## §Multi-dispatch wave shape
+
+### Wave 식별 정책
+
+(cycle 2 정정 — dependency declaration mandatory)
+
+- Plan 본문에 parallel wave 가 있으면 **`## Dependencies` 섹션 의무** (canonical heading). `## Execution waves` 는 optional supplement (visualization 용도).
+- 누락된 plan = **legacy fallback**: conservative sequential 만 (자동 parallelism 금지). file-disjoint heuristic 은 적용하지 않음.
+- 새 plan 작성 시 `## Dependencies` 형식 의무 — writer 가 의존성 명시.
+
+### 권장 plan 본문 형식 (필수)
+
+```markdown
+## Dependencies
+
+- Group A (DTOs) → Group B (Service) — B reads A.
+- Group B (Service) → Group C (Controller) — C reads B.
+- Group D (cleanup) ∥ Group A, B, C — independent.
+
+## Execution waves
+
+- Wave 1: Group A.1, A.2, D.1, D.2 (parallel-safe per `## Dependencies`)
+- Wave 2: Group B.1, B.2, B.3 (depends on Wave 1)
+- Wave 3: Group C.1, C.2 (depends on Wave 2)
+```
+
+**Semantic-dependency note**: file-disjoint != semantic-disjoint. Shared types, contracts, test fixtures may produce races even when file lists are disjoint. Writer must reason about these and declare in `## Dependencies`.
+
+### Wave dispatch 절차
+
+1. Main 이 plan 전체 read (한 번).
+2. Wave 1 의 모든 task 를 fresh subagent 로 병렬 dispatch (`Agent()` calls in single message, `run_in_background: true` per existing SKILL.md:291 + harness-share.md:381 parallel-dispatch rule).
+3. 모든 wave 1 task 완료 알림 자동 수신 (harness 가 background completion notification 보냄 — sleep 금지).
+4. Wave 1 결과를 fresh reviewer subagent 로 합류 검토 (`oh-my-claudecode:code-reviewer` 또는 `verifier`, opus).
+5. Reviewer PASS → wave 2 dispatch / FAIL → 해당 task 재 dispatch (다른 fresh subagent).
+6. 모든 wave 완료까지 반복.
+
+### Wave 사이즈 가이드
+
+- 한 wave 에 최대 5 parallel task 권장 (kzk operational empirical: 5 초과 시 wave 합류 검토 단계의 reviewer subagent context 부담 + rate limit 변동성 증가 관찰).
+- 5 초과 시 자동으로 다음 wave 로 split (task drop 아님).
+- Hard cap 아님 — 충분한 reviewer context budget 이 있고 wave 의 task 들이 의미적으로 같은 deliverable 이면 5 초과 OK.
+
+### Three-stage review 와의 관계
+
+- 기존 §Three-stage review (executor → critic → verifier) 는 task-단위 적용 유지.
+- §Multi-dispatch wave shape 의 "wave 결과 합류 검토" 는 wave-단위 추가 합류 검토 — task 단위 critic/verifier 위 단계.
+- 즉 task 단위 검토 PASS → wave 단위 합류 검토 PASS → 다음 wave.
+
+## §Plan size policy
+
+### Plan file 자체 크기
+
+- Line cap 없음 (gridless `grid-lock-phase-2-plan.md` 3,031 라인 정상).
+- Plan 은 phase 단위 분리 가능 (`grid-lock phase 1–4` 처럼 `2026-05-12-grid-lock-phase-{1,2,3,4}-plan.md`).
+
+### Per-task atomicity (의무 + hard trigger)
+
+- 한 task = 한 PR-sized commit.
+- 한 task = 단일 RED→GREEN→REFACTOR.
+- Task body soft cap = ≤120 라인 (cycle 3 B1' fix — was 150). 초과 시 hard trigger: `## Split rationale` 단락 + reviewer subagent (opus) ACK before dispatch (§Task-level dispatch shape per-task line guide 참조).
+
+### Phase split 권장 threshold
+
+- 50+ task / 5,000+ 라인 / 9+ Group 단위 → phase 분리 권장 (gridless 패턴).
+- Phase 간 의존 plan 상단에 명시:
+  ```markdown
+  ## Phase dependencies
+  - Phase 2 depends on Phase 1 §Group H (RDG-WS contract frozen).
+  - Phase 3 depends on Phase 2 §Group I (acceptance verification).
+  ```
+
+### Cross-phase dependency 표기 (gridless reference)
+
+- `2026-05-12-grid-lock-phase-2-plan.md` 의 phase-1 reference: "Phase 2 picks up after Phase 1 §Group H freezes the RDG-WS contract."
+- 본 정책 적용 시 plan 작성자가 이 형식 사용 권장 (의무 X — cross-phase 는 plan 외부 의존).
+
+### Migration 정책
+
+- 기존 plan retro 적용 X (grandfather).
+- 새 plan 부터 §Multi-dispatch wave shape 의 `## Dependencies` 섹션 의무 (parallel wave 가 있는 모든 plan).
+- 기존 plan dispatch 시: `## Dependencies` 부재 → conservative sequential 만 (auto-parallelism 금지). 작성자가 후속 update 시 `## Dependencies` 추가 권장.
+
+### Dependency addendum sidecar (cycle 3 P1' fix)
+
+기존 frozen plan 본문은 spec-and-review Step 3 PASS 후 immutable 이라 직접 `## Dependencies` 추가가 어려움. 대안: sidecar artifact:
+
+- 위치: `docs/plans/<plan-basename>-dependencies.md` (e.g., `2026-05-12-grid-lock-phase-2-plan-dependencies.md`)
+- 본문: 동일 `## Dependencies` + `## Execution waves` 형식 (5.2 권장 형식)
+- Frozen plan 자체 unchanged. Sidecar 는 plan owner 가 작성 + reviewer subagent ACK 1회 필요.
+- Main dispatch 시: plan path 와 sidecar path 양쪽을 Required reading 에 inclusion.
+- Plan 본문에 직접 `## Dependencies` 가 있으면 sidecar 우선순위 X (plan 자체가 source of truth).
+- **Conflict 처리 (cycle 4 N1'' fix)**: plan body 와 sidecar body 모두에 `## Dependencies` 가 존재하고 disagree 할 때, main 은 sidecar 를 무시하고 plan 본문만 사용. 동시에 `docs/harness/user-queue.md` 에 `Q-SIDECAR-DRIFT` Pending entry 등록 — plan owner 가 cleanup (sidecar 삭제 또는 plan body update) 결정 필요. Sidecar drift 상태에서는 parallel wave 인가 X (보수적 sequential).
+
 ---
 
 ## 5. Documentation Storage Rules
@@ -613,6 +830,8 @@ TDD red 단계에서 implementation 본 후 거기에 맞춘 test 작성하는 �
 - **Layer (a)** — sonnet executor dispatch prompt 에 anti-self-verification boilerplate 자동 inject. 룰 본문: `kzk-large-task-delegation` §Sonnet executor — Anti-self-verification boilerplate.
 - **Layer (b)** — 자율 mode (`KZK_AUTONOMOUS=1` 또는 동사구 키워드 매칭) 에서 메인 직접 TDD 진입 금지 — 반드시 fresh sonnet dispatch. 메인 직접 진입 시 halt + `Q-TDD-MAIN` user-queue entry. 룰 본문: `kzk-test-coverage` §Anti-pattern — Test-from-implementation.
 - 비-자율 mode 의 메인 self-check + user ACK 게이트 — 사용자 명시 confirm 받은 후 red 진입.
+
+> Dispatch anatomy canonical reference: §4 kzk-large-task-delegation §Task-level dispatch shape.
 
 ### 11.2 자율실행 mode 자동 TDD 적용 (auto-trigger)
 
@@ -1358,6 +1577,8 @@ commit / 다음 단계 전:
 - **kzk-spec-and-review Step 1 (Draft)**: draft prompt 안 본 §32 boilerplate inject 의무
 - **kzk-codebase-survey §Step 4-5**: 베스트 프랙티스 확인의 구체 절차 출처
 - **kzk-test-coverage**: deepened module 후 obsolete unit test 삭제 의무 출처
+
+> Dispatch anatomy canonical reference: §4 kzk-large-task-delegation §Task-level dispatch shape.
 
 ---
 

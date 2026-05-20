@@ -65,6 +65,40 @@ assert_grep "kzk-large-task-delegation Anti-self-verification boilerplate 섹션
 assert_grep "kzk-large-task-delegation literal block 명시" "literal boilerplate" "$LTD"
 assert_grep "kzk-large-task-delegation BLOCKED 반환" "BLOCKED 반환" "$LTD"
 
+# kzk-large-task-delegation Task-level dispatch shape — positive
+assert_grep "kzk-large-task-delegation Task-level dispatch shape 헤더" "Task-level dispatch shape" "$LTD"
+assert_grep "kzk-large-task-delegation dispatch anatomy" "Dispatch prompt anatomy" "$LTD"
+assert_grep "kzk-large-task-delegation ≤120 라인 soft cap" "≤120 라인" "$LTD"
+assert_grep "kzk-large-task-delegation no Co-Authored-By" "DO NOT add Co-Authored-By" "$LTD"
+assert_grep "kzk-large-task-delegation HOTFIX_ACK_DEFER bypass" "HOTFIX_ACK_DEFER" "$LTD"
+
+# kzk-large-task-delegation Multi-dispatch wave shape — positive
+assert_grep "kzk-large-task-delegation wave shape 헤더" "Multi-dispatch wave shape" "$LTD"
+assert_grep "kzk-large-task-delegation ## Dependencies 의무" "## Dependencies" "$LTD"
+assert_grep "kzk-large-task-delegation run_in_background true" "run_in_background: true" "$LTD"
+
+# kzk-large-task-delegation Plan size policy — positive
+assert_grep "kzk-large-task-delegation plan size policy 헤더" "Plan size policy" "$LTD"
+assert_grep "kzk-large-task-delegation phase split threshold (task count)" "50+ task" "$LTD"
+assert_grep "kzk-large-task-delegation phase split threshold (line count)" "5,000+" "$LTD"
+assert_grep "kzk-large-task-delegation phase split threshold (group count)" "9+ Group" "$LTD"
+assert_grep "kzk-large-task-delegation sidecar drift" "Q-SIDECAR-DRIFT" "$LTD"
+
+# harness-share §4 mirror — positive (verify cross-ref in §2/§11.1/§32)
+assert_grep "harness-share §4 dispatch canonical cross-ref presence" "Dispatch anatomy canonical reference" "$SHARE"
+
+# harness-share cross-ref exact count (cycle 2 plan fix NIT 2; cycle 3 plan fix NIT — robust integer)
+xref_count=$(grep -c "Dispatch anatomy canonical reference" "$SHARE" 2>/dev/null)
+xref_count=${xref_count:-0}
+if [ "$xref_count" -eq 3 ]; then
+  printf "PASS: harness-share cross-ref exact count = 3\n"
+  PASS=$((PASS+1))
+else
+  printf "FAIL: harness-share cross-ref count = %s, expected 3\n" "$xref_count"
+  FAIL=$((FAIL+1))
+  ERRORS+=("harness-share cross-ref count drift: got $xref_count, want 3")
+fi
+
 # harness-share §11.1 — positive
 assert_grep "harness-share §11.1 Anti-Self-Verification" "11.1 Anti-Self-Verification" "$SHARE"
 assert_grep "harness-share Layer (a) cross-ref" "Layer (a)" "$SHARE"
