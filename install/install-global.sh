@@ -579,131 +579,10 @@ cleanup_stray_legacy_catalog() {
 }
 
 # ---------------------------------------------------------------------------
-# cleanup_gstack — remove gstack global environment artifacts
-# Sub-A: remove gstack block from ~/.claude/CLAUDE.md (exact-match anchor)
-# Sub-B: remove 33 gstack skill dirs from ~/.claude/skills/
-# Sub-C: remove ~/.gstack/
-# Sub-D: detect gstack plugin marketplace registration (read-only warn)
-# ---------------------------------------------------------------------------
-cleanup_gstack() {
-  local claude_md="$HOME/.claude/CLAUDE.md"
-
-  # --- Sub-A: CLAUDE.md gstack block removal ---
-  # Exact prefix anchor (lines that must appear verbatim before the skill list)
-  local anchor_line1="# gstack"
-  local anchor_line2=""
-  local anchor_line3="Use the \`/browse\` skill from gstack for all web browsing. Never use \`mcp__claude-in-chrome__*\` tools."
-  local anchor_line4=""
-  local anchor_line5="Available gstack skills:"
-
-  if [ -f "$claude_md" ] && grep -qF "$anchor_line1" "$claude_md"; then
-    # Validate the skill list lines (validation range: after preamble, up to first blank, exclusive)
-    # Extract block: from "# gstack" to first blank line after "Available gstack skills:"
-    local valid=1
-    local in_list=0
-    local found_anchor=0
-    while IFS= read -r line; do
-      if [ "$found_anchor" -eq 0 ]; then
-        [ "$line" = "$anchor_line1" ] && found_anchor=1
-        continue
-      fi
-      # After anchor_line1, skip until "Available gstack skills:"
-      if [ "$in_list" -eq 0 ]; then
-        [ "$line" = "Available gstack skills:" ] && in_list=1
-        continue
-      fi
-      # Validation range: non-empty lines must match ^- `/[a-z][a-z0-9-]*`$
-      [ -z "$line" ] && break  # terminating blank line — stop validation (excluded from range)
-      if ! printf '%s\n' "$line" | grep -qE '^- `\/[a-z][a-z0-9-]*`$'; then
-        local linenum
-        linenum=$(grep -n "^${line}$" "$claude_md" 2>/dev/null | head -1 | cut -d: -f1 || echo "?")
-        emit "  WARN: gstack block contains unexpected content at line ${linenum} — manual cleanup required" >&2
-        valid=0
-        break
-      fi
-    done < "$claude_md"
-
-    if [ "$valid" -eq 1 ]; then
-      # Deletion range: from "# gstack" through and including the terminating blank line
-      local stripped
-      stripped=$(mktemp)
-      awk '
-        /^# gstack$/ { in_block=1; next }
-        in_block && /^$/ { in_block=0; next }
-        in_block { next }
-        { print }
-      ' "$claude_md" >"$stripped"
-      mv "$stripped" "$claude_md"
-      emit "  cleanup_gstack sub-A: gstack block removed from $claude_md"
-      record "cleanup_gstack: sub-A gstack block removed"
-    fi
-  else
-    emit "  cleanup_gstack sub-A: gstack anchor not found in $claude_md — skip (idempotent)"
-    record "cleanup_gstack: sub-A no-op (anchor absent)"
-  fi
-
-  # --- Sub-B: 33 gstack skill dirs from ~/.claude/skills/ --- # GSTACK_INTENT_KEEP
-  local skills_dst="$HOME/.claude/skills"
-  local gstack_dirs=(
-    gstack autoplan benchmark canary careful codex cso
-    design-consultation design-html design-shotgun devex-review
-    document-release freeze gstack-upgrade guard health investigate
-    land-and-deploy learn office-hours open-gstack-browser
-    plan-ceo-review plan-design-review plan-devex-review plan-eng-review
-    plan-tune qa qa-only retro review setup-browser-cookies setup-deploy
-  )
-  local removed_b=0
-  for dir in "${gstack_dirs[@]}"; do
-    local target="$skills_dst/$dir"
-    if [ -d "$target" ] || [ -L "$target" ]; then
-      rm -rf "$target"
-      removed_b=$((removed_b + 1))
-    fi
-  done
-  if [ "$removed_b" -gt 0 ]; then
-    emit "  cleanup_gstack sub-B: removed $removed_b gstack skill dir(s)"
-    record "cleanup_gstack: sub-B $removed_b dir(s) removed"
-  else
-    emit "  cleanup_gstack sub-B: 0 gstack dirs to remove (idempotent)"
-    record "cleanup_gstack: sub-B no-op (already clean)"
-  fi
-
-  # --- Sub-C: ~/.gstack/ removal ---
-  if [ -d "$HOME/.gstack" ]; then
-    rm -rf "$HOME/.gstack"
-    emit "  cleanup_gstack sub-C: ~/.gstack removed"
-    record "cleanup_gstack: sub-C ~/.gstack removed"
-  else
-    emit "  cleanup_gstack sub-C: ~/.gstack not found, skip"
-    record "cleanup_gstack: sub-C no-op (~/.gstack absent)"
-  fi
-
-  # --- Sub-D: gstack plugin registration detection (read-only) --- # GSTACK_INTENT_KEEP
-  local plugin_registered=0
-  local installed_json="$HOME/.claude/plugins/installed_plugins.json"
-  local gstack_marketplace_dir="$HOME/.claude/plugins/marketplaces/gstack"
-
-  # Anchor 1: installed_plugins.json の plugins object の key に 'gstack@' prefix
-  if [ -f "$installed_json" ] && command -v jq >/dev/null 2>&1; then
-    if jq -e '.plugins | keys[] | select(test("^gstack@"))' "$installed_json" >/dev/null 2>&1; then
-      plugin_registered=1
-    fi
-  fi
-  # Anchor 2: marketplaces/gstack/ ディレクトリ存在 (top-level)
-  if [ -d "$gstack_marketplace_dir" ]; then
-    plugin_registered=1
-  fi
-
-  if [ "$plugin_registered" -eq 1 ]; then
-    emit "  WARN: gstack plugin still registered (installed_plugins.json key or marketplaces/gstack/). Run \`/plugin uninstall gstack\` in a Claude Code session to remove." >&2
-    record "cleanup_gstack: sub-D gstack plugin still registered (manual uninstall required)"
-  else
-    record "cleanup_gstack: sub-D no gstack plugin registration detected"
-  fi
-}
-
-# ---------------------------------------------------------------------------
 # Step 5.5 — OMC keyword-detector collision check
+# Note: cleanup_gstack (sub-A/B/C/D) removed 2026-05-27 — install scripts must
+# not mutate other users' gstack installations. See docs/plans/2026-05-27-gstack-removal-design.md §9.
+# GSTACK_INTENT_KEEP: omc_collision_check below scans plugin cache paths (read-only).
 # ---------------------------------------------------------------------------
 omc_collision_check() {
   local found=0
@@ -1101,7 +980,6 @@ main() {
   preflight
   backup_claude_md
   cleanup_stray_legacy_catalog    # strip stray pre-marker legacy catalog rows
-  cleanup_gstack                  # remove gstack global artifacts (sub-A/B/C/D)
   sync_skills
   sync_umbrella
   update_claude_md_routing

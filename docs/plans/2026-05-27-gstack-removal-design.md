@@ -6,17 +6,20 @@
 
 ## 1. Goal
 
-Remove all gstack dependency from the kzk-harness skill layer and the global Claude Code environment. Delete `kzk-regression-memory` skill entirely (not disable). Ensure `install-global.sh --update --yes` leaves a deterministic, idempotent state for existing users in a single run.
+~~Remove all gstack dependency from the kzk-harness skill layer and the global Claude Code environment.~~ **[Amended 2026-05-27]** Remove gstack dependency from kzk-harness SoT (skills, harness-share, install/test code). Install/uninstall scripts must NOT mutate other users' gstack installations. Delete `kzk-regression-memory` skill entirely (not disable). Ensure `install-global.sh --update --yes` leaves a deterministic, idempotent state for existing users in a single run.
 
 ---
 
 ## 2. Scope
 
-### A. Global environment (~/.claude/, ~/.gstack/)
-- `~/.claude/CLAUDE.md` lines 88-126: delete `# gstack` header + full 32-skill list block
-- `~/.claude/skills/gstack/` and 32 sub-skill directories: delete all 33 directories
-  - Full list: autoplan, benchmark, canary, careful, codex, cso, design-consultation, design-html, design-shotgun, devex-review, document-release, freeze, gstack-upgrade, guard, health, investigate, land-and-deploy, learn, office-hours, open-gstack-browser, plan-ceo-review, plan-design-review, plan-devex-review, plan-eng-review, plan-tune, qa, qa-only, retro, review, setup-browser-cookies, setup-deploy (+ `gstack/` parent)
-- `~/.gstack/` (92KB, 3 project caches): delete entire directory
+### A. Global environment (~/.claude/, ~/.gstack/) — **[REVOKED 2026-05-27]**
+
+> **Amendment**: kzk-harness install/uninstall MUST NOT touch other users' gstack installations. The cleanup_gstack function (sub-A/B/C) has been removed from install-global.sh and uninstall-global.sh. See §8 amendment log and §9 Out-of-Scope.
+
+~~- `~/.claude/CLAUDE.md` lines 88-126: delete `# gstack` header + full 32-skill list block~~
+~~- `~/.claude/skills/gstack/` and 32 sub-skill directories: delete all 33 directories~~
+  ~~- Full list: autoplan, benchmark, canary, careful, codex, cso, design-consultation, design-html, design-shotgun, devex-review, document-release, freeze, gstack-upgrade, guard, health, investigate, land-and-deploy, learn, office-hours, open-gstack-browser, plan-ceo-review, plan-design-review, plan-devex-review, plan-eng-review, plan-tune, qa, qa-only, retro, review, setup-browser-cookies, setup-deploy (+ `gstack/` parent)~~
+~~- `~/.gstack/` (92KB, 3 project caches): delete entire directory~~
 
 ### B. Repo SoT changes
 - `skills/kzk-regression-memory/` — delete entire directory
@@ -240,11 +243,15 @@ These are **read-only frozen specs** per harness policy. The new number mapping 
 | Date | Section | Change | Reason |
 |---|---|---|---|
 | 2026-05-27 | §7 (AC7, AC9 grep -vE) | broaden to case-insensitive `Removed/removed/cleanup/sunset/deletion` and `GSTACK_INTENT_KEEP` | post-execute discovery: lowercase `removed` in inline cleanup notes false-positives AC9 |
+| 2026-05-27 | §3 (Phase 2C cleanup_gstack), §6 (AC1-3 + AC13), §2A (Global env) | Revoked: cleanup_gstack function and AC1-3/AC13 removed from install-global.sh, uninstall-global.sh, and gstack-removal-invariants.sh. AC4-AC12+AC14 retained and renumbered AC1-AC10. | Post-deploy discovery: kzk-harness install/uninstall scripts must not mutate other users' gstack installations. gstack is a separate user-managed tool. Only kzk-* skills' gstack references (already handled in commit b02de63) are kzk-harness's responsibility. |
+| 2026-05-27 | uninstall-global.sh §U3 `list_orphaned_artifacts` | Removed entire function + `--purge-project-artifacts` flag. | Generic search patterns (`*/docs/harness`, `*/docs/research/codex-reviews`) risk false-positives against other projects' same-named directories. User命令: kzk-harness install/uninstall must not touch anything outside kzk-* namespace. |
 
 ---
 
 ## 9. Out-of-Scope
 
-- **Plugin marketplace uninstall**: gstack may remain registered as a Claude Code plugin. `cleanup_gstack` sub-D detects this and emits a WARN; the actual uninstall (`/plugin uninstall gstack`) is a user-executed manual action.
-- **Other users' environments**: only the executing user's `~/.claude/` and `~/.gstack/` are touched.
+- **Plugin marketplace uninstall**: gstack may remain registered as a Claude Code plugin. The actual uninstall (`/plugin uninstall gstack`) is a user-executed manual action.
+- **Other users' gstack installations** — **[Added 2026-05-27]**: Other users' gstack installations (`~/.claude/CLAUDE.md` gstack block, `~/.claude/skills/gstack*` dirs, `~/.gstack/` cache) — kzk-harness install/uninstall MUST NOT touch these. Users manage gstack themselves via gstack's own install/uninstall.
+- **Other users' environments**: only the executing user's `~/.claude/` kzk-* skills are touched by install/uninstall.
 - **gstack source repository**: no actions taken against the upstream gstack repo.
+- **Per-project kzk-harness artifacts** (`harness-flow-progress.md`, `.web-loop/`, `docs/harness/`, `docs/research/codex-reviews/`): kzk-harness install/uninstall does NOT scan for or remove these. Users delete project-local artifacts themselves when sunsetting kzk-harness in a given repo.
