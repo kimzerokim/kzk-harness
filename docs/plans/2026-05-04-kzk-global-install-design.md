@@ -372,7 +372,7 @@ bash ~/.claude/skills/kzk-harness/install/uninstall-global.sh
 본 spec 으로 도출되는 plan 의 acceptance test (executor 가 verify 해야 할 것):
 
 - AC1: 새 디렉토리 `~/test-kzk-global/` 만들고 그 안에서 `claude` 시작 → "spec 잡자 — kzk-spec-and-review 트리거 되는지" 발화 → kzk-spec-and-review SKILL.md 가 인용됨.
-- AC2: `~/.claude/CLAUDE.md` 의 `<!-- BEGIN kzk-harness skills -->` ... `<!-- END kzk-harness skills -->` 마커 존재 + 표 안에 14개 skill row.
+- AC2: `~/.claude/CLAUDE.md` 의 `<!-- BEGIN kzk-harness skills -->` ... `<!-- END kzk-harness skills -->` 마커 존재 + `### Self-trigger matrix` 헤더 존재. ~~표 안에 14개 skill row.~~ **Amended 2026-05-27**: skill 카탈로그 table 제거 (bootstrap context 8KB+ 절감, SKILL.md frontmatter 가 트리거 매칭에 권위적이라 table 은 dead-weight reference 였음). Skill 수 카운트는 sync_skills 의 `find … SKILL.md` 가 별도로 검증함.
 - AC3: install-global.sh 두 번째 실행 = stale 0 + 변경 0 (idempotent). 단 source version 이 달라진 skill 만 overwrite.
 - AC4: kzk-harness repo 안에서 `--symlink-mode` 활성 후 다른 레포에서 trigger 발화 → repo 의 SKILL.md 본문 그대로 매칭. SKILL.md 한 줄 수정 후 다른 레포 새 세션에서 그 변경이 즉시 반영.
 - **AC5 (no main-context Read storm)**: After running `claude` in a test repo and triggering a read-heavy audit prompt, run `claude --output-format json | jq '[.messages[] | select(.tool_use.name == "Read")] | length'` against the session log. Expect ≤ 4. If ≥ 5 the self-trigger matrix is failing — escalate to a P0 cycle.

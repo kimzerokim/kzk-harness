@@ -487,35 +487,25 @@ _build_routing_block() {
   ver="${ver:-$(date +%Y-%m-%d-cycle-unknown)}"
   local install_date
   install_date="$(date +%Y-%m-%d)"
+  local skill_count
+  skill_count=$(find "$skills_src" -maxdepth 2 -name 'SKILL.md' -path '*/kzk-*/*' 2>/dev/null | wc -l | tr -d ' ')
+  skill_count="${skill_count:-0}"
 
   cat <<EOF
-## kzk-harness skills (${ver} installed ${install_date})
+<!-- KZK:VERSION:${ver} installed:${install_date} -->
 
-> Workflow skill layer. 18 markdown skills auto-load from ~/.claude/skills/kzk-*.
+## kzk-harness skills
+
+> Workflow skill layer. ${skill_count} markdown skills auto-load from \`~/.claude/skills/kzk-*\`.
+> Full trigger keyword catalog lives in each \`SKILL.md\` frontmatter (Claude Code reads them directly).
+> Visual index: https://kimzerokim.github.io/kzk-harness/
 > Project artifacts (\`harness-flow-progress.md\`, \`docs/harness/\`, \`docs/plans/\`,
 > \`.web-loop/\`, \`.omc/\`, \`docs/research/codex-reviews/\`) stay in \`\$PWD\`.
 
-| Skill | Trigger keywords |
-|---|---|
 EOF
-
-  # Emit one row per skill directory
-  for skill_dir in "$skills_src"/kzk-*/; do
-    [ -d "$skill_dir" ] || continue
-    local skill_name
-    skill_name="$(basename "$skill_dir")"
-    local skill_md="$skill_dir/SKILL.md"
-    local triggers=""
-    if [ -f "$skill_md" ]; then
-      # Extract description line which contains trigger keywords
-      triggers="$(grep -m1 '^description:' "$skill_md" | sed 's/^description:[[:space:]]*//' | sed 's/^"//;s/"$//' || true)"
-    fi
-    printf '| %s | %s |\n' "$skill_name" "$triggers"
-  done
 
   # Self-trigger matrix (verbatim from CLAUDE.md §Self-Improvement Loop)
   cat <<'MATRIX'
-
 ### Self-trigger matrix (메타 갭 방지)
 
 - 메인이 5+ 파일 read 가 필요한 검증 → kzk-codebase-survey → kzk-large-task-delegation §Read-heavy audit
@@ -527,6 +517,72 @@ EOF
 - Production / DB / IAM 작업 → kzk-production-access
 - UI 변경 commit → kzk-playwright-verification (Gate 4)
 MATRIX
+}
+
+# ---------------------------------------------------------------------------
+# Step 2.5 — Detect and strip stray legacy catalog rows OUTSIDE the marker
+# Older installs may have left raw `| kzk-... |` rows or a `## kzk-harness skills`
+# heading floating in ~/.claude/CLAUDE.md without the BEGIN/END markers wrapping
+# them (pre-marker installs, hand-edits, or marker corruption recoveries).
+# This pass detects them and (with user consent / --yes) strips them.
+# Lines INSIDE the marker block are skipped — they are owned by update_claude_md_routing.
+# ---------------------------------------------------------------------------
+cleanup_stray_legacy_catalog() {
+  local claude_md="$HOME/.claude/CLAUDE.md"
+  [ -f "$claude_md" ] || return 0
+
+  # Source marker constants if not already
+  if [ -z "${KZK_MARKER_BEGIN:-}" ]; then
+    # shellcheck source=install/lib/claude-md-marker.sh
+    source "$SOURCE_REPO_DIR/install/lib/claude-md-marker.sh"
+  fi
+
+  # Count stray rows + heading OUTSIDE the marker block
+  local stray
+  stray=$(awk -v b="$KZK_MARKER_BEGIN" -v e="$KZK_MARKER_END" '
+    BEGIN { inside = 0 }
+    $0 == b { inside = 1; next }
+    $0 == e { inside = 0; next }
+    !inside && /^\| kzk-[a-z0-9-]+ \|/ { count++ }
+    !inside && /^## kzk-harness skills/ { count++ }
+    END { print count + 0 }
+  ' "$claude_md")
+
+  if [ "${stray:-0}" -eq 0 ]; then
+    return 0
+  fi
+
+  emit "  Found ${stray} stray legacy kzk catalog line(s) OUTSIDE the marker block."
+  emit "  These predate the BEGIN/END marker contract and are no longer maintained."
+
+  local answer="y"
+  if [ "$AUTO_YES" -eq 0 ]; then
+    printf 'Strip them? (y/N) '
+    read -r answer
+  fi
+
+  if [ "$answer" != "y" ] && [ "$answer" != "Y" ]; then
+    record "stray legacy catalog: ${stray} lines left in place (user declined)"
+    return 0
+  fi
+
+  local stripped
+  stripped=$(mktemp)
+  awk -v b="$KZK_MARKER_BEGIN" -v e="$KZK_MARKER_END" '
+    BEGIN { inside = 0; have = 0 }
+    function flush() { if (have) { print buf; have = 0 } }
+    $0 == b { flush(); inside = 1; print; next }
+    $0 == e { flush(); inside = 0; print; next }
+    inside { flush(); print; next }
+    /^\| kzk-[a-z0-9-]+ \|/ { if (have && buf == "") have = 0; next }
+    /^## kzk-harness skills/ { if (have && buf == "") have = 0; next }
+    { flush(); buf = $0; have = 1 }
+    END { flush() }
+  ' "$claude_md" >"$stripped"
+  mv "$stripped" "$claude_md"
+
+  emit "  Stripped ${stray} stray legacy catalog line(s)."
+  record "stray legacy catalog: ${stray} lines stripped"
 }
 
 # ---------------------------------------------------------------------------
@@ -657,20 +713,20 @@ verify_install() {
     ok=0
   fi
 
-  # Count kzk- rows in marker block
+  # Self-trigger matrix header must be present inside marker block
   if command -v awk >/dev/null 2>&1 && grep -qF "$KZK_MARKER_BEGIN" "$claude_md" 2>/dev/null; then
-    local row_count
-    row_count=$(awk -v b="$KZK_MARKER_BEGIN" -v e="$KZK_MARKER_END" \
-      '$0==b{f=1;next} $0==e{f=0;next} f && /^\| kzk-/' "$claude_md" | wc -l | tr -d ' ')
-    if [ "${row_count:-0}" -ne 18 ]; then
-      emit "VERIFY FAIL: expected 18 '| kzk-' rows in marker block, found ${row_count:-0}" >&2
+    local matrix_present
+    matrix_present=$(awk -v b="$KZK_MARKER_BEGIN" -v e="$KZK_MARKER_END" \
+      '$0==b{f=1;next} $0==e{f=0;next} f && /^### Self-trigger matrix/' "$claude_md" | wc -l | tr -d ' ')
+    if [ "${matrix_present:-0}" -lt 1 ]; then
+      emit "VERIFY FAIL: '### Self-trigger matrix' header missing from marker block" >&2
       ok=0
     fi
   fi
 
   if [ "$ok" -eq 1 ]; then
-    emit "  all 18 skills + umbrella + CLAUDE.md marker verified"
-    record "verification: PASS (18 skills, umbrella, marker)"
+    emit "  all ${count} skills + umbrella + CLAUDE.md marker verified"
+    record "verification: PASS (${count} skills, umbrella, marker)"
     return 0
   else
     record "verification: FAIL — see errors above"
@@ -937,6 +993,7 @@ main() {
 
   preflight
   backup_claude_md
+  cleanup_stray_legacy_catalog    # strip stray pre-marker legacy catalog rows
   sync_skills
   sync_umbrella
   update_claude_md_routing

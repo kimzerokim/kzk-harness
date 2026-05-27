@@ -196,6 +196,45 @@ remove_marker_block() {
     emit "WARNING: gstack block changed during strip — check $claude_md manually" >&2
     record "CLAUDE.md: WARNING — gstack block diff detected after strip"
   fi
+
+  # Step U1.5 — Strip stray legacy catalog lines OUTSIDE marker (predate BEGIN/END contract)
+  local stray
+  stray=$(awk -v b="$KZK_MARKER_BEGIN" -v e="$KZK_MARKER_END" '
+    BEGIN { inside = 0 }
+    $0 == b { inside = 1; next }
+    $0 == e { inside = 0; next }
+    !inside && /^\| kzk-[a-z0-9-]+ \|/ { count++ }
+    !inside && /^## kzk-harness skills/ { count++ }
+    END { print count + 0 }
+  ' "$claude_md")
+  if [ "${stray:-0}" -gt 0 ]; then
+    emit "  Found ${stray} stray legacy kzk catalog line(s) OUTSIDE the marker (pre-marker install residue)."
+    local answer="y"
+    if [ "$AUTO_YES" -eq 0 ]; then
+      printf 'Strip them too? (y/N) '
+      read -r answer
+    fi
+    if [ "$answer" = "y" ] || [ "$answer" = "Y" ]; then
+      local stripped
+      stripped=$(mktemp)
+      awk -v b="$KZK_MARKER_BEGIN" -v e="$KZK_MARKER_END" '
+        BEGIN { inside = 0; have = 0 }
+        function flush() { if (have) { print buf; have = 0 } }
+        $0 == b { flush(); inside = 1; print; next }
+        $0 == e { flush(); inside = 0; print; next }
+        inside { flush(); print; next }
+        /^\| kzk-[a-z0-9-]+ \|/ { if (have && buf == "") have = 0; next }
+        /^## kzk-harness skills/ { if (have && buf == "") have = 0; next }
+        { flush(); buf = $0; have = 1 }
+        END { flush() }
+      ' "$claude_md" >"$stripped"
+      mv "$stripped" "$claude_md"
+      emit "  Stripped ${stray} stray legacy line(s)."
+      record "stray legacy catalog: ${stray} lines stripped"
+    else
+      record "stray legacy catalog: ${stray} lines left in place (user declined)"
+    fi
+  fi
 }
 
 # ---------------------------------------------------------------------------

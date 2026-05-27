@@ -126,7 +126,7 @@ test_umbrella_dotfile() {
 
 # ---------------------------------------------------------------------------
 # test_claude_md_marker
-# ~/.claude/CLAUDE.md must have BEGIN/END markers and 14 kzk- rows inside
+# ~/.claude/CLAUDE.md must have BEGIN/END markers and ### Self-trigger matrix inside
 # ---------------------------------------------------------------------------
 test_claude_md_marker() {
   printf '\n[test_claude_md_marker]\n'
@@ -155,10 +155,10 @@ test_claude_md_marker() {
     ERRORS+=("test_claude_md_marker: END marker")
   fi
 
-  local row_count
-  row_count=$(awk '/<!-- BEGIN kzk-harness skills -->/,/<!-- END kzk-harness skills -->/' "$cfile" |
-    grep -cE '^\| kzk-' || true)
-  assert_eq "18 kzk- rows in marker block" "18" "$row_count"
+  local matrix_present
+  matrix_present=$(awk '/<!-- BEGIN kzk-harness skills -->/,/<!-- END kzk-harness skills -->/' "$cfile" |
+    grep -cE '^### Self-trigger matrix' || true)
+  assert_eq "self-trigger matrix header in marker block" "1" "$matrix_present"
 
   rm -rf "$test_home"
 }

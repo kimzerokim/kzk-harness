@@ -117,9 +117,9 @@ ac1_trigger_in_new_dir() {
 
 # ---------------------------------------------------------------------------
 # AC2 — CLAUDE.md marker block format
-# 18 kzk-* table rows present between BEGIN/END markers.
+# BEGIN/END markers present + ### Self-trigger matrix header inside block.
 # ---------------------------------------------------------------------------
-ac2_marker_and_18_rows() {
+ac2_marker_and_matrix() {
   local ac="ac2"
   local cfile="$HOME/.claude/CLAUDE.md"
   if [ ! -f "$cfile" ]; then
@@ -134,15 +134,16 @@ ac2_marker_and_18_rows() {
     record_fail "$ac" "END marker missing from $cfile"
     return 1
   fi
-  local row_count
-  row_count=$(awk '/<!-- BEGIN kzk-harness skills -->/,/<!-- END kzk-harness skills -->/' "$cfile" \
-    | grep -cE '^\| kzk-' || true)
-  row_count="${row_count:-0}"
-  if [ "$row_count" -ne 18 ]; then
-    record_fail "$ac" "expected 18 '| kzk-' rows in marker block, found $row_count"
+  # Self-trigger matrix header must be present inside the marker block
+  local matrix_present
+  matrix_present=$(awk '/<!-- BEGIN kzk-harness skills -->/,/<!-- END kzk-harness skills -->/' "$cfile" \
+    | grep -cE '^### Self-trigger matrix' || true)
+  matrix_present="${matrix_present:-0}"
+  if [ "$matrix_present" -lt 1 ]; then
+    record_fail "$ac" "'### Self-trigger matrix' header missing from marker block"
     return 1
   fi
-  record_pass "$ac" "18 kzk-* table rows in marker block"
+  record_pass "$ac" "marker + self-trigger matrix present"
 }
 
 # ---------------------------------------------------------------------------
@@ -455,7 +456,7 @@ run_ac() {
   local n="$1"
   case "$n" in
     1) ac1_trigger_in_new_dir ;;
-    2) ac2_marker_and_18_rows ;;
+    2) ac2_marker_and_matrix ;;
     3) ac3_idempotent ;;
     4) ac4_symlink_dev_mode ;;
     5) ac5_no_main_context_read_storm ;;

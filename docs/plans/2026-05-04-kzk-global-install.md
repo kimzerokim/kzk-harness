@@ -241,7 +241,7 @@ verify_install() {
   #   - Assert ~/.claude/skills/.kzk-harness-shared/harness-share.md exists
   #   - Assert ~/.claude/skills/.kzk-harness-shared/VERSION exists and is non-empty
   #   - Grep ~/.claude/CLAUDE.md for both BEGIN and END markers
-  #   - Assert the table inside the markers contains exactly 14 rows starting with `| kzk-`
+  #   - Assert `### Self-trigger matrix` header present inside the markers (table removed 2026-05-27, see design AC2 amendment)
   # On any assertion fail → exit 1 with the specific failure line.
   # On all-pass → log "all 14 skills + umbrella + CLAUDE.md marker verified".
 }
@@ -500,7 +500,7 @@ External dependencies (codex CLI, code-review-graph) are not auto-removed since 
 
 **Lint:**
 - `markdownlint README.md` (existing config).
-- Verify the `Skills` table on lines 52–69 still has 14 rows of `| kzk-` (sanity guard against accidental table churn).
+- ~~Verify the `Skills` table on lines 52–69 still has 14 rows of `| kzk-` (sanity guard against accidental table churn).~~ **Amended 2026-05-27**: 이 sanity guard 는 table 제거로 무효. 대신 self-trigger matrix 헤더 존재 + sync_skills 의 SKILL.md count 가 권위적.
 
 **Edge cases:**
 - The legacy per-project install instruction is multi-step and references `/tmp/kzk-harness` — renaming the directory style would invalidate user muscle memory. Keep verbatim, just relocate under `### Project-only install`.
@@ -809,7 +809,7 @@ After Tasks A–F, `install/` contains 6 new files (`install-global.sh`, `uninst
 ## 4. Acceptance criteria (verbatim from spec §13 — revised)
 
 - **AC1** — 새 디렉토리 `~/test-kzk-global/` 만들고 그 안에서 `claude` 시작 → "spec 잡자 — kzk-spec-and-review 트리거 되는지" 발화 → kzk-spec-and-review SKILL.md 가 인용됨. **Verifier**: `install/verify-install.sh --ac 1`.
-- **AC2** — `~/.claude/CLAUDE.md` 의 `<!-- BEGIN kzk-harness skills -->` ... `<!-- END kzk-harness skills -->` 마커 존재 + 표 안에 14개 skill row. **Verifier**: `install/verify-install.sh --ac 2`.
+- **AC2** — `~/.claude/CLAUDE.md` 의 `<!-- BEGIN kzk-harness skills -->` ... `<!-- END kzk-harness skills -->` 마커 존재 + `### Self-trigger matrix` 헤더 존재. ~~표 안에 14개 skill row.~~ **Amended 2026-05-27**: skill 카탈로그 table 제거 (bootstrap context 8KB+ 절감, SKILL.md frontmatter 가 트리거 매칭에 권위적이라 table 은 dead-weight reference 였음). **Verifier**: `install/verify-install.sh --ac 2`.
 - **AC3** — install-global.sh 두 번째 실행 = stale 0 + 변경 0 (idempotent). 단 source version 이 달라진 skill 만 overwrite. **Verifier**: `install/verify-install.sh --ac 3`.
 - **AC4** — kzk-harness repo 안에서 `--symlink-mode` 활성 후 다른 레포에서 trigger 발화 → repo 의 harness-share.md 본문 그대로 매칭. harness-share.md 한 줄 수정 후 다른 레포 새 세션에서 그 변경이 즉시 반영 (§8.2 inversion: SKILL.md is file-copy, only harness-share.md symlinks). **Verifier**: `install/verify-install.sh --ac 4`.
 - **AC5** — Read-tool count ≤ 4 AND no reads from `src/`/`app/`/`lib/` paths in a read-heavy audit prompt. Verifier uses `--output-format stream-json --verbose` piped through `jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use" and .name=="Read") | .input.file_path'` — count written to `/tmp/kzk-ac5-reads.log`. FAIL if count ≥ 5 OR any log path matches `(^|/)src/|(^|/)app/|(^|/)lib/`. ≥ 5 = self-trigger matrix is failing → P0 cycle. **Verifier**: `install/verify-install.sh --ac 5`.
