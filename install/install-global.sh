@@ -678,18 +678,24 @@ cleanup_gstack() {
     record "cleanup_gstack: sub-C no-op (~/.gstack absent)"
   fi
 
-  # --- Sub-D: marketplace registration detection (read-only) --- # GSTACK_INTENT_KEEP
-  local plugins_json="$HOME/.claude/plugins/installed_plugins.json"
-  local marketplaces_dir="$HOME/.claude/plugins/marketplaces"
-  local gstack_registered=0
-  if [ -f "$plugins_json" ] && grep -qi "gstack" "$plugins_json" 2>/dev/null; then
-    gstack_registered=1
+  # --- Sub-D: gstack plugin registration detection (read-only) --- # GSTACK_INTENT_KEEP
+  local plugin_registered=0
+  local installed_json="$HOME/.claude/plugins/installed_plugins.json"
+  local gstack_marketplace_dir="$HOME/.claude/plugins/marketplaces/gstack"
+
+  # Anchor 1: installed_plugins.json の plugins object の key に 'gstack@' prefix
+  if [ -f "$installed_json" ] && command -v jq >/dev/null 2>&1; then
+    if jq -e '.plugins | keys[] | select(test("^gstack@"))' "$installed_json" >/dev/null 2>&1; then
+      plugin_registered=1
+    fi
   fi
-  if [ -d "$marketplaces_dir" ] && grep -rqi "gstack" "$marketplaces_dir" 2>/dev/null; then
-    gstack_registered=1
+  # Anchor 2: marketplaces/gstack/ ディレクトリ存在 (top-level)
+  if [ -d "$gstack_marketplace_dir" ]; then
+    plugin_registered=1
   fi
-  if [ "$gstack_registered" -eq 1 ]; then
-    emit "  WARN: gstack plugin still registered in marketplace. Run \`/plugin uninstall gstack\` in a Claude Code session to fully remove." >&2
+
+  if [ "$plugin_registered" -eq 1 ]; then
+    emit "  WARN: gstack plugin still registered (installed_plugins.json key or marketplaces/gstack/). Run \`/plugin uninstall gstack\` in a Claude Code session to remove." >&2
     record "cleanup_gstack: sub-D gstack plugin still registered (manual uninstall required)"
   else
     record "cleanup_gstack: sub-D no gstack plugin registration detected"
