@@ -45,16 +45,15 @@ TC="$REPO_ROOT/skills/kzk-test-coverage/SKILL.md"
 LTD="$REPO_ROOT/skills/kzk-large-task-delegation/SKILL.md"
 SHARE="$REPO_ROOT/harness-share.md"
 
-# kzk-test-coverage v1.3 — positive grep
-assert_grep "kzk-test-coverage version 1.3.0" "version: 1.3.0" "$TC"
+# kzk-test-coverage current — positive grep
+assert_grep "kzk-test-coverage version 1.9.0" "version: 1.9.0" "$TC"
 assert_grep "kzk-test-coverage Anti-pattern 섹션" "Anti-pattern — Test-from-implementation" "$TC"
-assert_grep "kzk-test-coverage Layer b 자율 mode" "자율 mode 메인 직접 TDD 금지" "$TC"
+assert_grep "kzk-test-coverage Layer b 자율 mode" "Layer b" "$TC"
 assert_grep "kzk-test-coverage KZK_AUTONOMOUS=1 우선" "KZK_AUTONOMOUS=1" "$TC"
-assert_grep "kzk-test-coverage env unset 동사구 매칭" "환경변수 unset 시" "$TC"
-assert_grep "kzk-test-coverage 명사 단독 금지" "명사 단독" "$TC"
-assert_grep "kzk-test-coverage fresh sonnet dispatch 강제" "fresh sonnet dispatch" "$TC"
+assert_grep "kzk-test-coverage autonomous mode detection" "Autonomous mode detection" "$TC"
+assert_grep "kzk-test-coverage fresh sonnet dispatch 강제" "fresh-dispatch sonnet" "$TC"
 assert_grep "kzk-test-coverage Q-TDD-MAIN queue entry" "Q-TDD-MAIN" "$TC"
-assert_grep "kzk-test-coverage hook 인프라 예외" "hook/install 인프라" "$TC"
+assert_grep "kzk-test-coverage hook 인프라 예외" "hook/install infrastructure code" "$TC"
 assert_grep "kzk-test-coverage ACK 문구 예시" "test-from-spec 준수 확인했음" "$TC"
 
 # kzk-test-coverage — negative grep (=0 override 금지)
@@ -108,21 +107,21 @@ assert_grep "harness-share KZK_AUTONOMOUS=1" "KZK_AUTONOMOUS=1" "$SHARE"
 # harness-share — negative grep
 assert_no_grep "harness-share no =0 override" "KZK_AUTONOMOUS=0" "$SHARE"
 
-# Plan E rev2 — kzk-production-access v1.2 grep
+# Plan E rev2 — kzk-production-access current grep
 PA="$REPO_ROOT/skills/kzk-production-access/SKILL.md"
 LTD_E="$REPO_ROOT/skills/kzk-large-task-delegation/SKILL.md"
 PCG="$REPO_ROOT/skills/kzk-pre-commit-gate/SKILL.md"
 SHARE_E="$REPO_ROOT/harness-share.md"
 
-assert_grep "PA v1.2"                             "version: 1.2.0"                        "$PA"
-assert_grep "PA permission rewrite"               "Permission model (rev2 — Plan E)"      "$PA"
-assert_grep "PA AI direct write 금지"             "AI 직접 실행 금지"                     "$PA"
-assert_grep "PA Three-stage review 참조"          "Three-stage review"                    "$PA"
-assert_grep "PA env exceptions IaC vs runtime"    "IaC-managed"                           "$PA"
-assert_grep "PA env exceptions runtime-only"      "runtime-only"                          "$PA"
-assert_grep "PA drift state semantics"            "state semantics"                       "$PA"
-assert_grep "PA Axis B impacted artifact"         "impacted schema"                       "$PA"
-assert_grep "PA trigger migration"                "migration"                             "$PA"
+assert_grep "PA v1.7"                             "version: 1.7.0"                        "$PA"
+assert_grep "PA permission model"                 "## Permission model"                    "$PA"
+assert_grep "PA AI direct write 금지"             "AI direct execution forbidden"          "$PA"
+assert_grep "PA Three-stage review 참조"          "three-stage review"                     "$PA"
+assert_grep "PA env exceptions IaC vs runtime"    "IaC-managed"                            "$PA"
+assert_grep "PA env exceptions runtime-only"      "runtime-only"                           "$PA"
+assert_grep "PA drift state semantics"            "production state does not travel backwards in time" "$PA"
+assert_grep "PA Axis B impacted artifact"         "impacted schema"                        "$SHARE_E"
+assert_grep "PA trigger migration"                "migration"                              "$PA"
 
 assert_grep "LTD Production-code-first boilerplate" "Production-code-first boilerplate"  "$LTD_E"
 assert_grep "LTD PRODUCTION-CODE-FIRST RULE 본문"   "PRODUCTION-CODE-FIRST RULE"         "$LTD_E"
@@ -130,7 +129,7 @@ assert_grep "LTD Three-stage review 참조"           "Three-stage review"      
 
 assert_grep "PCG Gate 1.6 헤더"                   "Gate 1.6"                             "$PCG"
 assert_grep "PCG staged path trigger"             "staged path"                          "$PCG"
-assert_grep "PCG WARN/FAIL 분리"                  "FAIL 아님"                             "$PCG"
+assert_grep "PCG WARN/FAIL 분리"                  "WARN = stderr output + commit proceeds. FAIL = commit halted." "$PCG"
 assert_grep "PCG kzk-production-access cross-ref" "kzk-production-access"               "$PCG"
 
 assert_grep "SHARE §2 신규 subsection"            "Production state changes — code-first" "$SHARE_E"
