@@ -88,7 +88,7 @@ test_skill_files_landed() {
   count=$(find "$test_home/.claude/skills" -maxdepth 2 -name 'SKILL.md' \
     -path '*/kzk-*/*' 2>/dev/null | wc -l | tr -d ' ')
 
-  assert_eq "18 SKILL.md files landed" "18" "$count"
+  assert_eq "17 SKILL.md files landed" "17" "$count"
 
   rm -rf "$test_home"
 }
@@ -598,21 +598,6 @@ test_keyword_detector_matches_test_add() {
 }
 
 # ---------------------------------------------------------------------------
-# Plan D — regression-recall.test.mjs
-# ---------------------------------------------------------------------------
-test_regression_recall() {
-  printf '\n[test_regression_recall]\n'
-  if node "$REPO_ROOT/install/test/regression-recall.test.mjs"; then
-    printf '  PASS: regression-recall.test.mjs\n'
-    PASS=$((PASS + 1))
-  else
-    printf '  FAIL: regression-recall.test.mjs\n'
-    FAIL=$((FAIL + 1))
-    ERRORS+=("test_regression_recall")
-  fi
-}
-
-# ---------------------------------------------------------------------------
 # Plan B — fix-scope-trigger.test.mjs
 # ---------------------------------------------------------------------------
 test_fix_scope_trigger() {
@@ -654,7 +639,6 @@ test_keyword_detector_no_match_passes_through
 test_keyword_detector_matches_tdd
 test_keyword_detector_matches_vague_large
 test_keyword_detector_matches_test_add
-test_regression_recall
 test_fix_scope_trigger
 
 # Plan C — verifier-routing

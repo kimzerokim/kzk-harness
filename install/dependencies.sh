@@ -117,16 +117,6 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# 2.5. gstack plugin data — used by kzk-regression-memory (Plan D)
-# ---------------------------------------------------------------------------
-if [ -d "$HOME/.gstack/projects" ]; then
-  record "gstack plugin data: detected (~/.gstack/projects/ exists)"
-else
-  printf 'INFO: ~/.gstack/projects/ not found — kzk-regression-memory recall will use sidecar only until gstack plugin is installed in Claude Code.\n' >&2
-  record "gstack plugin data: NOT DETECTED. Install gstack plugin in Claude Code via /plugin."
-fi
-
-# ---------------------------------------------------------------------------
 # 3. gh CLI (GitHub) — used by kzk-pre-merge-sync (PR creation)
 # ---------------------------------------------------------------------------
 if command -v gh >/dev/null 2>&1; then

@@ -4,11 +4,11 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>kzk-harness — Skill &amp; Workflow Map</title>
-<!-- KZK_SKILL_FLOW_FINGERPRINT: e85828c695b986fb -->
+<!-- KZK_SKILL_FLOW_FINGERPRINT: 9fea749fe524fa18 -->
 <!--
-  Single-page reference for the 18 kzk-* skills, their workflow entry points,
+  Single-page reference for the 17 kzk-* skills, their workflow entry points,
   and the hook infrastructure that enforces discipline at runtime.
-  Authoritative source: each skills/kzk-*/SKILL.md + harness-share.md (§1–§33).
+  Authoritative source: each skills/kzk-*/SKILL.md + harness-share.md (§1–§32).
   Update policy: the PreToolUse hook at .claude/hooks/check-skill-flow-fresh.mjs
   blocks git commit when this HTML is out of sync with the SoT.
 -->
@@ -143,7 +143,7 @@
 <div class="layout">
 
 <nav class="toc" aria-label="Table of contents">
-  <div class="brand">kzk-harness <span class="tag">18 skills</span></div>
+  <div class="brand">kzk-harness <span class="tag">17 skills</span></div>
   <ul>
     <li><a href="#intro">1. Overview</a></li>
     <li><a href="#mental-model">2. Mental model</a></li>
@@ -158,7 +158,7 @@
         <li><a href="#flow-commit">5.5 commit (Gate 0–5)</a></li>
       </ul>
     </li>
-    <li><a href="#skills">6. 18 skill cards</a>
+    <li><a href="#skills">6. 17 skill cards</a>
       <ul>
         <li><a href="#s-pre-commit-gate">kzk-pre-commit-gate</a></li>
         <li><a href="#s-large-task-delegation">kzk-large-task-delegation</a></li>
@@ -174,7 +174,6 @@
         <li><a href="#s-user-queue">kzk-user-queue</a></li>
         <li><a href="#s-web-loop">kzk-web-loop</a></li>
         <li><a href="#s-codebase-survey">kzk-codebase-survey</a></li>
-        <li><a href="#s-regression-memory">kzk-regression-memory</a></li>
         <li><a href="#s-fix-scope-expansion">kzk-fix-scope-expansion</a></li>
         <li><a href="#s-freshness-guard">kzk-freshness-guard</a></li>
         <li><a href="#s-codex-handoff">kzk-codex-handoff</a></li>
@@ -191,18 +190,18 @@
 
 <section id="intro" class="hero">
   <h1>kzk-harness — Skill &amp; Workflow Map</h1>
-  <div class="sub">Single-page reference for the 18 kzk-* skills: how they call each other, where they are loaded, and which hook enforces each rule at runtime.</div>
+  <div class="sub">Single-page reference for the 17 kzk-* skills: how they call each other, where they are loaded, and which hook enforces each rule at runtime.</div>
   <div class="meta">
-    <span><span class="dot"></span> 18 skills active</span>
+    <span><span class="dot"></span> 17 skills active</span>
     <span><span class="dot"></span> 8 hooks (project + global)</span>
-    <span><span class="dot amber"></span> harness-share.md §1–§33 SoT</span>
+    <span><span class="dot amber"></span> harness-share.md §1–§32 SoT</span>
   </div>
   <p>
-    Single-page reference for the 18 `kzk-*` skills that compose the kzk-harness workflow layer on top of Claude Code. Documents how skills are loaded, how trigger phrases route to them, what each skill does, and how they chain in the five canonical entry-point flows.
+    Single-page reference for the 17 `kzk-*` skills that compose the kzk-harness workflow layer on top of Claude Code. Documents how skills are loaded, how trigger phrases route to them, what each skill does, and how they chain in the five canonical entry-point flows.
   </p>
   <p>
     The canonical source of truth for each skill's rules is its own <code>skills/kzk-*/SKILL.md</code>;
-    cross-cutting rules that span multiple skills live in <code>harness-share.md</code> (§1–§33).
+    cross-cutting rules that span multiple skills live in <code>harness-share.md</code> (§1–§32).
     This HTML is a <em>read-only index</em> derived from those two sources.
     When either changes, the hook described in §9 blocks <code>git commit</code> until this file is updated.
   </p>
@@ -219,7 +218,7 @@
     <div class="card">
       <div class="head"><span class="name">Skill</span><span class="badge">markdown</span></div>
       <div class="blurb">When a trigger keyword appears in the prompt, the skill's body loads into the main context automatically. No code — the markdown text is the rulebook.</div>
-      <h4>All 18 kzk-* skills follow this pattern</h4>
+      <h4>All 17 kzk-* skills follow this pattern</h4>
       <ul>
         <li>Location: <span class="path">~/.claude/skills/kzk-*/SKILL.md</span> (global) or <span class="path">.claude/skills/kzk-*/SKILL.md</span> (project-only)</li>
         <li>Install: <code>install/install-global.sh</code> or the README PROJECT-ONLY procedure</li>
@@ -523,16 +522,13 @@ flowchart TD
   <h2>5. Five entry points — diagrams</h2>
 
   <h3 id="flow-fix">5.1 fix-start (bug fix / regression prevention)</h3>
-  <p>Triggers: <code class="chip k">fix 시작</code> <code class="chip k">버그 수정</code> <code class="chip k">callsite 전수</code> <code class="chip k">재발 방지</code>. Two UserPromptSubmit hooks fire in parallel — one pulls regression memory, one populates the callsite cache. Main then proceeds directly: survey → delegation → gates.</p>
+  <p>Triggers: <code class="chip k">fix 시작</code> <code class="chip k">버그 수정</code> <code class="chip k">callsite 전수</code> <code class="chip k">재발 방지</code>. The fix-scope-trigger UserPromptSubmit hook populates the callsite cache. Main then proceeds directly: survey → delegation → gates.</p>
   <div class="mermaid-wrap">
 <pre class="mermaid">
 flowchart TD
-  P[fix 시작 prompt] --> RR[regression-recall.mjs<br/>UserPromptSubmit hook]
-  P --> FST[fix-scope-trigger.mjs<br/>UserPromptSubmit hook]
-  RR --> MEM[gstack /learn JSONL<br/>+ sidecar decay]
+  P[fix 시작 prompt] --> FST[fix-scope-trigger.mjs<br/>UserPromptSubmit hook]
   FST --> CACHE[.kzk-harness/<br/>fix-scope-cache.jsonl]
-  MEM --> S[kzk-codebase-survey<br/>8-step]
-  CACHE --> S
+  CACHE --> S[kzk-codebase-survey<br/>8-step]
   S --> LTD[kzk-large-task-delegation]
   LTD --> EX[executor sonnet]
   EX --> GATE[kzk-pre-commit-gate]
@@ -604,7 +600,7 @@ flowchart TD
   </div>
 
   <h3 id="flow-web">5.4 web-loop (autonomous web improvement)</h3>
-  <p>Triggers: <code class="chip k">웹 루프</code> <code class="chip k">자율 개선</code> <code class="chip k">계속 돌려</code>. P0 issues take a fast-path directly to executor; P1/P2 issues go through the plan gate first. Each cycle ends with a <code>/learn</code> retrospective call.</p>
+  <p>Triggers: <code class="chip k">웹 루프</code> <code class="chip k">자율 개선</code> <code class="chip k">계속 돌려</code>. P0 issues take a fast-path directly to executor; P1/P2 issues go through the plan gate first. Each cycle ends with a retrospective entry in <code>harness-flow-progress.md</code>.</p>
   <div class="mermaid-wrap">
 <pre class="mermaid">
 flowchart TD
@@ -619,7 +615,7 @@ flowchart TD
   PRIO -->|P1 P2| SURV[kzk-codebase-survey]
   SURV --> WP["superpowers:writing-plans"]
   WP --> SDD[subagent-driven-dev]
-  FAST --> REC[harness-flow-progress.md<br/>+ /learn retrospective]
+  FAST --> REC[harness-flow-progress.md<br/>+ retrospective entry]
   SDD --> REC
   UQ --> REC
   REC --> RUN
@@ -655,7 +651,7 @@ flowchart TD
 </section>
 
 <section id="skills">
-  <h2>6. 18 skill cards</h2>
+  <h2>6. 17 skill cards</h2>
   <p>Each card summarizes the skill's <strong>name + version</strong>, <strong>trigger keywords</strong>, <strong>core mechanism</strong>, <strong>outputs</strong>, <strong>linked sister skills</strong>, and <strong>harness-share §N</strong> reference. Badge meanings:</p>
   <div class="keys">
     <span class="chip"><span class="badge entry">entry</span> User prompt keyword is the primary entry point</span>
@@ -678,7 +674,7 @@ flowchart TD
       <li>Gate 1.5: secrets grep (<code>AKIA</code>, <code>ASIA</code>)</li>
       <li>Gate 1.6: production-access code-first check (shell command detection)</li>
       <li>Gate 2/3: <code>npm run build</code> / <code>npm test</code> (scoped)</li>
-      <li>Gate 3.5: <code>docker-compose-gate.mjs</code> — fires only on <code>git commit</code> / <code>gh pr create-merge</code> / <code>git push origin main</code> with staged files matching <code>(^|/)Dockerfile(\..+)?$</code> / <code>(^|/)(docker-)?compose(\..+)?\.ya?ml$</code> / <code>(^|/)backend/</code>. Doc-only commits (any of <code>.md / .mdx / .rst / .adoc / .txt</code> or special files <code>CLAUDE.md / DESIGN.md / harness-share.md / README.md / AGENTS.md / LICENSE / CHANGELOG.md / docs/</code> etc.) skip. Bypass env precedence <code>KZK_GATE35_DISABLE=1</code> &gt; <code>KZK_GATE35_SKIP=1</code> &gt; <code>CI=true</code> with queue codes <code>Q-GATE35-DISABLED</code> / <code>Q-GATE35-SKIPPED</code> / <code>Q-GATE35-CI-SKIP</code>. Runs <code>docker compose up --build -d</code> (timeout <code>dockerTimeoutMs</code> default 600000ms) + optional smoke endpoint from <code>.kzk/docker-smoke.json</code> (<code>endpoint</code>, <code>method</code> GET/HEAD, <code>smokeTimeoutMs</code> default 30000ms). OPT-IN propagation via <code>install-global.sh --docker-gate</code> (tier alongside <code>--regression-recall</code> / <code>--fix-scope-trigger</code> / <code>--freshness-guard</code>); runtime opt-out <code>KZK_GATE35_DISABLE=1</code>.</li>
+      <li>Gate 3.5: <code>docker-compose-gate.mjs</code> — fires only on <code>git commit</code> / <code>gh pr create-merge</code> / <code>git push origin main</code> with staged files matching <code>(^|/)Dockerfile(\..+)?$</code> / <code>(^|/)(docker-)?compose(\..+)?\.ya?ml$</code> / <code>(^|/)backend/</code>. Doc-only commits (any of <code>.md / .mdx / .rst / .adoc / .txt</code> or special files <code>CLAUDE.md / DESIGN.md / harness-share.md / README.md / AGENTS.md / LICENSE / CHANGELOG.md / docs/</code> etc.) skip. Bypass env precedence <code>KZK_GATE35_DISABLE=1</code> &gt; <code>KZK_GATE35_SKIP=1</code> &gt; <code>CI=true</code> with queue codes <code>Q-GATE35-DISABLED</code> / <code>Q-GATE35-SKIPPED</code> / <code>Q-GATE35-CI-SKIP</code>. Runs <code>docker compose up --build -d</code> (timeout <code>dockerTimeoutMs</code> default 600000ms) + optional smoke endpoint from <code>.kzk/docker-smoke.json</code> (<code>endpoint</code>, <code>method</code> GET/HEAD, <code>smokeTimeoutMs</code> default 30000ms). OPT-IN propagation via <code>install-global.sh --docker-gate</code> (tier alongside <code>--fix-scope-trigger</code> / <code>--freshness-guard</code>); runtime opt-out <code>KZK_GATE35_DISABLE=1</code>.</li>
       <li>Gate 4: <code>kzk-playwright-verification</code> (UI changes only)</li>
       <li>Gate 4.5: <code>kzk-fix-scope-expansion</code> (callsite cache validation)</li>
       <li>Gate 5: fresh-agent verifier (cache key = staged_diff_hash + acceptance_hash + verifier_model)</li>
@@ -809,7 +805,7 @@ flowchart TD
       <a href="#s-pre-merge-sync"><span class="chip">kzk-pre-merge-sync</span> (§5/§6/§7 sub-checks)</a>
     </div>
     <h4>Source of truth</h4>
-    <p><code>harness-share.md §2 + §33</code></p>
+    <p><code>harness-share.md §2 + §32</code></p>
   </div>
 
   <!-- ============== kzk-autonomous-loop ============== -->
@@ -905,7 +901,7 @@ flowchart TD
     <ol>
       <li>CLAUDE.md sync (six sections: Tech Stack / Project Structure / API Endpoints / DB / Key Rules / Env Vars)</li>
       <li><code>/oh-my-claudecode:deepinit</code> mandatory run</li>
-      <li>Hook auto-enable: <code>regression-recall</code> + <code>fix-scope-trigger</code> (jq verification, user explicit confirm)</li>
+      <li>Hook auto-enable: <code>fix-scope-trigger</code> (jq verification, user explicit confirm)</li>
       <li>Branch-wide freshness sweep (<code>kzk-freshness-guard</code>)</li>
       <li>§5 Stub sweep: <code>git log --grep='STUB:'</code> + JSX comment + UI text patterns; user-visible unresolved stubs → BLOCK, behind-flag → WARN</li>
       <li>§6 Prod-build user-persona smoke: <code>npm run build &amp;&amp; node dist/main</code> (or <code>vite preview</code>) + Playwright 3+ pages, 0 console errors, 0 network 4xx/5xx</li>
@@ -916,7 +912,6 @@ flowchart TD
       <a href="#s-autonomous-boundary"><span class="chip">kzk-autonomous-boundary</span></a>
       <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a>
       <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a>
-      <a href="#s-regression-memory"><span class="chip">kzk-regression-memory</span></a>
       <a href="#s-fix-scope-expansion"><span class="chip">kzk-fix-scope-expansion</span></a>
       <a href="#s-freshness-guard"><span class="chip">kzk-freshness-guard</span></a>
     </div>
@@ -1025,7 +1020,7 @@ flowchart TD
   <!-- ============== kzk-web-loop ============== -->
   <div class="card" id="s-web-loop">
     <div class="head"><span class="name">kzk-web-loop</span><span class="ver">v1.11.0</span><span class="badge entry">entry</span></div>
-    <div class="blurb">Autonomous web-page improvement loop. P0 issues take a fast-path directly to executor; P1/P2 go through survey + writing-plans + subagent-driven-dev. Reviewer-FAIL skip override differs from the autonomous-loop default. Each cycle ends with a /learn retrospective.</div>
+    <div class="blurb">Autonomous web-page improvement loop. P0 issues take a fast-path directly to executor; P1/P2 go through survey + writing-plans + subagent-driven-dev. Reviewer-FAIL skip override differs from the autonomous-loop default. Each cycle ends with a retrospective entry in harness-flow-progress.md.</div>
     <h4>Triggers</h4>
     <div class="triggers"><span class="chip k">web loop</span><span class="chip k">웹 루프</span><span class="chip k">자율 개선</span><span class="chip k">loop forever</span><span class="chip k">무한 개선</span><span class="chip k">무한 루프</span><span class="chip k">계속 돌려</span></div>
     <h4>Outputs</h4>
@@ -1041,7 +1036,6 @@ flowchart TD
       <a href="#s-large-task-delegation"><span class="chip">kzk-large-task-delegation</span></a>
       <a href="#s-spec-and-review"><span class="chip">kzk-spec-and-review</span></a>
       <a href="#s-autonomous-loop"><span class="chip">kzk-autonomous-loop</span></a>
-      <a href="#s-regression-memory"><span class="chip">kzk-regression-memory</span></a>
       <a href="#s-playwright-verification"><span class="chip">kzk-playwright-verification</span></a>
       <a href="#s-pre-commit-gate"><span class="chip">kzk-pre-commit-gate</span></a>
     </div>
@@ -1077,22 +1071,6 @@ flowchart TD
     </div>
     <h4>Source of truth</h4>
     <p><code>harness-share.md §26</code></p>
-  </div>
-
-  <!-- ============== kzk-regression-memory ============== -->
-  <div class="card" id="s-regression-memory">
-    <div class="head"><span class="name">kzk-regression-memory</span><span class="ver">v1.6.0</span><span class="badge auto">auto</span><span class="badge hook">hook</span></div>
-    <div class="blurb">On fix-start keyword detection, automatically retrieves regression history from the gstack /learn JSONL primary store plus a sidecar (dismiss_count, stale, archived flags). Confidence decays by × 0.85 per dismiss. Enabled by pre-merge-sync step 3.</div>
-    <h4>Triggers</h4>
-    <div class="triggers"><span class="chip k">regression memory</span><span class="chip k">재발 방지</span><span class="chip k">fix recall</span><span class="chip k">fix 시작</span><span class="chip k">과거 fix 조회</span><span class="chip k">dismiss recall</span></div>
-    <h4>Related hooks</h4>
-    <ul>
-      <li><span class="path">install/hooks/regression-recall.mjs</span> — UserPromptSubmit; on fix-start, retrieves results and injects them as a system-reminder</li>
-      <li>Sidecar location: <span class="path">.kzk-harness/regression-meta.jsonl</span></li>
-      <li>CLI: <span class="path">install/bin/kzk-regression-memory.mjs dismiss &lt;key&gt;</span></li>
-    </ul>
-    <h4>Source of truth</h4>
-    <p><code>harness-share.md §29</code></p>
   </div>
 
   <!-- ============== kzk-fix-scope-expansion ============== -->
@@ -1184,7 +1162,7 @@ flowchart TD
       <tr><td>Multi-cycle autonomous run</td><td><code>kzk-autonomous-loop</code> + <code>kzk-autonomous-boundary</code></td></tr>
       <tr><td>Production / DB / IAM work</td><td><code>kzk-production-access</code></td></tr>
       <tr><td>UI change commit</td><td><code>kzk-playwright-verification</code> (Gate 4)</td></tr>
-      <tr><td>fix-start ("버그 수정")</td><td><code>regression-recall.mjs</code> + <code>fix-scope-trigger.mjs</code> hooks → <code>kzk-codebase-survey</code> → <code>kzk-large-task-delegation</code></td></tr>
+      <tr><td>fix-start ("버그 수정")</td><td><code>fix-scope-trigger.mjs</code> hook → <code>kzk-codebase-survey</code> → <code>kzk-large-task-delegation</code></td></tr>
       <tr><td>Autonomous + multi-file delegation (no survey in context)</td><td><code>kzk-codebase-survey</code> first → report path in context → <code>kzk-large-task-delegation</code> dispatch; if survey skipped → <span class="chip q">Q-SURVEY-MISSING</span> halt</td></tr>
     </tbody>
   </table>
@@ -1200,17 +1178,17 @@ flowchart TD
     <thead><tr><th>Component</th><th>Role</th><th>Load location / method</th><th>Consumed by</th></tr></thead>
     <tbody>
       <tr>
-        <td><code>kzk-* (18 skills)</code></td>
+        <td><code>kzk-* (17 skills)</code></td>
         <td>This repo's core</td>
         <td>
-          <strong>Global</strong>: <span class="path">~/.claude/skills/kzk-*/SKILL.md</span> (README install one-liner → <code>install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard</code>).<br/>
+          <strong>Global</strong>: <span class="path">~/.claude/skills/kzk-*/SKILL.md</span> (README install one-liner → <code>install/install-global.sh --enable-hooks --fix-scope-trigger --freshness-guard</code>).<br/>
           <strong>Project-only</strong>: <span class="path">.claude/skills/kzk-*/SKILL.md</span> (README PROJECT-ONLY procedure).
         </td>
         <td>All skills</td>
       </tr>
       <tr>
         <td><code>harness-share.md</code></td>
-        <td>Cross-cutting SoT (§1–§33)</td>
+        <td>Cross-cutting SoT (§1–§32)</td>
         <td>
           Global install copies to <span class="path">~/.claude/skills/.kzk-harness-shared/harness-share.md</span> (dot-prefix — not an invocable skill).<br/>
           Project-only: copied to repo root as <span class="path">harness-share.md</span>.<br/>
@@ -1243,14 +1221,6 @@ flowchart TD
           Detected via <span class="path">~/.claude.json</span> + <span class="path">&lt;project&gt;/.mcp.json</span> entries.
         </td>
         <td>playwright-verification (Gate 4), web-loop</td>
-      </tr>
-      <tr>
-        <td><code>gstack</code> plugin</td>
-        <td><code>/learn</code> JSONL store</td>
-        <td>
-          Session <code>/plugin</code> install. Detected by presence of <span class="path">~/.gstack/projects/</span>.
-        </td>
-        <td>regression-memory (recall hook), web-loop (cycle retrospective)</td>
       </tr>
       <tr>
         <td><code>context7</code> MCP</td>
@@ -1306,7 +1276,7 @@ flowchart TD
 </section>
 
 <section id="harness-share">
-  <h2>9. harness-share.md section map (§1–§33)</h2>
+  <h2>9. harness-share.md section map (§1–§32)</h2>
   <p>The SoT that every skill's "Authoritative source" line points to. On any conflict, harness-share.md wins over SKILL.md.</p>
   <table>
     <thead><tr><th>§</th><th>Title</th><th>One-liner</th></tr></thead>
@@ -1333,7 +1303,7 @@ flowchart TD
       <tr><td>§18</td><td>Visibility &amp; Communication (autonomous)</td><td>progress narration, per-tool shape</td></tr>
       <tr><td>§19</td><td>MCP Reconnection Protocol</td><td>drop → reconnect, fresh subagent re-dispatch</td></tr>
       <tr><td>§20</td><td>Session Self-Critique (Russian Judge)</td><td>critic review gate</td></tr>
-      <tr><td>§21</td><td>Memory Feedback Inheritance</td><td>/learn + project memory merge</td></tr>
+      <tr><td>§21</td><td>Memory Feedback Inheritance</td><td>project memory merge</td></tr>
       <tr><td>§22</td><td>Codex Cross-Review for Plans</td><td>multi-pass review, verdict file</td></tr>
       <tr><td>§22.5</td><td>End-to-End Ralph Pipeline</td><td>spec → plan → critic → implementation full autonomous chain</td></tr>
       <tr><td>§23</td><td>Background Process Stuck Recovery</td><td>stuck threshold, kill / diagnose / retry</td></tr>
@@ -1342,11 +1312,10 @@ flowchart TD
       <tr><td>§26</td><td>kzk-codebase-survey</td><td>8-step survey SoT, MCP surface</td></tr>
       <tr><td>§27</td><td>kzk-tool-retry</td><td>single retry, pre-emptive read, queue</td></tr>
       <tr><td>§28</td><td>Skill-load chain (meta gap prevention)</td><td>EVALUATOR opus + EXECUTOR sonnet routing</td></tr>
-      <tr><td>§29</td><td>Regression Memory Protocol</td><td>/learn + sidecar store, fix-start retrieval</td></tr>
-      <tr><td>§30</td><td>kzk-freshness-guard</td><td>CRG reverseRefs + auto-fix</td></tr>
-      <tr><td>§31</td><td>Brainstorming auto-chaining</td><td>spec-and-review Step -1 default ON</td></tr>
-      <tr><td>§32</td><td>Code Quality Discipline</td><td>DRY/YAGNI/KISS + module depth</td></tr>
-      <tr><td>§33</td><td>Autonomous-mode Detection SoT</td><td>Category A keywords, Category B self-improve</td></tr>
+      <tr><td>§29</td><td>kzk-freshness-guard</td><td>CRG reverseRefs + auto-fix</td></tr>
+      <tr><td>§30</td><td>Brainstorming auto-chaining</td><td>spec-and-review Step -1 default ON</td></tr>
+      <tr><td>§31</td><td>Code Quality Discipline</td><td>DRY/YAGNI/KISS + module depth</td></tr>
+      <tr><td>§32</td><td>Autonomous-mode Detection SoT</td><td>Category A keywords, Category B self-improve</td></tr>
     </tbody>
   </table>
 </section>
@@ -1357,7 +1326,7 @@ flowchart TD
 
   <div class="card">
     <div class="head"><span class="name">keyword-detector.mjs</span><span class="badge hook">hook</span></div>
-    <div class="blurb">Detects trigger keywords in every incoming user prompt and injects a system-reminder that loads the relevant skill chain. Implements <strong>9 RULES</strong> (hardcoded phrase lists — forced injection). Also writes the <code>autonomous-active</code> marker file when autonomous-mode keywords fire. Note: not all 18 skills have a keyword-detector RULE — skills like <code>kzk-pre-commit-gate</code>, <code>kzk-pre-merge-sync</code>, <code>kzk-playwright-verification</code>, <code>kzk-production-access</code>, <code>kzk-freshness-guard</code>, <code>kzk-fix-scope-expansion</code>, <code>kzk-tool-retry</code>, <code>kzk-background-monitoring</code>, <code>kzk-regression-memory</code> load via Claude Code's description-field matching, not via this hook.</div>
+    <div class="blurb">Detects trigger keywords in every incoming user prompt and injects a system-reminder that loads the relevant skill chain. Implements <strong>9 RULES</strong> (hardcoded phrase lists — forced injection). Also writes the <code>autonomous-active</code> marker file when autonomous-mode keywords fire. Note: not all 17 skills have a keyword-detector RULE — skills like <code>kzk-pre-commit-gate</code>, <code>kzk-pre-merge-sync</code>, <code>kzk-playwright-verification</code>, <code>kzk-production-access</code>, <code>kzk-freshness-guard</code>, <code>kzk-fix-scope-expansion</code>, <code>kzk-tool-retry</code>, <code>kzk-background-monitoring</code> load via Claude Code's description-field matching, not via this hook.</div>
     <h4>Event</h4><p>UserPromptSubmit</p>
     <h4>Key details</h4>
     <ul>
@@ -1428,19 +1397,6 @@ flowchart TD
   </div>
 
   <div class="card">
-    <div class="head"><span class="name">regression-recall.mjs</span><span class="badge hook">hook</span></div>
-    <div class="blurb">On fix-start keywords, retrieves regression history from the gstack /learn JSONL store and the sidecar, then injects the results as a system-reminder. Disabled by default — enabled by pre-merge-sync step 3.</div>
-    <h4>Event</h4><p>UserPromptSubmit</p>
-    <h4>Key details</h4>
-    <ul>
-      <li>Sidecar: <span class="path">.kzk-harness/regression-meta.jsonl</span></li>
-      <li>Confidence decay: × 0.85 per dismiss</li>
-      <li><strong>Default OFF</strong> — enabled via <code>--regression-recall</code> flag</li>
-      <li>Scope: global</li>
-    </ul>
-  </div>
-
-  <div class="card">
     <div class="head"><span class="name">dispatcher.mjs</span><span class="badge">library</span></div>
     <div class="blurb">Shared dispatch utility imported by the other hooks. Not a hook itself — provides consistent subagent dispatch patterns so each hook doesn't re-implement them.</div>
     <h4>Event</h4><p>n/a (library)</p>
@@ -1492,7 +1448,7 @@ flowchart TD
   </div>
 
   <p>
-    The 9 global hooks are activated with <code>install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard</code>.
+    The global hooks are activated with <code>install-global.sh --enable-hooks --fix-scope-trigger --freshness-guard</code>.
     They are copied to <span class="path">~/.claude/skills/.kzk-harness-shared/hooks/</span> and registered in the appropriate event arrays in <span class="path">~/.claude/settings.json</span>.
     <code>check-cycle-exit.mjs</code> is default-propagate (no extra flag required).
   </p>

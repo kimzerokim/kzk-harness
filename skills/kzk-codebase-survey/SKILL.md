@@ -132,7 +132,7 @@ Parse all import statements from deep-read files. Filter to external packages (n
 For each relevant external library, in priority order:
 
 1. `mcp__plugin_context7_context7__resolve-library-id("<library>")` → then `mcp__plugin_context7_context7__query-docs`
-2. Check for a matching `kzk-*`, `superpowers:*`, or `gstack:*` skill → `Skill("<skill-name>")` if found
+2. Check for a matching `kzk-*` or `superpowers:*` skill → `Skill("<skill-name>")` if found
 3. Fallback: `WebSearch("<library> <version> API reference")`
 
 Output: per-library "current correct API patterns" block in the report.

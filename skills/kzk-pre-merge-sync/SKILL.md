@@ -1,7 +1,7 @@
 ---
 name: kzk-pre-merge-sync
 version: 1.9.0
-description: "Pre-merge / milestone checklist before gh pr create (PR-flow) or direct-main milestone commits. Enforces: CLAUDE.md sync, deepinit run, regression-recall + fix-scope hook auto-enable, full freshness sweep, stub sweep, prod-build user-persona smoke, SoT alignment. Triggers: 'merge', 'feature branch', 'CLAUDE.md sync', 'deepinit'. References harness-share.md §14.5 + §15."
+description: "Pre-merge / milestone checklist before gh pr create (PR-flow) or direct-main milestone commits. Enforces: CLAUDE.md sync, deepinit run, fix-scope hook auto-enable, full freshness sweep, stub sweep, prod-build user-persona smoke, SoT alignment. Triggers: 'merge', 'feature branch', 'CLAUDE.md sync', 'deepinit'. References harness-share.md §14.5 + §15."
 ---
 
 > Authoritative source: `harness-share.md` §14.5 + §15. On conflict, that wins.
@@ -43,35 +43,34 @@ Skill("oh-my-claudecode:deepinit")
 - Failure → check log, fix, do not skip. Skip = block merge.
 - Checkpoint: PR description includes the literal line `deepinit ran`
 
-## 3. Hook auto-enable (Plan D + Plan B, fail-closed)
+## 3. Hook auto-enable (fail-closed)
 
-After all **5 plans (A→D→B→C→E)** complete, immediately before merging `feature/memory` → `main`, switch `regression-recall` + `fix-scope-trigger` hooks from default DISABLED to ENABLED:
+Enable `fix-scope-trigger` hook before merging:
 
 ```bash
-bash install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger
+bash install/install-global.sh --enable-hooks --fix-scope-trigger
 ```
 
-`--regression-recall` + `--fix-scope-trigger` are explicit dependencies, so `--enable-hooks` (keyword-detector) is also auto-enabled.
+`--fix-scope-trigger` is an explicit dependency, so `--enable-hooks` (keyword-detector) is also auto-enabled.
 
 **Mandatory user confirm gate** — obtain explicit user confirmation before auto-invoking. If declined, guide the manual enable path:
-- Declined → user runs the command above directly. Must state "regression-recall hook left disabled by user request" in PR description or milestone commit message.
+- Declined → user runs the command above directly. Must state "fix-scope-trigger hook left disabled by user request" in PR description or milestone commit message.
 - Confirmed → auto-invoke install-global.sh, report stdout result to user.
 
-**Fail-closed verification** (codex answer #3):
-1. Check `install-global.sh --enable-hooks --regression-recall --fix-scope-trigger` exit code — non-zero → block merge (`exit 1`)
-2. Verify exactly 1 `regression-recall.mjs` entry exists in the `UserPromptSubmit` array in settings.json (count with jq). 0 or 2+ → block merge
+**Fail-closed verification**:
+1. Check `install-global.sh --enable-hooks --fix-scope-trigger` exit code — non-zero → block merge (`exit 1`)
+2. Verify exactly 1 `fix-scope-trigger.mjs` entry exists in the `UserPromptSubmit` array in settings.json (count with jq). 0 or 2+ → block merge
 3. If `jq` is not installed, check first → guide user to `brew install jq` + block merge
 
 All 3 verifications must PASS to proceed with merge.
 
-**Why**: Plans D + B commits default DISABLED — prevents self-contamination during the next cycle. The 5-plan milestone merge is the natural first-enable gate (prevents amnesia). Fail-closed means a silent install failure cannot slip through to merge undetected.
+**Why**: fix-scope-trigger commits default DISABLED — prevents self-contamination during the next cycle. Fail-closed means a silent install failure cannot slip through to merge undetected.
 
-Skip = block merge. Exception: user has explicitly declared "regression-recall keep disabled" (must be stated in PR description or milestone commit message).
+Skip = block merge. Exception: user has explicitly declared "fix-scope-trigger keep disabled" (must be stated in PR description or milestone commit message).
 
 Checkpoint: PR description (PR-flow) or milestone commit message (direct-main flow) must include:
-- ENABLED: `regression-recall hook enabled via kzk-pre-merge-sync step 3`
 - ENABLED: `fix-scope-trigger hook enabled via kzk-pre-merge-sync step 3`
-- User-declined: `regression-recall hook left disabled by user request`
+- User-declined: `fix-scope-trigger hook left disabled by user request`
 
 ## Combined PR description footer
 
@@ -83,7 +82,7 @@ Checkpoint: PR description (PR-flow) or milestone commit message (direct-main fl
 - [x] kzk-pre-commit-gate full gate PASS (Gate 0 N/A if no AGENTS.md hierarchy; otherwise all of 0, 1, 1.5, 2, 3, 4) on final commit
 - [ ] Stub sweep: `git log main..HEAD --format="%H %s%n%b" | grep "STUB:"` → 0 user-visible unresolved stubs (or noted as `Stub accepted:` in PR body)
 - [ ] Experiment complete + user merge approval received (PR-flow), OR milestone marker reached + user notified (direct-main / direct-no-PR flow). Skip if PR target is a non-main feature branch.
-- [ ] regression-recall hook enabled via step 3 (or user-declined per spec rev6 §Default DISABLED, fail-closed verified)
+- [ ] fix-scope-trigger hook enabled via step 3 (or user-declined, fail-closed verified)
 ```
 
 ## 4. Freshness sweep
@@ -196,6 +195,6 @@ Evidence: <paths to screenshots / log excerpts / git refs>
 - **kzk-autonomous-boundary**: Defines when autonomous PR creation is allowed (post-review explicit user merge approval is the sole exception). Also see §Autonomous completion fresh-agent verifier — the cycle-exit verifier dispatched per that rule runs this skill's §5 stub sweep, §6 prod-build smoke, and §7 SoT alignment as pre-merge gates.
 - **kzk-pre-commit-gate**: Provides the gate-PASS line this skill writes into the PR footer.
 - **kzk-spec-and-review**: Pre-PR `deepinit_manifest` refresh updates the AGENTS.md memory that codex review reads.
-- **kzk-regression-memory**: This skill's step 3 is the first-enable gate for the regression-recall hook. spec rev6 §Default DISABLED auto-enable entry point. Fail-closed (jq absent / install-global.sh non-zero / duplicate entry → merge block).
+- **kzk-fix-scope-expansion**: This skill's step 3 is the first-enable gate for the fix-scope-trigger hook. Default DISABLED auto-enable entry point. Fail-closed (jq absent / install-global.sh non-zero / duplicate entry → merge block).
 - **kzk-freshness-guard**: Full freshness sweep immediately before merge (§4)
 - **check-cycle-exit.mjs hook**: When Signal A (gh pr create/merge / git push origin main) or Signal B (MILESTONE: / CYCLE-EXIT: / STUB-CLEAR: commit marker) is detected, the hook BLOCKs and instructs dispatch of the cycle-exit verifier which runs §5/§6/§7 + spec-freeze re-check. See `harness-share.md §3 Gate 6`.

@@ -1,7 +1,7 @@
 ---
 name: kzk-spec-and-review
 version: 2.14.0
-description: "Spec/plan/major design authoring with mandatory cross-vendor codex review. Iterative loop until PASS: Draft → codex consult → synthesize 🔴 BLOCKER / 🟡 NIT / ⚪ push-back → Gate (PASS = BLOCKER 0 AND no structural change, CONTINUE = next cycle, HALT = cycle ≥ 5 + BLOCKER 잔존). Brainstorming default ON (Step -1 after Step 0 survey). Skip only when EITHER explicit `brainstorming 스킵` command standalone OR ALL-of (trivial + pre-specified + no-new-capability). Step 0 survey precondition + freshness check. Triggers: 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm', 'brainstorm default ON'. References harness-share.md §22 + §22.5 + §31."
+description: "Spec/plan/major design authoring with mandatory cross-vendor codex review. Iterative loop until PASS: Draft → codex consult → synthesize 🔴 BLOCKER / 🟡 NIT / ⚪ push-back → Gate (PASS = BLOCKER 0 AND no structural change, CONTINUE = next cycle, HALT = cycle ≥ 5 + BLOCKER 잔존). Brainstorming default ON (Step -1 after Step 0 survey). Skip only when EITHER explicit `brainstorming 스킵` command standalone OR ALL-of (trivial + pre-specified + no-new-capability). Step 0 survey precondition + freshness check. Triggers: 'spec 잡자', 'plan draft', 'plan 만들어', 'codex review', 'brainstorm', 'brainstorm default ON'. References harness-share.md §22 + §22.5 + §30."
 ---
 
 > Authoritative source: `harness-share.md` §22 + §22.5 (Step 0 survey precondition references §26). On conflict, that wins.
@@ -72,7 +72,7 @@ Loop on the same spec/plan/design until **PASS** (defined in §Gate decision). O
      - Cycle (N−1) verdict file path (so executor can locate the BLOCKER list)
      - Categorized edit list applied since cycle (N−1): each item = section anchor + change + 🔴/🟡 tag
      - Original survey report path (unchanged from cycle 1)
-   - Mandatory inject: harness-share.md §32 Code Quality Discipline boilerplate (DRY/YAGNI/KISS + Deletion test + Depth + obsolete test). Violation → spec revision requested.
+   - Mandatory inject: harness-share.md §31 Code Quality Discipline boilerplate (DRY/YAGNI/KISS + Deletion test + Depth + obsolete test). Violation → spec revision requested.
 
 2. **Codex consult** — run `codex exec` CLI directly (see kzk-codex-handoff §Codex CLI 호출 패턴). CLI not available (`command not found`) or stuck per kzk-codex-handoff §Codex CLI 호출 패턴 (60s no first token → retry; 5 min total → kill) → fallback: `Agent(subagent_type="oh-my-claudecode:critic", prompt=<same review prompt>)` (model omitted → inherits main opus version). **Both paths (CLI and fallback critic) MUST save the verdict to a named file using the Verdict file convention below — chat history alone is insufficient and does not count as the artifact.**
    - Cycle ≥ 2 codex prompt MUST include cycle (N−1) verdict file content (or path with explicit re-read instruction) in `LOCKED PRIOR DECISIONS` block — prevents codex re-flagging resolved BLOCKERs.

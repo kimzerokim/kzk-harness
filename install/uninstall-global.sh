@@ -238,6 +238,110 @@ remove_marker_block() {
 }
 
 # ---------------------------------------------------------------------------
+# Step U1.6 — cleanup_gstack (equivalent to install-global.sh cleanup_gstack)
+# Removes gstack global artifacts: CLAUDE.md block, 33 skill dirs, ~/.gstack/,
+# and detects marketplace registration (read-only warn).
+# ---------------------------------------------------------------------------
+cleanup_gstack() {
+  local claude_md="$HOME/.claude/CLAUDE.md"
+
+  # --- Sub-A: CLAUDE.md gstack block removal --- # GSTACK_INTENT_KEEP
+  if [ -f "$claude_md" ] && grep -qF "# gstack" "$claude_md"; then
+    local valid=1
+    local in_list=0
+    local found_anchor=0
+    while IFS= read -r line; do
+      if [ "$found_anchor" -eq 0 ]; then
+        [ "$line" = "# gstack" ] && found_anchor=1
+        continue
+      fi
+      if [ "$in_list" -eq 0 ]; then
+        [ "$line" = "Available gstack skills:" ] && in_list=1
+        continue
+      fi
+      [ -z "$line" ] && break
+      if ! printf '%s\n' "$line" | grep -qE '^- `\/[a-z][a-z0-9-]*`$'; then
+        local linenum
+        linenum=$(grep -n "^${line}$" "$claude_md" 2>/dev/null | head -1 | cut -d: -f1 || echo "?")
+        emit "  WARN: gstack block contains unexpected content at line ${linenum} — manual cleanup required" >&2
+        valid=0
+        break
+      fi
+    done < "$claude_md"
+
+    if [ "$valid" -eq 1 ]; then
+      local stripped
+      stripped=$(mktemp)
+      awk '
+        /^# gstack$/ { in_block=1; next }
+        in_block && /^$/ { in_block=0; next }
+        in_block { next }
+        { print }
+      ' "$claude_md" >"$stripped"
+      mv "$stripped" "$claude_md"
+      emit "  U1.6 cleanup_gstack sub-A: gstack block removed from $claude_md"
+      record "cleanup_gstack: sub-A gstack block removed"
+    fi
+  else
+    emit "  U1.6 cleanup_gstack sub-A: gstack anchor not found — skip (idempotent)"
+    record "cleanup_gstack: sub-A no-op (anchor absent)"
+  fi
+
+  # --- Sub-B: 33 gstack skill dirs --- # GSTACK_INTENT_KEEP
+  local skills_dst="$HOME/.claude/skills"
+  local gstack_dirs=(
+    gstack autoplan benchmark canary careful codex cso
+    design-consultation design-html design-shotgun devex-review
+    document-release freeze gstack-upgrade guard health investigate
+    land-and-deploy learn office-hours open-gstack-browser
+    plan-ceo-review plan-design-review plan-devex-review plan-eng-review
+    plan-tune qa qa-only retro review setup-browser-cookies setup-deploy
+  )
+  local removed_b=0
+  for dir in "${gstack_dirs[@]}"; do
+    local target="$skills_dst/$dir"
+    if [ -d "$target" ] || [ -L "$target" ]; then
+      rm -rf "$target"
+      removed_b=$((removed_b + 1))
+    fi
+  done
+  if [ "$removed_b" -gt 0 ]; then
+    emit "  U1.6 cleanup_gstack sub-B: removed $removed_b gstack skill dir(s)"
+    record "cleanup_gstack: sub-B $removed_b dir(s) removed"
+  else
+    emit "  U1.6 cleanup_gstack sub-B: 0 gstack dirs to remove (idempotent)"
+    record "cleanup_gstack: sub-B no-op (already clean)"
+  fi
+
+  # --- Sub-C: ~/.gstack/ removal ---
+  if [ -d "$HOME/.gstack" ]; then
+    rm -rf "$HOME/.gstack"
+    emit "  U1.6 cleanup_gstack sub-C: ~/.gstack removed"
+    record "cleanup_gstack: sub-C ~/.gstack removed"
+  else
+    emit "  U1.6 cleanup_gstack sub-C: ~/.gstack not found, skip"
+    record "cleanup_gstack: sub-C no-op (~/.gstack absent)"
+  fi
+
+  # --- Sub-D: marketplace registration detection (read-only) --- # GSTACK_INTENT_KEEP
+  local plugins_json="$HOME/.claude/plugins/installed_plugins.json"
+  local marketplaces_dir="$HOME/.claude/plugins/marketplaces"
+  local gstack_registered=0
+  if [ -f "$plugins_json" ] && grep -qi "gstack" "$plugins_json" 2>/dev/null; then
+    gstack_registered=1
+  fi
+  if [ -d "$marketplaces_dir" ] && grep -rqi "gstack" "$marketplaces_dir" 2>/dev/null; then
+    gstack_registered=1
+  fi
+  if [ "$gstack_registered" -eq 1 ]; then
+    emit "  WARN: gstack plugin still registered in marketplace. Run \`/plugin uninstall gstack\` in a Claude Code session to fully remove." >&2
+    record "cleanup_gstack: sub-D gstack plugin still registered (manual uninstall required)"
+  else
+    record "cleanup_gstack: sub-D no gstack plugin registration detected"
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Step U2 — Remove skill dirs
 # ---------------------------------------------------------------------------
 remove_skill_dirs() {
@@ -446,6 +550,9 @@ main() {
 
   # U1 — Strip marker block (or restore backup)
   remove_marker_block
+
+  # U1.6 — cleanup_gstack (gstack block, 33 skill dirs, ~/.gstack/, marketplace detect)
+  cleanup_gstack
 
   # U2 — Remove skill dirs; if nothing found, exit 1
   if ! remove_skill_dirs; then

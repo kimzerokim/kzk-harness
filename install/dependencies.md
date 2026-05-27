@@ -58,14 +58,6 @@ Detection sources:
   - Reviewer agents unavailable → no automatic critic; user must run reviews manually.
   - Codex fallback unavailable → if codex CLI is also missing, `kzk-spec-and-review` halts with "no reviewer available".
 
-### gstack (recommended)
-
-- **Purpose**: Project learnings storage (JSONL) for regression memory recall. The `/learn` skill manages learnings; the hook reads JSONL files directly.
-- **Used by**: `kzk-regression-memory` (recall hook reads `~/.gstack/projects/<slug>/learnings.jsonl`), `kzk-web-loop` (cycle retrospective via `/learn` skill).
-- **Install**: `/plugin` inside a Claude Code session — search for `gstack`.
-- **Fallback if missing**: `kzk-regression-memory` recall returns 0 results. Sidecar-only mode. Cycle retrospective entries are not persisted to gstack learnings.
-- **Detection**: `~/.gstack/projects/` directory existence.
-
 ### playwright-mcp — required for kzk-web-loop, recommended for Gate 4
 
 - **Purpose**: Browser automation MCP tools (`browser_navigate`, `browser_snapshot`, `browser_take_screenshot`, etc.).
@@ -91,9 +83,8 @@ Detection sources:
 | `kzk-test-coverage` | — | OMC (`verifier`) |
 | `kzk-tool-retry` | — | — |
 | `kzk-user-queue` | — | — |
-| `kzk-web-loop` | playwright-mcp | code-review-graph (via `kzk-codebase-survey`), gstack (cycle retro `/learn` skill) |
+| `kzk-web-loop` | playwright-mcp | code-review-graph (via `kzk-codebase-survey`) |
 | `kzk-codebase-survey` | — | code-review-graph |
-| `kzk-regression-memory` | — | gstack plugin (`~/.gstack/projects/` JSONL) |
 | `kzk-freshness-guard` | code-review-graph (required, WARN on missing) | crg-utils.mjs (shared lib) |
 
 ## Manual smoke test — `--skip-project` flag

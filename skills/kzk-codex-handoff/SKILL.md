@@ -1,10 +1,10 @@
 ---
 name: kzk-codex-handoff
 version: 1.6.0
-description: "Codex CLI invocation stabilization SoT. 5 hard rules: stdin pipe required, --json→file→jq (not pipe), --ephemeral always, short prompts via arg, plain text mode. E0 Preflight + E1-E4 fallback ladder to critic opus. Auto-loaded by spec-and-review and large-task-delegation. References harness-share.md §32."
+description: "Codex CLI invocation stabilization SoT. 5 hard rules: stdin pipe required, --json→file→jq (not pipe), --ephemeral always, short prompts via arg, plain text mode. E0 Preflight + E1-E4 fallback ladder to critic opus. Auto-loaded by spec-and-review and large-task-delegation. References harness-share.md §31."
 ---
 
-> Authoritative source: This skill is self-authoritative for codex CLI invocation discipline. Will migrate to `harness-share.md §32` in Phase 2.
+> Authoritative source: This skill is self-authoritative for codex CLI invocation discipline. Will migrate to `harness-share.md §31` in Phase 2.
 
 # kzk-codex-handoff
 

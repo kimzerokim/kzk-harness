@@ -34,7 +34,7 @@ Reading implementation during the Red phase (writing the failing test) is forbid
 **Allowed reads during Red phase**:
 - spec / acceptance criteria / user prompt / issue body
 - External interface (public API signature only)
-- hook/install infrastructure code (e.g. `install/hooks/regression-recall.mjs`) — allowed even during Red phase when harness/hook debugging is needed. However, *copying that code's interface as test assumptions* is still forbidden.
+- hook/install infrastructure code (e.g. `install/hooks/fix-scope-trigger.mjs`) — allowed even during Red phase when harness/hook debugging is needed. However, *copying that code's interface as test assumptions* is still forbidden.
 
 **Forbidden reads during Red phase**:
 - Implementation body of the function being written
@@ -57,7 +57,7 @@ In autonomous execution mode (`kzk-autonomous-boundary` entered, `kzk-web-loop`,
   - "anti-self-verification 룰 인지하고 진행"
 
 **Autonomous mode detection**:
-> See harness-share.md §33 Autonomous-mode Detection SoT (Category A).
+> See harness-share.md §32 Autonomous-mode Detection SoT (Category A).
 > TDD prohibition scope: applies on Category A verb phrase match OR `KZK_AUTONOMOUS=1`.
 
 **Enforcement layers**:
@@ -69,7 +69,7 @@ In autonomous execution mode (`kzk-autonomous-boundary` entered, `kzk-web-loop`,
 > Trigger fires independently of explicit 'tdd' keyword — code-file change in autonomous mode is sufficient.
 
 **Trigger**: BOTH of the following must be true:
-1. Autonomous mode is active — Category A verb phrase match OR `KZK_AUTONOMOUS=1` env var (per `harness-share.md §33` Autonomous-mode Detection SoT).
+1. Autonomous mode is active — Category A verb phrase match OR `KZK_AUTONOMOUS=1` env var (per `harness-share.md §32` Autonomous-mode Detection SoT).
 2. The staged or in-progress diff contains at least one **code-file** change (NOT doc-only — see definition below).
 
 **Code-file definition (auto-TDD trigger boundary)** — a file qualifies as a *code-file* when its path matches NONE of the doc-only fast-path patterns canonical in `kzk-pre-commit-gate §doc-only fast path`. That is the entire definition — no separate "source-code glob" allow-list. This means config/schema files (`.json`, `.yaml`, `.toml`, `.env.example`, etc.) ARE code-files for auto-TDD purposes when they appear outside the doc-only set. When in doubt, the doc-only fast-path glob is the source of truth — do not maintain a local allow-list.

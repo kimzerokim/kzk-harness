@@ -15,7 +15,6 @@
 #     entry in docs/harness/user-queue.md). Install-time opt-out: --no-cycle-exit-hook.
 #
 #   OPT-IN hooks (require an explicit extra flag):
-#     regression-recall.mjs  (--regression-recall)
 #     fix-scope-trigger.mjs  (--fix-scope-trigger)
 #     freshness-guard.mjs    (--freshness-guard)
 #     These are project-type-specific and off by default.
@@ -84,7 +83,6 @@ DO_UPDATE=0
 SYMLINK_MODE=0
 SYMLINK_MODE_FORCE=0
 ENABLE_HOOKS=0
-DO_REGRESSION_RECALL=0
 DO_FRESHNESS_GUARD=0
 DO_DOCKER_GATE=0
 NO_DOCKER_GATE=0
@@ -112,7 +110,6 @@ Flags:
   --symlink-mode-force             Skip multi-checkout refusal for --symlink-mode
   --enable-hooks                   Wire keyword-detector.mjs into settings.json (N3)
   --no-cycle-exit-hook             Skip registering check-cycle-exit.mjs (default ON when --enable-hooks)
-  --regression-recall              Also wire regression-recall.mjs (implies --enable-hooks)
   --fix-scope-trigger              Also wire fix-scope-trigger.mjs (Plan B, implies --enable-hooks)
   --freshness-guard                Also wire freshness-guard.mjs (implies --enable-hooks)
   --docker-gate                    Also wire docker-compose-gate.mjs (OPT-IN, implies --enable-hooks)
@@ -154,10 +151,6 @@ parse_flags() {
         ;;
       --enable-hooks)
         ENABLE_HOOKS=1
-        shift
-        ;;
-      --regression-recall)
-        DO_REGRESSION_RECALL=1
         shift
         ;;
       --fix-scope-trigger)
@@ -586,6 +579,124 @@ cleanup_stray_legacy_catalog() {
 }
 
 # ---------------------------------------------------------------------------
+# cleanup_gstack — remove gstack global environment artifacts
+# Sub-A: remove gstack block from ~/.claude/CLAUDE.md (exact-match anchor)
+# Sub-B: remove 33 gstack skill dirs from ~/.claude/skills/
+# Sub-C: remove ~/.gstack/
+# Sub-D: detect gstack plugin marketplace registration (read-only warn)
+# ---------------------------------------------------------------------------
+cleanup_gstack() {
+  local claude_md="$HOME/.claude/CLAUDE.md"
+
+  # --- Sub-A: CLAUDE.md gstack block removal ---
+  # Exact prefix anchor (lines that must appear verbatim before the skill list)
+  local anchor_line1="# gstack"
+  local anchor_line2=""
+  local anchor_line3="Use the \`/browse\` skill from gstack for all web browsing. Never use \`mcp__claude-in-chrome__*\` tools."
+  local anchor_line4=""
+  local anchor_line5="Available gstack skills:"
+
+  if [ -f "$claude_md" ] && grep -qF "$anchor_line1" "$claude_md"; then
+    # Validate the skill list lines (validation range: after preamble, up to first blank, exclusive)
+    # Extract block: from "# gstack" to first blank line after "Available gstack skills:"
+    local valid=1
+    local in_list=0
+    local found_anchor=0
+    while IFS= read -r line; do
+      if [ "$found_anchor" -eq 0 ]; then
+        [ "$line" = "$anchor_line1" ] && found_anchor=1
+        continue
+      fi
+      # After anchor_line1, skip until "Available gstack skills:"
+      if [ "$in_list" -eq 0 ]; then
+        [ "$line" = "Available gstack skills:" ] && in_list=1
+        continue
+      fi
+      # Validation range: non-empty lines must match ^- `/[a-z][a-z0-9-]*`$
+      [ -z "$line" ] && break  # terminating blank line — stop validation (excluded from range)
+      if ! printf '%s\n' "$line" | grep -qE '^- `\/[a-z][a-z0-9-]*`$'; then
+        local linenum
+        linenum=$(grep -n "^${line}$" "$claude_md" 2>/dev/null | head -1 | cut -d: -f1 || echo "?")
+        emit "  WARN: gstack block contains unexpected content at line ${linenum} — manual cleanup required" >&2
+        valid=0
+        break
+      fi
+    done < "$claude_md"
+
+    if [ "$valid" -eq 1 ]; then
+      # Deletion range: from "# gstack" through and including the terminating blank line
+      local stripped
+      stripped=$(mktemp)
+      awk '
+        /^# gstack$/ { in_block=1; next }
+        in_block && /^$/ { in_block=0; next }
+        in_block { next }
+        { print }
+      ' "$claude_md" >"$stripped"
+      mv "$stripped" "$claude_md"
+      emit "  cleanup_gstack sub-A: gstack block removed from $claude_md"
+      record "cleanup_gstack: sub-A gstack block removed"
+    fi
+  else
+    emit "  cleanup_gstack sub-A: gstack anchor not found in $claude_md — skip (idempotent)"
+    record "cleanup_gstack: sub-A no-op (anchor absent)"
+  fi
+
+  # --- Sub-B: 33 gstack skill dirs from ~/.claude/skills/ --- # GSTACK_INTENT_KEEP
+  local skills_dst="$HOME/.claude/skills"
+  local gstack_dirs=(
+    gstack autoplan benchmark canary careful codex cso
+    design-consultation design-html design-shotgun devex-review
+    document-release freeze gstack-upgrade guard health investigate
+    land-and-deploy learn office-hours open-gstack-browser
+    plan-ceo-review plan-design-review plan-devex-review plan-eng-review
+    plan-tune qa qa-only retro review setup-browser-cookies setup-deploy
+  )
+  local removed_b=0
+  for dir in "${gstack_dirs[@]}"; do
+    local target="$skills_dst/$dir"
+    if [ -d "$target" ] || [ -L "$target" ]; then
+      rm -rf "$target"
+      removed_b=$((removed_b + 1))
+    fi
+  done
+  if [ "$removed_b" -gt 0 ]; then
+    emit "  cleanup_gstack sub-B: removed $removed_b gstack skill dir(s)"
+    record "cleanup_gstack: sub-B $removed_b dir(s) removed"
+  else
+    emit "  cleanup_gstack sub-B: 0 gstack dirs to remove (idempotent)"
+    record "cleanup_gstack: sub-B no-op (already clean)"
+  fi
+
+  # --- Sub-C: ~/.gstack/ removal ---
+  if [ -d "$HOME/.gstack" ]; then
+    rm -rf "$HOME/.gstack"
+    emit "  cleanup_gstack sub-C: ~/.gstack removed"
+    record "cleanup_gstack: sub-C ~/.gstack removed"
+  else
+    emit "  cleanup_gstack sub-C: ~/.gstack not found, skip"
+    record "cleanup_gstack: sub-C no-op (~/.gstack absent)"
+  fi
+
+  # --- Sub-D: marketplace registration detection (read-only) --- # GSTACK_INTENT_KEEP
+  local plugins_json="$HOME/.claude/plugins/installed_plugins.json"
+  local marketplaces_dir="$HOME/.claude/plugins/marketplaces"
+  local gstack_registered=0
+  if [ -f "$plugins_json" ] && grep -qi "gstack" "$plugins_json" 2>/dev/null; then
+    gstack_registered=1
+  fi
+  if [ -d "$marketplaces_dir" ] && grep -rqi "gstack" "$marketplaces_dir" 2>/dev/null; then
+    gstack_registered=1
+  fi
+  if [ "$gstack_registered" -eq 1 ]; then
+    emit "  WARN: gstack plugin still registered in marketplace. Run \`/plugin uninstall gstack\` in a Claude Code session to fully remove." >&2
+    record "cleanup_gstack: sub-D gstack plugin still registered (manual uninstall required)"
+  else
+    record "cleanup_gstack: sub-D no gstack plugin registration detected"
+  fi
+}
+
+# ---------------------------------------------------------------------------
 # Step 5.5 — OMC keyword-detector collision check
 # ---------------------------------------------------------------------------
 omc_collision_check() {
@@ -686,8 +797,8 @@ verify_install() {
   # Count SKILL.md files under kzk-* dirs
   local count
   count=$(find "$skills_dst" -maxdepth 2 -name 'SKILL.md' -path '*/kzk-*/*' 2>/dev/null | wc -l | tr -d ' ')
-  if [ "${count:-0}" -ne 18 ]; then
-    emit "VERIFY FAIL: expected 18 kzk-*/SKILL.md, found ${count:-0}" >&2
+  if [ "${count:-0}" -ne 17 ]; then
+    emit "VERIFY FAIL: expected 17 kzk-*/SKILL.md, found ${count:-0}" >&2
     ok=0
   fi
 
@@ -833,16 +944,15 @@ update_hook_manifest() {
   local manifest_dir="$HOME/.claude/skills/.kzk-harness-shared/hooks"
   local manifest="$manifest_dir/enabled.json"
   local kw="${1:-true}"      # keyword_detector default ON
-  local rr="${2:-false}"     # regression_recall default OFF
-  local fs_flag="${3:-false}" # fix_scope_trigger default OFF
-  local fg_flag="${4:-false}" # freshness_guard default OFF
-  local dg_flag="${5:-false}" # docker_compose_gate default OFF
+  local fs_flag="${2:-false}" # fix_scope_trigger default OFF
+  local fg_flag="${3:-false}" # freshness_guard default OFF
+  local dg_flag="${4:-false}" # docker_compose_gate default OFF
   local tmp
   tmp=$(mktemp)
   jq -n \
-    --argjson kw "$kw" --argjson rr "$rr" --argjson fs "$fs_flag" \
+    --argjson kw "$kw" --argjson fs "$fs_flag" \
     --argjson fg "$fg_flag" --argjson dg "$dg_flag" \
-    '{keyword_detector: $kw, regression_recall: $rr, fix_scope_trigger: $fs, freshness_guard: $fg, docker_compose_gate: $dg}' \
+    '{keyword_detector: $kw, fix_scope_trigger: $fs, freshness_guard: $fg, docker_compose_gate: $dg}' \
     >"$tmp" && mv "$tmp" "$manifest"
 }
 
@@ -885,13 +995,6 @@ enable_hooks() {
   # Always copy keyword-detector (needed by dispatcher manifest)
   cp "$src/install/hooks/keyword-detector.mjs" "$hook_dest/"
 
-  # Plan D: regression-recall hook + dismiss bin
-  if [ "${DO_REGRESSION_RECALL:-0}" -eq 1 ]; then
-    cp "$src/install/hooks/regression-recall.mjs" "$hook_dest/" 2>/dev/null || true
-    cp "$src/install/bin/kzk-regression-memory.mjs" \
-      "$HOME/.claude/skills/.kzk-harness-shared/bin/" 2>/dev/null || true
-  fi
-
   # Plan B: fix-scope-trigger hook
   if [ "${DO_FIX_SCOPE_TRIGGER:-0}" -eq 1 ]; then
     cp "$src/install/hooks/fix-scope-trigger.mjs" "$hook_dest/" 2>/dev/null || true
@@ -927,18 +1030,16 @@ enable_hooks() {
   emit "  hooks: settings.json hook arrays reconstructed (canonical, dispatcher only)"
   record "hooks: PreToolUse + PostToolUse + UserPromptSubmit canonical (dispatcher)"
 
-  # Plan F: manifest — keyword_detector ON by default; rr/fst per flags
+  # Plan F: manifest — keyword_detector ON by default; fst per flags
   local kw_flag="true"
-  local rr_flag="false"
   local fst_flag="false"
   local fg_flag="false"
   local dg_flag="false"
-  [ "${DO_REGRESSION_RECALL:-0}" -eq 1 ] && rr_flag="true"
   [ "${DO_FIX_SCOPE_TRIGGER:-0}" -eq 1 ] && fst_flag="true"
   [ "${DO_FRESHNESS_GUARD:-0}" -eq 1 ] && fg_flag="true"
   [ "${DO_DOCKER_GATE:-0}" -eq 1 ] && [ "${NO_DOCKER_GATE:-0}" -eq 0 ] && dg_flag="true"
-  update_hook_manifest "$kw_flag" "$rr_flag" "$fst_flag" "$fg_flag" "$dg_flag" || return 1
-  emit "  hooks: enabled.json manifest written (kw=$kw_flag rr=$rr_flag fst=$fst_flag fg=$fg_flag dg=$dg_flag)"
+  update_hook_manifest "$kw_flag" "$fst_flag" "$fg_flag" "$dg_flag" || return 1
+  emit "  hooks: enabled.json manifest written (kw=$kw_flag fst=$fst_flag fg=$fg_flag dg=$dg_flag)"
   record "hooks: enabled.json manifest written"
 
   return 0
@@ -994,6 +1095,7 @@ main() {
   preflight
   backup_claude_md
   cleanup_stray_legacy_catalog    # strip stray pre-marker legacy catalog rows
+  cleanup_gstack                  # remove gstack global artifacts (sub-A/B/C/D)
   sync_skills
   sync_umbrella
   update_claude_md_routing
@@ -1010,12 +1112,6 @@ main() {
   if ! verify_install; then
     print_summary
     exit 1
-  fi
-
-  # Plan D: --regression-recall 는 --enable-hooks 의 explicit dependency
-  if [ "${DO_REGRESSION_RECALL:-0}" -eq 1 ] && [ "${ENABLE_HOOKS:-0}" -eq 0 ]; then
-    emit "  --regression-recall implies --enable-hooks (explicit dependency)"
-    ENABLE_HOOKS=1
   fi
 
   # Plan B: --fix-scope-trigger 는 --enable-hooks 의 explicit dependency

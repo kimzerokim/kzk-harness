@@ -1,10 +1,10 @@
 ---
 name: kzk-freshness-guard
 version: 1.4.0
-description: "Stale meta-doc detection via CRG symbol reverseRefs + auto-fix per doc type (AGENTS row, CLAUDE section, spec line-ref). Runs at Gate 0.5, spec-and-review Step 0, pre-merge §4. Triggers: 'stale 체크', 'freshness guard', 'Gate 0.5', 'KZK_GATE05_SKIP'. References harness-share.md §30."
+description: "Stale meta-doc detection via CRG symbol reverseRefs + auto-fix per doc type (AGENTS row, CLAUDE section, spec line-ref). Runs at Gate 0.5, spec-and-review Step 0, pre-merge §4. Triggers: 'stale 체크', 'freshness guard', 'Gate 0.5', 'KZK_GATE05_SKIP'. References harness-share.md §29."
 ---
 
-> Authoritative source: `harness-share.md` §30. On conflict, that wins.
+> Authoritative source: `harness-share.md` §29. On conflict, that wins.
 
 # kzk-freshness-guard
 

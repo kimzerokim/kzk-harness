@@ -57,7 +57,7 @@ export function detectFixIntent(prompt) {
 }
 
 /**
- * normalizeQuery — extract a short keyword-focused query from prompt for /learn search.
+ * normalizeQuery — extract a short keyword-focused query from prompt for recall search.
  * Truncates to 200-char window, prefers FIX_KEYWORDS tokens.
  *
  * @param {string} prompt

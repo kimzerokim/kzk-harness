@@ -68,10 +68,9 @@ grep -rn <symbol> --include='*.{ts,tsx,js,mjs,sh,py}' --exclude-dir={node_module
 
 `.kzk-harness/fix-scope-cache.jsonl` (JSONL append, key=commit SHA, value=callsite list array).
 
-### recall consumer relationship (Plan D)
+### hook registration order
 
-fix-scope-trigger.mjs registers in the `UserPromptSubmit` array **after** regression-recall.mjs.
-Plan D recall results are injected first; Plan B callsite reminder is injected in the next slot.
+fix-scope-trigger.mjs registers in the `UserPromptSubmit` array after other UserPromptSubmit hooks.
 
 ## Fix-verify hook (manual self-check rule)
 
@@ -183,15 +182,15 @@ Detail items as sub-list:
 
 ## Self-skip guard
 
-> Reuses `hook-shared.shouldSkip(prompt, env)`. Single SoT for patterns: `install/lib/hook-shared.mjs` §SELF_IMPROVE_VERBPHRASES. Cross-ref: `kzk-regression-memory` §Self-skip guard.
+> Reuses `hook-shared.shouldSkip(prompt, env)`. Single SoT for patterns: `install/lib/hook-shared.mjs` §SELF_IMPROVE_VERBPHRASES.
 
 ## Default DISABLED policy
 
 `fix-scope-trigger.mjs` is not registered in `settings.json` at commit time.
 
-Enable after all 5 plans (A→D→B→C→E) complete, at `kzk-pre-merge-sync` step 3:
+Enable at `kzk-pre-merge-sync` step 3:
 ```bash
-bash install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger
+bash install/install-global.sh --enable-hooks --fix-scope-trigger
 ```
 
 Self-contamination prevention: hook stays inactive during B/C cycles → blocks the pattern where the agent's own fix triggers its own recall.
@@ -209,10 +208,10 @@ Immediate disable: set `OMC_SKIP_HOOKS=fix-scope-trigger` env var.
 
 ## Interaction with other kzk-*
 
-- **kzk-regression-memory (Plan D)**: fix-scope-trigger registers after D's regression-recall.mjs slot (consumer). Both hooks share `hook-shared.mjs` (prevents drift).
+- **hook-shared.mjs ordering**: fix-scope-trigger registers in UserPromptSubmit. Shares `hook-shared.mjs` with other hooks (prevents drift).
 - **kzk-pre-commit-gate**: Gate 4.5 is defined by this skill. `kzk-pre-commit-gate §Gate 4.5` cross-refs harness-share §3.5.
 - **kzk-codebase-survey**: auto-invoked on fix start. SoT = harness-share §3.5. Cross-ref: `kzk-codebase-survey §fix-time trigger`.
 - **kzk-pre-merge-sync**: step 3 auto-enables via `--fix-scope-trigger` flag. fail-closed.
 - **kzk-large-task-delegation**: when dispatching, if `.kzk-harness/fix-scope-cache.jsonl` exists, inject callsite list into dispatch prompt (200 char cap).
-- **hook-shared.mjs**: `install/lib/hook-shared.mjs` — FIX_KEYWORDS / shouldSkip / detectFixIntent single SoT. Both regression-recall.mjs + fix-scope-trigger.mjs must import it.
+- **hook-shared.mjs**: `install/lib/hook-shared.mjs` — FIX_KEYWORDS / shouldSkip / detectFixIntent single SoT. fix-scope-trigger.mjs must import it.
 - **kzk-freshness-guard**: on fix, expands impact radius of changed symbols — `crg-utils.reverseRefs()` results auto-detect meta-docs. Meta-docs in the impact radius are included in fix scope.

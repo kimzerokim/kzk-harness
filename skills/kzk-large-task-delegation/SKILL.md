@@ -230,8 +230,7 @@ Every dispatch prompt must include:
 - Race-condition awareness (file scopes vs other parallel subagents)
 - Return format on success
 - Halt condition (blocked → user-queue entry)
-- **Regression recall inject** (Plan D): if the main context received a [REGRESSION RECALL] system-reminder, inject that text verbatim into the Rules block of the subagent dispatch prompt. **Size cap 200 chars** — if the reminder exceeds 200 chars, truncate (sort hits high → low confidence_decayed, accumulate until 200 chars reached) + warning footer (`[truncated: <N> more hits]`). Subagent reads the recall results when doing fix work; accuracy verification is the subagent's responsibility.
-- **§Code-quality-discipline boilerplate (Plan F)**: auto-inject the dispatch prompt boilerplate from harness-share.md §32 (DRY/YAGNI/KISS + Deletion test + Depth + obsolete test) into the Rules block. Missing = §Three-stage review FAIL.
+- **§Code-quality-discipline boilerplate (Plan F)**: auto-inject the dispatch prompt boilerplate from harness-share.md §31 (DRY/YAGNI/KISS + Deletion test + Depth + obsolete test) into the Rules block. Missing = §Three-stage review FAIL.
 - **§CRG refresh boilerplate**: at the start of multi-Plan continuation and between each plan, `code-review-graph build`/`update` is mandatory (kzk-autonomous-loop §Multi-plan CRG refresh + kzk-codebase-survey §Step 0.5 (f) cross-ref). Missing = stale CRG risk.
 
 ### Sonnet executor — extra plan-detail requirements
@@ -328,16 +327,6 @@ direct-main flow must have been explicitly authorized this session.
 
 ### Race-condition awareness
 - File scopes vs other parallel subagents in this wave: <list of sibling wave tasks>
-
-### Regression-recall (cycle 4 B2'' fix — invocation aligned to gstack/learn SoT)
-- If this dispatch is a fix-start (per kzk-regression-memory trigger keywords),
-  recall prior regression entries before drafting the test/impl. Use the
-  `gstack:learn` skill via `Skill("gstack:learn")` and follow its `search`
-  flow (per `~/.claude/skills/gstack/learn/SKILL.md:690-692`), or run the
-  CLI binary `gstack-learnings-search --query "<query>"` if available (per
-  SoT `~/.claude/skills/gstack/learn/SKILL.md:718` — `--query` flag 의무).
-  Inline any non-dismissed entries with confidence ≥ 0.6 here as context.
-  Cite recall result file paths.
 
 ### CRG refresh (cycle 4 P1'' fix — relaxed to session-level + Gate 0.5 gating)
 - Per-dispatch CRG refresh is NOT required. Default is session-level: main
@@ -654,6 +643,5 @@ Cross-ref: `kzk-codebase-survey §Preparation phase delegation`, `kzk-autonomous
 - **kzk-test-coverage**: Stage 2 of Three-stage review runs the same coverage check that test-coverage owns at session close.
 - **kzk-pre-commit-gate**: Subagent prompt MUST echo the gate sequence so the executor commits with full Gate 0–5 awareness. Gate 5 cites the Stage 3 result from this skill (key = staged_diff_hash + acceptance_hash + verifier_model, same turn only). Same diff = one verifier call only.
 - **kzk-autonomous-boundary**: Stage 3 verifier 2 consecutive FAILs on same thread → `Q-VERIFIER-FAIL`. INVALID_VERDICT → `Q-VERIFIER-INVALID`. dispatch fail → `Q-VERIFIER-DISPATCH-FAIL`. All registered in autonomous-boundary §Halt conditions table.
-- **kzk-regression-memory**: Inject the [REGRESSION RECALL] reminder received by main into the subagent dispatch prompt (200 char size cap, truncate + warning). Fix subagent also reads recall results.
 - **kzk-test-coverage**: Plan A Q-TDD-MAIN absorption complete — registered as a halt table entry in kzk-autonomous-boundary in this Plan C task 3. No separate follow-up.
 - **kzk-freshness-guard**: CRG dependency graph auto-computes change impact radius → improves scope estimation precision. `crg-utils.getChangedSymbols()` + `crg-utils.reverseRefs()` compute changed file count + affected file count.

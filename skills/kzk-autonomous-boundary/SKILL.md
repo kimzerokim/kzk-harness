@@ -1,7 +1,7 @@
 ---
 name: kzk-autonomous-boundary
 version: 1.14.0
-description: "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contract (destination, name, PR mode) before any autonomous flow; post-contract continuation in same turn (Cycle 48). Autonomous completion fresh-agent verifier (mandatory pre-exit) — main self-declared 'verification PASS' / 'loop exit' forbidden. Cycle-exit mandate: 4 sub-check (prod-build smoke, stub sweep, SoT alignment, spec-freeze re-check). Halt conditions, destructive-op guardrails, Q-entry patterns (Q-TDD-MAIN, Q-TDD-AUTO-MISSING, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-*, Q-COMPLETION-SELF-VERIFY, Q-PW-OAUTH-NEW-ACCOUNT/MULTI-ACCOUNT/CONSENT-LOOP/STUCK/CHALLENGE/PROVIDER-ERROR). Triggers: 'ralph로 돌려', '끝까지 끝내줘', '자율실행', autonomous TDD enforce, Q-TDD-AUTO-MISSING. References harness-share.md §2 + §33."
+description: "Autonomous-mode boundary. Mandatory ASK-FIRST 3-slot branch contract (destination, name, PR mode) before any autonomous flow; post-contract continuation in same turn (Cycle 48). Autonomous completion fresh-agent verifier (mandatory pre-exit) — main self-declared 'verification PASS' / 'loop exit' forbidden. Cycle-exit mandate: 4 sub-check (prod-build smoke, stub sweep, SoT alignment, spec-freeze re-check). Halt conditions, destructive-op guardrails, Q-entry patterns (Q-TDD-MAIN, Q-TDD-AUTO-MISSING, Q-MAIN-DIRECT-EDIT, Q-VERIFIER-*, Q-COMPLETION-SELF-VERIFY, Q-PW-OAUTH-NEW-ACCOUNT/MULTI-ACCOUNT/CONSENT-LOOP/STUCK/CHALLENGE/PROVIDER-ERROR). Triggers: 'ralph로 돌려', '끝까지 끝내줘', '자율실행', autonomous TDD enforce, Q-TDD-AUTO-MISSING. References harness-share.md §2 + §32."
 ---
 
 > Authoritative source: repo `CLAUDE.md` "Autonomous Execution Boundary" + `harness-share.md` §2. On conflict, those win.

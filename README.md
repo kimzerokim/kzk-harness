@@ -1,6 +1,6 @@
 # kzk-harness
 
-Workflow skill layer for [Claude Code](https://claude.ai/code). Installs 18 `kzk-*` skills into any project — commit gates, autonomous mode boundaries, Playwright verification, large task delegation, and more.
+Workflow skill layer for [Claude Code](https://claude.ai/code). Installs 17 `kzk-*` skills into any project — commit gates, autonomous mode boundaries, Playwright verification, large task delegation, and more.
 
 Each skill is a markdown file loaded by Claude when you mention its trigger keyword. No runtime, no config files, no build step.
 
@@ -15,7 +15,7 @@ kzk-harness 설치해줘.
 
 답이 GLOBAL (default 권장) 이면:
   git clone --depth 1 https://github.com/kimzerokim/kzk-harness.git /tmp/kzk-harness
-  bash /tmp/kzk-harness/install/install-global.sh --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard
+  bash /tmp/kzk-harness/install/install-global.sh --enable-hooks --fix-scope-trigger --freshness-guard
   rm -rf /tmp/kzk-harness
 
 답이 PROJECT-ONLY 면:
@@ -29,7 +29,7 @@ kzk-harness 설치해줘.
   8. rm -rf /tmp/kzk-harness
 ```
 
-**Why global is recommended** — install once, every Claude Code session in any directory auto-activates. No per-project migration. Update with one command. No config files accumulate inside project trees. The 18 skill `.md` files live in `~/.claude/skills/kzk-*` (auto-loaded), the umbrella `harness-share.md` lives in `~/.claude/skills/.kzk-harness-shared/` (dot-prefix prevents Claude from treating it as an invocable skill), and a clearly-marked block in `~/.claude/CLAUDE.md` carries the routing table. Outside that block, your existing `~/.claude/CLAUDE.md` is left byte-for-byte identical.
+**Why global is recommended** — install once, every Claude Code session in any directory auto-activates. No per-project migration. Update with one command. No config files accumulate inside project trees. The 17 skill `.md` files live in `~/.claude/skills/kzk-*` (auto-loaded), the umbrella `harness-share.md` lives in `~/.claude/skills/.kzk-harness-shared/` (dot-prefix prevents Claude from treating it as an invocable skill), and a clearly-marked block in `~/.claude/CLAUDE.md` carries the routing table. Outside that block, your existing `~/.claude/CLAUDE.md` is left byte-for-byte identical.
 
 **Project artifacts** (`harness-flow-progress.md`, `docs/harness/`, `docs/plans/`, `.web-loop/`, `.omc/`, `docs/research/codex-reviews/`) always stay in `$PWD` per spec §6.2 — the install never writes outside `~/.claude/` (global mode) or outside the project root (project-only mode).
 
@@ -43,7 +43,7 @@ Re-run the install one-liner above (`install-global.sh` is idempotent — versio
 Or, from a permanent checkout:
 
 ```
-cd /path/to/kzk-harness && git pull && bash install/install-global.sh --update --enable-hooks --regression-recall --fix-scope-trigger --freshness-guard
+cd /path/to/kzk-harness && git pull && bash install/install-global.sh --update --enable-hooks --fix-scope-trigger --freshness-guard
 ```
 
 ## Uninstall
@@ -92,7 +92,6 @@ The skills cross-reference each other; you don't have to memorize the whole chai
 | `kzk-user-queue` | ambiguous decision, user returns, queue review |
 | `kzk-web-loop` | web loop, 웹 루프, 자율 개선, loop forever, 무한 개선, 무한 루프, 계속 돌려 |
 | `kzk-codebase-survey` | codebase survey, 코드베이스 탐색, deep explore, survey first, before planning, 구현 검증, spec verification, 버그 전수조사, spec 체크, 스펙 체크, 하나하나 확인, ralph로 체크, 상세하게 봐줘, 상세히 봐줘, detailed analysis |
-| `kzk-regression-memory` | regression memory, 재발 방지, fix 시작, recall, 과거 fix 조회, gstack learn, dismiss recall |
 | `kzk-fix-scope-expansion` | fix scope expansion, 한 callsite, 호출자 전수, fix-start, callsite mismatch, Gate 4.5, KZK_GATE45_SKIP |
 | `kzk-freshness-guard` | stale 체크, freshness, 문서 신선도, stale check, freshness guard, Gate 0.5, KZK_GATE05_SKIP |
 | `kzk-codex-handoff` | Codex CLI 호출 안정화, stdin pipe, --ephemeral, Preflight, E0-E4 fallback 사다리 |
@@ -103,7 +102,7 @@ Also installed: `harness-share.md` — a portable workflow guide covering the 10
 
 ## 작업 유형별 베스트 프랙티스 (한국어)
 
-설치만 해도 18개 kzk-* 스킬이 자동 로드되지만, **어떤 phrase 로 prompt 를 시작하느냐** 에 따라 자동 활성화되는 skill 묶음이 달라집니다. 매칭은 두 경로로:
+설치만 해도 17개 kzk-* 스킬이 자동 로드되지만, **어떤 phrase 로 prompt 를 시작하느냐** 에 따라 자동 활성화되는 skill 묶음이 달라집니다. 매칭은 두 경로로:
 
 - **`install/hooks/keyword-detector.mjs`** UserPromptSubmit hook (`install-global.sh --enable-hooks` 후) — 매 prompt 마다 phrase 매칭 → 강제 system-reminder 주입
 - **Claude Code 자체 skill discovery** — `~/.claude/skills/kzk-*/SKILL.md` description + body §Triggers 매칭

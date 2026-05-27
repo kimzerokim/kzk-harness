@@ -18,14 +18,13 @@ Say a trigger keyword, optionally with a one-line goal:
 
 **One-time setup checklist (before cycle 1):**
 
-1. **Plugin pre-flight** — Run §Plugin Pre-flight. Detect superpowers / gstack / OMC; install missing ones. Record availability in a local variable for the rest of this run.
+1. **Plugin pre-flight** — Run §Plugin Pre-flight. Detect superpowers / OMC; install missing ones. Record availability in a local variable for the rest of this run.
 
 2. **Branch** — Run the `kzk-autonomous-boundary` ASK-FIRST branch contract before any commit. Web-loop's default proposal: separate branch named `feature/web-loop-<goal-slug>`, PR-flow. The user can override to a different name OR direct-main / direct-no-PR if they explicitly say so. Do NOT silently create `feature/web-loop-...` without an explicit OK.
 
 3. **Goal clarification** — If no goal is given:
    - superpowers available → `Skill("superpowers:brainstorming")` (keep to 2-3 questions max, then lock the goal)
-   - gstack available (no superpowers) → `Skill("gstack:office-hours")` as alternative
-   - neither available → infer from `CLAUDE.md`, `README.md`, and main entry file: `package.json` `main` field → `src/index.*` → `src/main.*`
+   - superpowers unavailable → infer from `CLAUDE.md`, `README.md`, and main entry file: `package.json` `main` field → `src/index.*` → `src/main.*`
 
 4. **`harness-flow-progress.md`** — Create at repo root with `# harness-flow-progress` if missing.
 
@@ -50,7 +49,7 @@ Each cycle executes these steps in order:
   **superpowers available:**
   1. `Skill("kzk-codebase-survey")` — EXPLORER runs all steps (Step 0.5 + Step 1–8), saves report to `.web-loop/surveys/cycle-N-survey.md`. Report path passed to writing-plans as required reading.
   2. `Skill("superpowers:writing-plans")` — creates a frozen plan (default path: `docs/plans/YYYY-MM-DD-<topic>.md`). After the skill returns, main controller copies the plan to `.web-loop/plans/cycle-N-plan.md` so the loop's state dir stays consistent (canonical plan remains in `docs/plans/` for git tracking; in-cycle reads use `.web-loop/plans/`). Both copies are read-only after Frozen. Any plan amendment requires a new `## Frozen v2` section in `docs/plans/...` and re-copy to `.web-loop/plans/`. Prompt includes survey report path.
-  3. `Skill("superpowers:subagent-driven-development")` — reads frozen plan, dispatches implementer subagent, 2-stage spec + quality review. gstack available → append `Skill("gstack:review")` as the final code review pass.
+  3. `Skill("superpowers:subagent-driven-development")` — reads frozen plan, dispatches implementer subagent, 2-stage spec + quality review.
   4. Second consecutive FAIL from the same reviewer (or 3+ FAILs total across all reviewers in the same cycle) → skip issue, append to `docs/harness/user-queue.md`, pick next issue.
 
   **superpowers unavailable (fallback):**
@@ -65,17 +64,13 @@ Each cycle executes these steps in order:
 - Completed: `Cycle N (YYYY-MM-DD HH:MM) — [P-level] [issue one-liner] — queue: N remaining — PW: ok|degraded`
 - Skipped: `Cycle N (YYYY-MM-DD HH:MM) — skipped — [issue one-liner] — [reason] — queue: N remaining — PW: ok|degraded`
 
-**5.5. Cycle retrospective → Skill("learn") invocation** (Plan D)
+**5.5. Cycle retrospective** (Plan D — gstack removed)
 
-Immediately after the cycle commit and the harness-flow-progress update, auto-write a retrospective entry. Call gstack `/learn` skill (from within the Claude Code conversation context):
+Immediately after the cycle commit and the harness-flow-progress update, append a one-line retrospective entry to `harness-flow-progress.md`:
 
-> "learn add: key=cycle-N-<axis>, type=pattern, insight=<evaluator paragraph one-line summary>, confidence=<verifier result 0-10>, source=retro"
+> `Retro N (YYYY-MM-DD): key=cycle-N-<axis>, insight=<evaluator one-line summary>, confidence=<verifier result 0-10>`
 
-Also append atomically to the sidecar (`.kzk-harness/regression-meta.jsonl`) via `install/lib/sidecar-write.mjs`.
-
-**If gstack plugin is not installed or `~/.gstack/projects/` does not exist**: print a stderr WARN + mark the cycle entry in `harness-flow-progress.md` body with `regression memory inactive (gstack not installed)`. The cycle itself continues (only the retrospective entry is skipped).
-
-> JSONL template + file_snapshot canonical source: `kzk-regression-memory` §Cycle 회고 통합 5W1H — Where row.
+> Note: gstack `/learn` integration has been removed. Retrospective is written inline to `harness-flow-progress.md` only.
 
 **6. Back to step 1a.**
 
@@ -126,7 +121,6 @@ fi
 if [ -n "$PLUGINS" ]; then
   echo "$PLUGINS" | grep -qi "oh-my-claudecode" || claude plugin install oh-my-claudecode
   echo "$PLUGINS" | grep -qi "superpowers"       || claude plugin install superpowers
-  echo "$PLUGINS" | grep -qi "gstack"            || claude plugin install gstack
 fi
 ```
 
@@ -154,7 +148,6 @@ Missing plugins never halt the loop once it's running.
 | Plugin missing | Fallback |
 |---|---|
 | superpowers | Step 4b fallback path (raw planner/critic/executor agents) |
-| gstack | Skip `gstack:review` and `gstack:office-hours` steps |
 | OMC | Use `Agent(subagent_type="general-purpose")` calls |
 
 ---
@@ -239,4 +232,3 @@ Anything else → keep going.
 - **kzk-pre-commit-gate**: All executor dispatches must run all applicable gates (6 if AGENTS.md hierarchy present; 5 otherwise) before committing.
 - **kzk-autonomous-boundary**: All boundary conditions apply normally. The reviewer FAIL halt (defined in `kzk-autonomous-loop`) is overridden by web-loop per `harness-share.md` §25 — skip+next-issue instead of halt.
 - **kzk-user-queue**: skipped issues and ambiguous decisions are appended here with Q-WEBLOOP-<N>-<TOPIC> prefix.
-- **kzk-regression-memory**: At cycle end step 5.5, calls `Skill("learn")` (gstack /learn skill) + atomic sidecar append. file_snapshot = `git rev-parse HEAD:<file>` (canonical, captured by evaluator at cycle end). Retrospective entry is auto-written.

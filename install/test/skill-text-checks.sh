@@ -134,7 +134,6 @@ assert_grep "PCG kzk-production-access cross-ref" "kzk-production-access"       
 
 assert_grep "SHARE §2 신규 subsection"            "Production state changes — code-first" "$SHARE_E"
 assert_grep "SHARE Axis B impacted artifact"      "impacted schema"                      "$SHARE_E"
-assert_grep "SHARE Axis D regression-memory"      "kzk-regression-memory"               "$SHARE_E"
 assert_grep "SHARE §2 sync 포인터"                "Plan E rev2 (state mutation)"         "$SHARE_E"
 
 printf '\n%d PASS, %d FAIL\n' "$PASS" "$FAIL"
